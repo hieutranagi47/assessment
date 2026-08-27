@@ -1,0 +1,4 @@
+interface:
+  display_name: "Golang DDD"
+  short_description: "Route Go tasks to the right DDD skill"
+  default_prompt: "Use $golang-ddd to choose the right architecture, refactor, CQRS, or delivery workflow for this task."

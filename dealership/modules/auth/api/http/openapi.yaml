@@ -1,0 +1,313 @@
+openapi: "3.0.3"
+info:
+  title: Authentication API
+  version: "1.0.0"
+  description: Authentication endpoints served by the standalone auth service.
+servers:
+  - url: /auth/v1
+    description: Relative prefix module and api version
+paths:
+  /internal/superadmin:
+    post:
+      operationId: createSuperadmin
+      tags: [Bootstrap]
+      summary: Create the initial superadmin account
+      description: |
+        Creates the first account in the auth service and assigns it the
+        `superadmin` role. This setup endpoint is intentionally unauthenticated
+        and is usable only while `auth.users` is empty. It never promotes an
+        existing account.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateSuperadminRequest" }
+            examples:
+              initialOwner:
+                summary: Initial system owner
+                value:
+                  email: owner@example.com
+                  password: OwnerPass1@
+                  full_name: System Owner
+      responses:
+        "201": { $ref: "#/components/responses/UserCreated" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /sign-up:
+    post:
+      operationId: signUp
+      tags: [Registration]
+      summary: Register a user account
+      description: Creates a user account with an email address, password, and optional display name.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SignUpRequest" }
+      responses:
+        "201": { $ref: "#/components/responses/UserCreated" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /sign-in:
+    post:
+      operationId: signIn
+      tags: [Session]
+      summary: Sign in
+      description: Validates credentials and returns an access token while storing the refresh token in a secure cookie.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CredentialsRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/Tokens" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /refresh-token:
+    post:
+      operationId: refreshToken
+      tags: [Session]
+      summary: Refresh an authenticated session
+      description: Exchanges the secure refresh-token cookie for a new access token and refresh-token cookie.
+      responses:
+        "200": { $ref: "#/components/responses/Tokens" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /sign-out-all-devices:
+    post:
+      operationId: signOutAllDevices
+      tags: [Session]
+      summary: Sign out all devices
+      description: Revokes all refresh tokens for the authenticated user and expires the refresh cookie.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "204": { description: Refresh tokens revoked }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /users/{id}/password:
+    put:
+      operationId: changePassword
+      tags: [User profile]
+      summary: Change the current user's password
+      description: |
+        Changes the password for the authenticated user identified by `{id}`.
+        The access-token user ID must match `{id}`; otherwise the request is forbidden.
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/UserID" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChangePasswordRequest" }
+      responses:
+        "204": { description: Password changed }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /users/{id}/full-name:
+    patch:
+      operationId: updateFullName
+      tags: [User profile]
+      summary: Change the current user's full name
+      description: |
+        Updates the full name for the authenticated user identified by `{id}`.
+        The access-token user ID must match `{id}`; otherwise the request is forbidden.
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/UserID" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateFullNameRequest" }
+      responses:
+        "204": { description: Full name updated }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /users/{id}/status:
+    patch:
+      operationId: updateUserStatus
+      tags: [User profile]
+      summary: Change the current user's status
+      description: |
+        Updates the account status for the authenticated user identified by `{id}`.
+        The access-token user ID must match `{id}`; otherwise the request is forbidden.
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/UserID" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateStatusRequest" }
+      responses:
+        "204": { description: User status updated }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /users/{id}/role:
+    patch:
+      operationId: updateUserRole
+      tags: [Account administration]
+      summary: Change another account's role
+      description: |
+        Assigns `superadmin`, `admin`, or `user` to another account. Only the
+        current superadmin may perform this action and it cannot change its
+        own role.
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/UserID" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateRoleRequest" }
+      responses:
+        "204": { description: User role updated }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    UserID:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  schemas:
+    CreateSuperadminRequest:
+      type: object
+      description: Credentials and optional display name for the initial system owner.
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password }
+        full_name: { type: string }
+    SignUpRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password }
+        full_name: { type: string }
+    CredentialsRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password }
+    ChangePasswordRequest:
+      type: object
+      required: [password, new_password]
+      properties:
+        password: { type: string, format: password }
+        new_password: { type: string, format: password }
+        sign_out_all: { type: boolean }
+    UpdateFullNameRequest:
+      type: object
+      required: [full_name]
+      properties:
+        full_name: { type: string }
+    UpdateStatusRequest:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [active, disabled, deleted] }
+    UpdateRoleRequest:
+      type: object
+      required: [role]
+      properties:
+        role: { type: string, enum: [superadmin, admin, user] }
+    UserCreated:
+      type: object
+      required: [id]
+      properties:
+        id: { type: string, format: uuid }
+    Tokens:
+      type: object
+      required: [access_token, expires_in, token_type]
+      properties:
+        access_token: { type: string }
+        expires_in: { type: integer }
+        token_type: { type: string }
+    ErrorResponse:
+      type: object
+      required: [message, slug, details]
+      properties:
+        message: { type: string }
+        slug: { type: string }
+        details:
+          type: array
+          items: { $ref: "#/components/schemas/ErrorDetail" }
+    ErrorDetail:
+      type: object
+      required: [entity_type, entity_id, error_slug, message]
+      properties:
+        entity_type: { type: string }
+        entity_id: { type: string }
+        error_slug: { type: string }
+        message: { type: string }
+  responses:
+    UserCreated:
+      description: User registered, including initial superadmin creation
+      content:
+        {
+          application/json:
+            { schema: { $ref: "#/components/schemas/UserCreated" } },
+        }
+    Tokens:
+      description: Authenticated session
+      content:
+        {
+          application/json: { schema: { $ref: "#/components/schemas/Tokens" } },
+        }
+    BadRequest:
+      description: Invalid request. Validation failures include field details.
+      content:
+        {
+          application/json:
+            { schema: { $ref: "#/components/schemas/ErrorResponse" } },
+        }
+    Unauthorized:
+      description: Authentication failed
+      content:
+        {
+          application/json:
+            { schema: { $ref: "#/components/schemas/ErrorResponse" } },
+        }
+    Forbidden:
+      description: Action is not permitted
+      content:
+        {
+          application/json:
+            { schema: { $ref: "#/components/schemas/ErrorResponse" } },
+        }
+    NotFound:
+      description: User not found
+      content:
+        {
+          application/json:
+            { schema: { $ref: "#/components/schemas/ErrorResponse" } },
+        }
+    InternalServerError:
+      description: Unexpected server error
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+          example:
+            message: internal server error
+            slug: internal_error
+            details: []
+    Conflict:
+      description: |
+        Conflict. For initial-superadmin creation, `account_exists` means any
+        auth account already exists; `email_taken` means email uniqueness won
+        the race. Both return an empty `details` array.
+      content:
+        {
+          application/json:
+            { schema: { $ref: "#/components/schemas/ErrorResponse" } },
+        }

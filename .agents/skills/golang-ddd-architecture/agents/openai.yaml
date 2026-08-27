@@ -1,0 +1,4 @@
+interface:
+  display_name: "Golang DDD Architecture"
+  short_description: "Design boundaries for a maintainable Go service"
+  default_prompt: "Use $golang-ddd-architecture to design or review this Go service architecture with clear boundaries and dependency direction."

@@ -1,0 +1,80 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ht47}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-very-secret}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  dealership:
+    build:
+      context: ./
+      dockerfile: dealership/Dockerfile
+      no_cache: true
+    environment:
+      POSTGRES_DSN: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-very-secret}@postgres:5432/${POSTGRES_DB:-ht47}?sslmode=disable
+      RSA_PRIVATE_KEY_PEM: |-
+        -----BEGIN PRIVATE KEY-----
+        MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDUqYn1WVvN3NDs
+        cJQI7BUm/eL23+xJ76ZF9he5POKv9XfmYBTuvzBYHgtKLaNo9BgTpSgUsjdfCxEr
+        AvChwHZmoS3Afc/+wR83hAfl+uUitO/0T+88Ou/oTuk5/0bD7LUO9rKeByO6d8BN
+        k+LrPSg5+Zr8V3WixVioSXbwjaZ3ltjPAIOku/ZtjFSwbVmH4Dwpd7UN5nPMkrj7
+        Dq+X7wFTS9j/VM+/HxsT44Fk8O+3FdkVTtOusBNmATebEKMz4h4BE9GlBFJxqNoA
+        RdEcDWkip+m6LuhcDVhfIdkNnrF6VffNrXtMHnnbza47FBALM+xPedGv8bgBT2Gv
+        q2qbeI7LAgMBAAECggEAYvi+VHmwcJgOgaOJObfJxlpNWVDwcp5+VzwHYXXVGEgY
+        85YO1+gR00i0P2MLFIrZc7ce9rbUbz7C0C4vmE/uqqfjl5zWAr2VTix70owYPLVR
+        oXXcJL9XLNog0BWetQtCXoLwsPwopB0cWd50Mr/FK2oft8XqYQUQVE3QdXavHSM0
+        7PUGx0mNyQSkhj5vUhpYR8hetnOcJtqMNxHkV/dWG8UzSxzBAvvj9G6Zpho+3mM0
+        TK+R/jfaES7lI56q8ZcMGWXV/oztu95qLKtOHKfL3fDiVZpsr/gHiBKa8ufN6a5X
+        siq6oKt2qWVrahWwqll/yL4SXXmuFkDKD+1aiRyvrQKBgQD6dPsRANUuAqpgBXyb
+        KfXNG8I5ALO8lrUu7vnVyi+8rkZmtE5YYcYPI3GEy7YM7pxEeztHiFTYLC5EWyeG
+        urmBJNGqasG2R+lSHceaN8eP7I4Ga54AHY+tbAuyO+yqlHs2UJaJ63dhzWZeOSEn
+        Y2vvxHNF18J4dFMo+x9HPQgtfwKBgQDZXmyJXvGJzYeeRJwM6T0xWV5+ASaoZpY7
+        vJZqLqz7klS7uCI1lIJsBNYZ89L0vU2FvyNZvc1h0WhNWgYWrO/gaQCJCBGh9//y
+        9RnlMQwTwcBDC5TC8OJzTAEJwMW7VDDVmmU91lN6Ihoapr38pvDDpaND4T+7b7xR
+        AZpU4ImctQKBgA9IWhWUhm2TThAj5ZGWQuBsJDLUPyNv0sh1XptUBguuWq9jqzAr
+        byl3UTL4Nzicyr5HArv/rqWuNHiJU2UeObmOpJiQgRd9Vdhj5s0bQDshBR2RLYf2
+        RdEgOap7i5pxCv+qdTUfQB6gqPFw7Pv5ThnIU/xcCQrOllB22la/e6NDAoGAWlda
+        OMXTEXjwkqDlUqBlpGsGUMxdqsPoUK+SvFLl5jDtMo/W9/nfMtHXwjWKSdmbrKjC
+        Inw2Lh+AgBWYTjhWAijh5hIKcgzGvc2Mk6sM3/E43SSlEVhYZZ8DF3CdPbxCB6UB
+        yu+XBj3CJ62BbM5dZpMjBgVKHbbUx74ozHn997kCgYBJvvTmWFzFzi2J+BvC9NA6
+        /p/BHTEqT8SEp2tDqw+KnGwy7g66T3lxQJHwnNEma/dSmFWp3VFWfxi7cu0XzUwN
+        E39yqiOUjG/jujGW+XOpznVzyOlRVZ7RBpxLqYyDNdpo0Knt8yAbKjtaTXk3eNyX
+        XZxTkjEGpfTRXDOc2VJJNg==
+        -----END PRIVATE KEY-----
+      RSA_PUBLIC_KEY_PEM: |-
+        -----BEGIN PUBLIC KEY-----
+        MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA1KmJ9VlbzdzQ7HCUCOwV
+        Jv3i9t/sSe+mRfYXuTzir/V35mAU7r8wWB4LSi2jaPQYE6UoFLI3XwsRKwLwocB2
+        ZqEtwH3P/sEfN4QH5frlIrTv9E/vPDrv6E7pOf9Gw+y1DvayngcjunfATZPi6z0o
+        Ofma/Fd1osVYqEl28I2md5bYzwCDpLv2bYxUsG1Zh+A8KXe1DeZzzJK4+w6vl+8B
+        U0vY/1TPvx8bE+OBZPDvtxXZFU7TrrATZgE3mxCjM+IeARPRpQRScajaAEXRHA1p
+        Iqfpui7oXA1YXyHZDZ6xelX3za17TB55282uOxQQCzPsT3nRr/G4AU9hr6tqm3iO
+        ywIDAQAB
+        -----END PUBLIC KEY-----
+      EMAIL_ENCRYPTION_KEY: aabbcc112233
+      EMAIL_LOOKUP_KEY: xxxyyyzzz66778899
+      SERVER_PORT: 8080
+      SERVER_PORT_TLS: 8443
+      ENVIRONMENT: development
+    ports:
+      - "${SERVER_PORT:-9999}:8080"
+      - "${SERVER_PORT_TLS:-8444}:8443"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

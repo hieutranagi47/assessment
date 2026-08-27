@@ -1,0 +1,4 @@
+interface:
+  display_name: "Go DDD New Project"
+  short_description: "Scaffold Go DDD services and modules"
+  default_prompt: "Use $golang-ddd-new-project to scaffold a Go DDD service and its first module."

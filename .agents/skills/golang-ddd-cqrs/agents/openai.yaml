@@ -1,0 +1,4 @@
+interface:
+  display_name: "Golang DDD CQRS"
+  short_description: "Commands, queries, and thin Go application layers"
+  default_prompt: "Use $golang-ddd-cqrs to structure Go commands, queries, ports, and handlers with clear write/read boundaries and thin orchestration."

@@ -1,0 +1,608 @@
+openapi: "3.0.3"
+info:
+  title: Dealership API
+  version: "1.0.0"
+  description: Dealership administration endpoints.
+paths:
+  /v1/dealerships/{dealershipId}/service-bays:
+    parameters:
+      - $ref: "#/components/parameters/DealershipId"
+    post:
+      operationId: createServiceBay
+      tags: [Service bays]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateServiceBayRequest" }
+      responses:
+        "201": { $ref: "#/components/responses/ServiceBayCreated" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    get:
+      operationId: listServiceBays
+      tags: [Service bays]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: isActive
+          in: query
+          schema: { type: boolean }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 25 }
+        - name: offset
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+      responses:
+        "200": { $ref: "#/components/responses/ServiceBaysListed" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /v1/dealerships/{dealershipId}/service-bays/{serviceBayId}:
+    parameters:
+      - $ref: "#/components/parameters/DealershipId"
+      - $ref: "#/components/parameters/ServiceBayId"
+    get:
+      operationId: getServiceBay
+      tags: [Service bays]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/ServiceBayFound" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    patch:
+      operationId: updateServiceBay
+      tags: [Service bays]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateServiceBayRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/ServiceBayUpdated" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    delete:
+      operationId: deleteServiceBay
+      tags: [Service bays]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "204": { description: Service bay deleted }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /v1/dealerships/{dealershipId}/service-types:
+    parameters:
+      - $ref: "#/components/parameters/DealershipId"
+    post:
+      operationId: createServiceType
+      tags: [Service types]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateServiceTypeRequest" }
+      responses:
+        "201": { $ref: "#/components/responses/ServiceTypeCreated" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    get:
+      operationId: listServiceTypes
+      tags: [Service types]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/ServiceTypesListed" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}:
+    parameters:
+      - $ref: "#/components/parameters/DealershipId"
+      - $ref: "#/components/parameters/ServiceTypeId"
+    get:
+      operationId: getServiceType
+      tags: [Service types]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/ServiceTypeFound" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    patch:
+      operationId: updateServiceType
+      tags: [Service types]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateServiceTypeRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/ServiceTypeUpdated" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    delete:
+      operationId: deleteServiceType
+      tags: [Service types]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "204": { description: Service type deleted }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-skills:
+    parameters:
+      - $ref: "#/components/parameters/DealershipId"
+      - $ref: "#/components/parameters/ServiceTypeId"
+    post:
+      operationId: createServiceTypeRequiredSkill
+      tags: [Service type required skills]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateServiceTypeRequiredSkillRequest" }
+      responses:
+        "201": { $ref: "#/components/responses/ServiceTypeRequiredSkillCreated" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    get:
+      operationId: listServiceTypeRequiredSkills
+      tags: [Service type required skills]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/ServiceTypeRequiredSkillsListed" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-skills/{requiredSkillId}:
+    parameters:
+      - $ref: "#/components/parameters/DealershipId"
+      - $ref: "#/components/parameters/ServiceTypeId"
+      - $ref: "#/components/parameters/RequiredSkillId"
+    patch:
+      operationId: updateServiceTypeRequiredSkill
+      tags: [Service type required skills]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateServiceTypeRequiredSkillRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/ServiceTypeRequiredSkillUpdated" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    delete:
+      operationId: deleteServiceTypeRequiredSkill
+      tags: [Service type required skills]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "204": { description: Required skill deleted }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /dealership-users:
+    post:
+      operationId: createDealershipUser
+      tags: [Dealership users]
+      summary: Grant dealership staff access to an existing auth user
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateDealershipUserRequest" }
+      responses:
+        "201": { $ref: "#/components/responses/DealershipUserCreated" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /dealership-users/search:
+    get:
+      operationId: searchAuthUserByEmail
+      tags: [Dealership users]
+      summary: Search an auth user by email
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: email
+          in: query
+          required: true
+          schema: { type: string, format: email }
+      responses:
+        "200": { $ref: "#/components/responses/AuthUserFound" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /dealership-users/admins:
+    post:
+      operationId: createDealershipAdmin
+      tags: [Dealership users]
+      summary: Create a dealership scheduler admin
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateDealershipAdminRequest" }
+      responses:
+        "201": { $ref: "#/components/responses/DealershipAdminCreated" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /dealerships:
+    post:
+      operationId: createDealership
+      tags: [Dealerships]
+      summary: Create a dealership
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateDealershipRequest" }
+      responses:
+        "201": { $ref: "#/components/responses/DealershipCreated" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    CreateServiceBayRequest:
+      type: object
+      required: [code, name]
+      properties:
+        code: { type: string, minLength: 1 }
+        name: { type: string, minLength: 1 }
+        isActive: { type: boolean, default: true }
+    UpdateServiceBayRequest:
+      type: object
+      minProperties: 1
+      properties:
+        code: { type: string, minLength: 1 }
+        name: { type: string, minLength: 1 }
+        isActive: { type: boolean }
+    ServiceBay:
+      type: object
+      required: [serviceBayId, dealershipId, code, name, isActive, createdAt, updatedAt]
+      properties:
+        serviceBayId: { type: string, format: uuid }
+        dealershipId: { type: string, format: uuid }
+        code: { type: string }
+        name: { type: string }
+        isActive: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    ServiceBayPage:
+      type: object
+      required: [items, limit, offset]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/ServiceBay" }
+        limit: { type: integer }
+        offset: { type: integer }
+    CreateServiceTypeRequest:
+      type: object
+      required: [name, defaultDurationMinutes, minDurationMinutes, maxDurationMinutes]
+      properties:
+        name: { type: string, minLength: 1 }
+        defaultDurationMinutes: { type: integer, minimum: 1 }
+        minDurationMinutes: { type: integer, minimum: 1 }
+        maxDurationMinutes: { type: integer, minimum: 1 }
+        isActive: { type: boolean, default: true }
+    UpdateServiceTypeRequest:
+      type: object
+      minProperties: 1
+      properties:
+        name: { type: string, minLength: 1 }
+        defaultDurationMinutes: { type: integer, minimum: 1 }
+        minDurationMinutes: { type: integer, minimum: 1 }
+        maxDurationMinutes: { type: integer, minimum: 1 }
+        isActive: { type: boolean }
+    ServiceType:
+      type: object
+      required: [serviceTypeId, dealershipId, name, defaultDurationMinutes, minDurationMinutes, maxDurationMinutes, isActive, createdAt, updatedAt]
+      properties:
+        serviceTypeId: { type: string, format: uuid }
+        dealershipId: { type: string, format: uuid }
+        name: { type: string }
+        defaultDurationMinutes: { type: integer }
+        minDurationMinutes: { type: integer }
+        maxDurationMinutes: { type: integer }
+        isActive: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    CreateServiceTypeRequiredSkillRequest:
+      type: object
+      required: [skillId]
+      properties:
+        skillId: { type: string, format: uuid }
+    UpdateServiceTypeRequiredSkillRequest:
+      type: object
+      required: [skillId]
+      properties:
+        skillId: { type: string, format: uuid }
+    Skill:
+      type: object
+      required: [skillId, code, name]
+      properties:
+        skillId: { type: string, format: uuid }
+        code: { type: string }
+        name: { type: string }
+    ServiceTypeRequiredSkill:
+      type: object
+      required: [requiredSkillId, serviceTypeId, skill, createdAt, updatedAt]
+      properties:
+        requiredSkillId: { type: string, format: uuid }
+        serviceTypeId: { type: string, format: uuid }
+        skill: { $ref: "#/components/schemas/Skill" }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    CreateDealershipUserRequest:
+      type: object
+      required: [dealershipId, email, role]
+      properties:
+        dealershipId: { type: string, format: uuid }
+        email: { type: string, format: email, example: user@example.com }
+        role: { type: string, enum: [admin, dealer, staff] }
+    DealershipUser:
+      type: object
+      required: [userId, authUserId, dealershipId, name, email, isActive, role, createdAt, updatedAt]
+      properties:
+        userId: { type: string, format: uuid }
+        authUserId: { type: string, format: uuid }
+        dealershipId: { type: string, format: uuid }
+        name: { type: string }
+        email: { type: string, format: email }
+        isActive: { type: boolean }
+        role: { type: string, enum: [admin, dealer, staff] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    CreateDealershipAdminRequest:
+      type: object
+      required: [dealershipId, name, email]
+      properties:
+        dealershipId: { type: string, format: uuid }
+        name: { type: string, minLength: 1 }
+        phone: { type: string, nullable: true, example: "+84901234567" }
+        email: { type: string, format: email, example: jane@example.com }
+    AuthUser:
+      type: object
+      required: [userId, email, fullName, status, role]
+      properties:
+        userId: { type: string, format: uuid }
+        email: { type: string, format: email }
+        fullName: { type: string }
+        status: { type: string }
+        role: { type: string }
+    DealershipAdmin:
+      type: object
+      required: [userId, authUserId, dealershipId, name, isActive, role, createdAt, updatedAt]
+      properties:
+        userId: { type: string, format: uuid }
+        authUserId: { type: string, format: uuid }
+        dealershipId: { type: string, format: uuid }
+        name: { type: string }
+        phone: { type: string, nullable: true }
+        email: { type: string, format: email, nullable: true }
+        isActive: { type: boolean }
+        role: { type: string, enum: [admin] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    CreateDealershipRequest:
+      type: object
+      required: [name, code, address, timezone]
+      properties:
+        name: { type: string, minLength: 1 }
+        code: { type: string, minLength: 1 }
+        address: { type: string, minLength: 1 }
+        timezone: { type: string, minLength: 1, example: Asia/Ho_Chi_Minh }
+    Dealership:
+      type: object
+      required: [dealershipId, name, code, address, timezone, isActive, createdAt, updatedAt]
+      properties:
+        dealershipId: { type: string, format: uuid }
+        name: { type: string }
+        code: { type: string }
+        address: { type: string }
+        timezone: { type: string }
+        isActive: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    ErrorDetail:
+      type: object
+      required: [entityType, entityId, errorSlug, message]
+      properties:
+        entityType: { type: string }
+        entityId: { type: string }
+        errorSlug: { type: string }
+        message: { type: string }
+    ErrorResponse:
+      type: object
+      required: [message, slug, details]
+      properties:
+        message: { type: string }
+        slug: { type: string }
+        details:
+          type: array
+          items: { $ref: "#/components/schemas/ErrorDetail" }
+  responses:
+    ServiceBayCreated:
+      description: Service bay created
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ServiceBay" }
+    ServiceBayFound:
+      description: Service bay found
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ServiceBay" }
+    ServiceBayUpdated:
+      description: Service bay updated
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ServiceBay" }
+    ServiceBaysListed:
+      description: Service bays for the dealership
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ServiceBayPage" }
+    ServiceTypeCreated:
+      description: Service type created
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ServiceType" }
+    ServiceTypeFound:
+      description: Service type found
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ServiceType" }
+    ServiceTypeUpdated:
+      description: Service type updated
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ServiceType" }
+    ServiceTypesListed:
+      description: Service types for the dealership
+      content:
+        application/json:
+          schema:
+            type: array
+            items: { $ref: "#/components/schemas/ServiceType" }
+    ServiceTypeRequiredSkillCreated:
+      description: Required skill created
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ServiceTypeRequiredSkill" }
+    ServiceTypeRequiredSkillUpdated:
+      description: Required skill updated
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ServiceTypeRequiredSkill" }
+    ServiceTypeRequiredSkillsListed:
+      description: Required skills for the service type
+      content:
+        application/json:
+          schema:
+            type: array
+            items: { $ref: "#/components/schemas/ServiceTypeRequiredSkill" }
+    DealershipUserCreated:
+      description: Dealership scheduler user created
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/DealershipUser" }
+    AuthUserFound:
+      description: Auth user found
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/AuthUser" }
+    DealershipCreated:
+      description: Dealership created
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Dealership" }
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    Forbidden:
+      description: Insufficient privileges
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    Conflict:
+      description: Duplicate dealership code
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    DealershipAdminCreated:
+      description: Dealership scheduler admin created
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/DealershipAdmin" }
+    NotFound:
+      description: Requested resource was not found
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    InternalServerError:
+      description: Unexpected server error
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+  parameters:
+    DealershipId:
+      name: dealershipId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    ServiceTypeId:
+      name: serviceTypeId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    ServiceBayId:
+      name: serviceBayId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    RequiredSkillId:
+      name: requiredSkillId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }

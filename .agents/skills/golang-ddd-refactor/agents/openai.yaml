@@ -1,0 +1,4 @@
+interface:
+  display_name: "Golang DDD Refactor"
+  short_description: "Refactor Go code into a behavior-first domain"
+  default_prompt: "Use $golang-ddd-refactor to refactor this Go code toward a behavior-first domain model with explicit invariants and clearer boundaries."

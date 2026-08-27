@@ -1,0 +1,4 @@
+interface:
+  display_name: "Golang DDD Infrastructure"
+  short_description: "Terraform, CI, and secure infra for Go services"
+  default_prompt: "Use $golang-ddd-infrastructure to set up or review Terraform, CI, testing, and infrastructure boundaries for a Go service."

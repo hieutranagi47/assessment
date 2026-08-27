@@ -1,0 +1,10 @@
+version: "3"
+
+tasks:
+  sqlc:
+    dir: auth/adapters/db
+    cmds: [sqlc generate]
+  gen:
+    cmds: [go generate ./..., gofmt -w .]
+  test:
+    cmds: [go test ./...]
