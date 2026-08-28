@@ -12,22 +12,23 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const createCustomers = `-- name: CreateCustomers :exec
+const createCustomer = `-- name: CreateCustomer :one
 INSERT INTO appointment_scheduler.customers (customer_id, name, phone, email, created_at, updated_at)
 VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING customer_id, name, phone, email, created_at, updated_at
 `
 
-type CreateCustomersParams struct {
+type CreateCustomerParams struct {
 	CustomerID pgtype.UUID
 	Name       string
-	Phone      *string
+	Phone      string
 	Email      *string
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 }
 
-func (q *Queries) CreateCustomers(ctx context.Context, arg CreateCustomersParams) error {
-	_, err := q.db.Exec(ctx, createCustomers,
+func (q *Queries) CreateCustomer(ctx context.Context, arg CreateCustomerParams) (AppointmentSchedulerCustomer, error) {
+	row := q.db.QueryRow(ctx, createCustomer,
 		arg.CustomerID,
 		arg.Name,
 		arg.Phone,
@@ -35,49 +36,7 @@ func (q *Queries) CreateCustomers(ctx context.Context, arg CreateCustomersParams
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
-	return err
-}
-
-const deleteCustomers = `-- name: DeleteCustomers :execrows
-UPDATE appointment_scheduler.customers
-SET deleted_at = $1::timestamptz
-WHERE customer_id = $2 AND deleted_at IS NULL
-`
-
-type DeleteCustomersParams struct {
-	DeletedAt  time.Time
-	CustomerID pgtype.UUID
-}
-
-func (q *Queries) DeleteCustomers(ctx context.Context, arg DeleteCustomersParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteCustomers, arg.DeletedAt, arg.CustomerID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
-}
-
-const getCustomers = `-- name: GetCustomers :one
-
-SELECT customer_id, name, phone, email, created_at, updated_at, deleted_at
-FROM appointment_scheduler.customers
-WHERE customer_id = $1 AND deleted_at IS NULL
-`
-
-type GetCustomersRow struct {
-	CustomerID pgtype.UUID
-	Name       string
-	Phone      string
-	Email      *string
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
-	DeletedAt  pgtype.Timestamptz
-}
-
-// customers CRUD queries.
-func (q *Queries) GetCustomers(ctx context.Context, customerID pgtype.UUID) (GetCustomersRow, error) {
-	row := q.db.QueryRow(ctx, getCustomers, customerID)
-	var i GetCustomersRow
+	var i AppointmentSchedulerCustomer
 	err := row.Scan(
 		&i.CustomerID,
 		&i.Name,
@@ -85,35 +44,101 @@ func (q *Queries) GetCustomers(ctx context.Context, customerID pgtype.UUID) (Get
 		&i.Email,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.DeletedAt,
 	)
 	return i, err
 }
 
-const updateCustomers = `-- name: UpdateCustomers :execrows
-UPDATE appointment_scheduler.customers
-SET name = $1, phone = $2, email = $3, updated_at = $4
-WHERE customer_id = $5 AND deleted_at IS NULL
+const getCustomerByEmail = `-- name: GetCustomerByEmail :one
+SELECT customer_id, name, phone, email, created_at, updated_at
+FROM appointment_scheduler.customers
+WHERE lower(email) = $1
 `
 
-type UpdateCustomersParams struct {
+func (q *Queries) GetCustomerByEmail(ctx context.Context, email *string) (AppointmentSchedulerCustomer, error) {
+	row := q.db.QueryRow(ctx, getCustomerByEmail, email)
+	var i AppointmentSchedulerCustomer
+	err := row.Scan(
+		&i.CustomerID,
+		&i.Name,
+		&i.Phone,
+		&i.Email,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getCustomerByID = `-- name: GetCustomerByID :one
+SELECT customer_id, name, phone, email, created_at, updated_at
+FROM appointment_scheduler.customers
+WHERE customer_id = $1
+`
+
+func (q *Queries) GetCustomerByID(ctx context.Context, customerID pgtype.UUID) (AppointmentSchedulerCustomer, error) {
+	row := q.db.QueryRow(ctx, getCustomerByID, customerID)
+	var i AppointmentSchedulerCustomer
+	err := row.Scan(
+		&i.CustomerID,
+		&i.Name,
+		&i.Phone,
+		&i.Email,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getCustomerByPhone = `-- name: GetCustomerByPhone :one
+SELECT customer_id, name, phone, email, created_at, updated_at
+FROM appointment_scheduler.customers
+WHERE phone = $1
+`
+
+func (q *Queries) GetCustomerByPhone(ctx context.Context, phone string) (AppointmentSchedulerCustomer, error) {
+	row := q.db.QueryRow(ctx, getCustomerByPhone, phone)
+	var i AppointmentSchedulerCustomer
+	err := row.Scan(
+		&i.CustomerID,
+		&i.Name,
+		&i.Phone,
+		&i.Email,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updateCustomer = `-- name: UpdateCustomer :one
+UPDATE appointment_scheduler.customers
+SET name = $1, phone = $2, email = $3, updated_at = $4
+WHERE customer_id = $5
+RETURNING customer_id, name, phone, email, created_at, updated_at
+`
+
+type UpdateCustomerParams struct {
 	Name       string
-	Phone      *string
+	Phone      string
 	Email      *string
 	UpdatedAt  time.Time
 	CustomerID pgtype.UUID
 }
 
-func (q *Queries) UpdateCustomers(ctx context.Context, arg UpdateCustomersParams) (int64, error) {
-	result, err := q.db.Exec(ctx, updateCustomers,
+func (q *Queries) UpdateCustomer(ctx context.Context, arg UpdateCustomerParams) (AppointmentSchedulerCustomer, error) {
+	row := q.db.QueryRow(ctx, updateCustomer,
 		arg.Name,
 		arg.Phone,
 		arg.Email,
 		arg.UpdatedAt,
 		arg.CustomerID,
 	)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
+	var i AppointmentSchedulerCustomer
+	err := row.Scan(
+		&i.CustomerID,
+		&i.Name,
+		&i.Phone,
+		&i.Email,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }

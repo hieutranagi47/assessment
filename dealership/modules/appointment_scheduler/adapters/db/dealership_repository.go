@@ -63,6 +63,157 @@ func (r *DealershipRepository) IsActiveSchedulerAdminForDealership(ctx context.C
 	})
 }
 
+func (r *DealershipRepository) IsActiveDealership(ctx context.Context, dealershipID uuid.UUID) (bool, error) {
+	_, err := r.queries.GetActiveDealership(ctx, toPGUUID(dealershipID))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, nil
+	}
+	return err == nil, err
+}
+
+func (r *DealershipRepository) CreateDealershipOperationTime(ctx context.Context, operationTime domain.DealershipOperationTime) error {
+	err := r.queries.CreateDealershipOperationTime(ctx, dbmodels.CreateDealershipOperationTimeParams{
+		DealershipOperationTimeID: toPGUUID(operationTime.ID()),
+		DealershipID:              toPGUUID(operationTime.DealershipID()),
+		DayOfWeek:                 int16(operationTime.DayOfWeek()),
+		OpensAt:                   toPGTime(operationTime.OpensAt()),
+		ClosesAt:                  toPGTime(operationTime.ClosesAt()),
+		CreatedAt:                 operationTime.CreatedAt(),
+		UpdatedAt:                 operationTime.UpdatedAt(),
+	})
+	return operationTimeWriteError(err)
+}
+
+func (r *DealershipRepository) GetDealershipOperationTime(ctx context.Context, dealershipID, operationTimeID uuid.UUID) (domain.DealershipOperationTime, error) {
+	row, err := r.queries.GetDealershipOperationTime(ctx, dbmodels.GetDealershipOperationTimeParams{DealershipID: toPGUUID(dealershipID), DealershipOperationTimeID: toPGUUID(operationTimeID)})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.DealershipOperationTime{}, app.ErrDealershipOperationTimeNotFound
+	}
+	if err != nil {
+		return domain.DealershipOperationTime{}, err
+	}
+	return operationTimeFromRow(row)
+}
+
+func (r *DealershipRepository) ListDealershipOperationTimes(ctx context.Context, dealershipID uuid.UUID) ([]domain.DealershipOperationTime, error) {
+	rows, err := r.queries.ListDealershipOperationTimes(ctx, toPGUUID(dealershipID))
+	if err != nil {
+		return nil, err
+	}
+	items := make([]domain.DealershipOperationTime, 0, len(rows))
+	for _, row := range rows {
+		item, err := operationTimeFromRow(row)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	return items, nil
+}
+
+func (r *DealershipRepository) UpdateDealershipOperationTime(ctx context.Context, operationTime domain.DealershipOperationTime) error {
+	rows, err := r.queries.UpdateDealershipOperationTime(ctx, dbmodels.UpdateDealershipOperationTimeParams{DealershipID: toPGUUID(operationTime.DealershipID()), DayOfWeek: int16(operationTime.DayOfWeek()), OpensAt: toPGTime(operationTime.OpensAt()), ClosesAt: toPGTime(operationTime.ClosesAt()), UpdatedAt: operationTime.UpdatedAt(), DealershipOperationTimeID: toPGUUID(operationTime.ID())})
+	if err = operationTimeWriteError(err); err != nil {
+		return err
+	}
+	if rows == 0 {
+		return app.ErrDealershipOperationTimeNotFound
+	}
+	return nil
+}
+
+func (r *DealershipRepository) DeleteDealershipOperationTime(ctx context.Context, dealershipID, operationTimeID uuid.UUID) error {
+	rows, err := r.queries.DeleteDealershipOperationTime(ctx, dbmodels.DeleteDealershipOperationTimeParams{DealershipID: toPGUUID(dealershipID), DealershipOperationTimeID: toPGUUID(operationTimeID)})
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return app.ErrDealershipOperationTimeNotFound
+	}
+	return nil
+}
+
+func (r *DealershipRepository) IsActiveCustomerEmployee(ctx context.Context, authUserID uuid.UUID) (bool, error) {
+	if authUserID == uuid.Nil {
+		return false, nil
+	}
+	return r.queries.IsActiveCustomerEmployee(ctx, toPGUUID(authUserID))
+}
+
+func (r *DealershipRepository) CreateCustomer(ctx context.Context, customer domain.Customer) (domain.Customer, error) {
+	row, err := r.queries.CreateCustomer(ctx, dbmodels.CreateCustomerParams{
+		CustomerID: toPGUUID(customer.ID()),
+		Name:       customer.Name(),
+		Phone:      customer.Phone(),
+		Email:      customer.Email(),
+		CreatedAt:  customer.CreatedAt(),
+		UpdatedAt:  customer.UpdatedAt(),
+	})
+	if common.IsUniqueViolationError(err, "customers_phone_key") {
+		return domain.Customer{}, app.ErrCustomerPhoneTaken
+	}
+	if common.IsUniqueViolationError(err, "customers_email_unique_when_present") {
+		return domain.Customer{}, app.ErrCustomerEmailTaken
+	}
+	if err != nil {
+		return domain.Customer{}, err
+	}
+	return customerFromRow(row), nil
+}
+
+func (r *DealershipRepository) GetCustomer(ctx context.Context, customerID uuid.UUID) (domain.Customer, error) {
+	row, err := r.queries.GetCustomerByID(ctx, toPGUUID(customerID))
+	return customerFromQuery(row, err)
+}
+
+func (r *DealershipRepository) UpdateCustomer(ctx context.Context, customer domain.Customer) (domain.Customer, error) {
+	row, err := r.queries.UpdateCustomer(ctx, dbmodels.UpdateCustomerParams{
+		CustomerID: toPGUUID(customer.ID()),
+		Name:       customer.Name(),
+		Phone:      customer.Phone(),
+		Email:      customer.Email(),
+		UpdatedAt:  customer.UpdatedAt(),
+	})
+	if common.IsUniqueViolationError(err, "customers_phone_key") {
+		return domain.Customer{}, app.ErrCustomerPhoneTaken
+	}
+	if common.IsUniqueViolationError(err, "customers_email_unique_when_present") {
+		return domain.Customer{}, app.ErrCustomerEmailTaken
+	}
+	return customerFromQuery(row, err)
+}
+
+func (r *DealershipRepository) GetCustomerByPhone(ctx context.Context, phone string) (domain.Customer, error) {
+	row, err := r.queries.GetCustomerByPhone(ctx, phone)
+	return customerFromQuery(row, err)
+}
+
+func (r *DealershipRepository) GetCustomerByEmail(ctx context.Context, email string) (domain.Customer, error) {
+	row, err := r.queries.GetCustomerByEmail(ctx, &email)
+	return customerFromQuery(row, err)
+}
+
+func customerFromQuery(row dbmodels.AppointmentSchedulerCustomer, err error) (domain.Customer, error) {
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.Customer{}, app.ErrCustomerNotFound
+	}
+	if err != nil {
+		return domain.Customer{}, err
+	}
+	return customerFromRow(row), nil
+}
+
+func customerFromRow(row dbmodels.AppointmentSchedulerCustomer) domain.Customer {
+	return domain.RestoreCustomer(
+		fromPGUUID(row.CustomerID),
+		row.Name,
+		row.Phone,
+		row.Email,
+		row.CreatedAt,
+		row.UpdatedAt,
+	)
+}
+
 // CreateDealershipUser creates a scheduler user and exactly one role in one transaction.
 func (r *DealershipRepository) CreateDealershipUser(ctx context.Context, user domain.DealershipUser) error {
 	err := common.UpdateInTx(ctx, r.database, func(ctx context.Context, tx pgx.Tx) error {
@@ -332,6 +483,209 @@ func (r *DealershipRepository) DeleteServiceTypeRequiredSkill(ctx context.Contex
 	return nil
 }
 
+func (r *DealershipRepository) CreateServiceTypeRequiredBayCapability(ctx context.Context, dealershipID uuid.UUID, requiredCapability domain.ServiceTypeRequiredBayCapability) (domain.ServiceTypeRequiredBayCapability, error) {
+	_, err := r.queries.CreateServiceTypeRequiredBayCapability(ctx, dbmodels.CreateServiceTypeRequiredBayCapabilityParams{
+		ServiceTypeRequiredBayCapabilityID: toPGUUID(requiredCapability.ID()),
+		ServiceTypeID:                      toPGUUID(requiredCapability.ServiceTypeID()),
+		BayCapabilityID:                    toPGUUID(requiredCapability.BayCapabilityID()),
+		DealershipID:                       toPGUUID(dealershipID),
+		CreatedAt:                          requiredCapability.CreatedAt(),
+		UpdatedAt:                          requiredCapability.UpdatedAt(),
+	})
+	if common.IsUniqueViolationError(err, "service_type_required_bay_capabilities_service_type_bay_capability_unique") {
+		return domain.ServiceTypeRequiredBayCapability{}, app.ErrServiceTypeRequiredBayCapabilityTaken
+	}
+	if errors.Is(err, pgx.ErrNoRows) {
+		if _, serviceTypeErr := r.GetServiceType(ctx, dealershipID, requiredCapability.ServiceTypeID()); serviceTypeErr != nil {
+			return domain.ServiceTypeRequiredBayCapability{}, serviceTypeErr
+		}
+		return domain.ServiceTypeRequiredBayCapability{}, app.ErrBayCapabilityNotFound
+	}
+	if err != nil {
+		return domain.ServiceTypeRequiredBayCapability{}, err
+	}
+	return r.GetServiceTypeRequiredBayCapability(ctx, dealershipID, requiredCapability.ServiceTypeID(), requiredCapability.ID())
+}
+
+func (r *DealershipRepository) GetServiceTypeRequiredBayCapability(ctx context.Context, dealershipID, serviceTypeID, requiredCapabilityID uuid.UUID) (domain.ServiceTypeRequiredBayCapability, error) {
+	row, err := r.queries.GetServiceTypeRequiredBayCapability(ctx, dbmodels.GetServiceTypeRequiredBayCapabilityParams{
+		ServiceTypeRequiredBayCapabilityID: toPGUUID(requiredCapabilityID),
+		ServiceTypeID:                      toPGUUID(serviceTypeID),
+		DealershipID:                       toPGUUID(dealershipID),
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.ServiceTypeRequiredBayCapability{}, app.ErrServiceTypeRequiredBayCapabilityNotFound
+	}
+	if err != nil {
+		return domain.ServiceTypeRequiredBayCapability{}, err
+	}
+	return requiredBayCapabilityFromRow(row.ServiceTypeRequiredBayCapabilityID, row.ServiceTypeID, row.BayCapabilityID, row.Code, row.Name, row.CreatedAt, row.UpdatedAt)
+}
+
+func (r *DealershipRepository) ListServiceTypeRequiredBayCapabilities(ctx context.Context, dealershipID, serviceTypeID uuid.UUID) ([]domain.ServiceTypeRequiredBayCapability, error) {
+	if _, err := r.GetServiceType(ctx, dealershipID, serviceTypeID); err != nil {
+		return nil, err
+	}
+	rows, err := r.queries.ListServiceTypeRequiredBayCapabilities(ctx, dbmodels.ListServiceTypeRequiredBayCapabilitiesParams{ServiceTypeID: toPGUUID(serviceTypeID), DealershipID: toPGUUID(dealershipID)})
+	if err != nil {
+		return nil, err
+	}
+	result := make([]domain.ServiceTypeRequiredBayCapability, 0, len(rows))
+	for _, row := range rows {
+		requiredCapability, err := requiredBayCapabilityFromRow(row.ServiceTypeRequiredBayCapabilityID, row.ServiceTypeID, row.BayCapabilityID, row.Code, row.Name, row.CreatedAt, row.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, requiredCapability)
+	}
+	return result, nil
+}
+
+func (r *DealershipRepository) UpdateServiceTypeRequiredBayCapability(ctx context.Context, dealershipID uuid.UUID, requiredCapability domain.ServiceTypeRequiredBayCapability) (domain.ServiceTypeRequiredBayCapability, error) {
+	exists, err := r.queries.BayCapabilityExists(ctx, toPGUUID(requiredCapability.BayCapabilityID()))
+	if err != nil {
+		return domain.ServiceTypeRequiredBayCapability{}, err
+	}
+	if !exists {
+		return domain.ServiceTypeRequiredBayCapability{}, app.ErrBayCapabilityNotFound
+	}
+	_, err = r.queries.UpdateServiceTypeRequiredBayCapability(ctx, dbmodels.UpdateServiceTypeRequiredBayCapabilityParams{
+		BayCapabilityID:                    toPGUUID(requiredCapability.BayCapabilityID()),
+		UpdatedAt:                          requiredCapability.UpdatedAt(),
+		ServiceTypeRequiredBayCapabilityID: toPGUUID(requiredCapability.ID()),
+		ServiceTypeID:                      toPGUUID(requiredCapability.ServiceTypeID()),
+		DealershipID:                       toPGUUID(dealershipID),
+	})
+	if common.IsUniqueViolationError(err, "service_type_required_bay_capabilities_service_type_bay_capability_unique") {
+		return domain.ServiceTypeRequiredBayCapability{}, app.ErrServiceTypeRequiredBayCapabilityTaken
+	}
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.ServiceTypeRequiredBayCapability{}, app.ErrServiceTypeRequiredBayCapabilityNotFound
+	}
+	if err != nil {
+		return domain.ServiceTypeRequiredBayCapability{}, err
+	}
+	return r.GetServiceTypeRequiredBayCapability(ctx, dealershipID, requiredCapability.ServiceTypeID(), requiredCapability.ID())
+}
+
+func (r *DealershipRepository) DeleteServiceTypeRequiredBayCapability(ctx context.Context, dealershipID, serviceTypeID, requiredCapabilityID uuid.UUID) error {
+	deleted, err := r.queries.DeleteServiceTypeRequiredBayCapability(ctx, dbmodels.DeleteServiceTypeRequiredBayCapabilityParams{
+		ServiceTypeRequiredBayCapabilityID: toPGUUID(requiredCapabilityID),
+		ServiceTypeID:                      toPGUUID(serviceTypeID),
+		DealershipID:                       toPGUUID(dealershipID),
+	})
+	if err != nil {
+		return err
+	}
+	if deleted == 0 {
+		return app.ErrServiceTypeRequiredBayCapabilityNotFound
+	}
+	return nil
+}
+
+func (r *DealershipRepository) CreateServiceBayCapability(ctx context.Context, dealershipID uuid.UUID, capability domain.ServiceBayCapability) (domain.ServiceBayCapability, error) {
+	row, err := r.queries.CreateServiceBayCapability(ctx, dbmodels.CreateServiceBayCapabilityParams{
+		ServiceBayCapabilityID: toPGUUID(capability.ID()),
+		ServiceBayID:           toPGUUID(capability.ServiceBayID()),
+		BayCapabilityID:        toPGUUID(capability.BayCapabilityID()),
+		DealershipID:           toPGUUID(dealershipID),
+		CreatedAt:              capability.CreatedAt(),
+		UpdatedAt:              capability.UpdatedAt(),
+	})
+	if common.IsUniqueViolationError(err, "service_bay_capabilities_service_bay_bay_capability_unique") {
+		return domain.ServiceBayCapability{}, app.ErrServiceBayCapabilityTaken
+	}
+	if errors.Is(err, pgx.ErrNoRows) {
+		if _, serviceBayErr := r.GetServiceBay(ctx, dealershipID, capability.ServiceBayID()); serviceBayErr != nil {
+			return domain.ServiceBayCapability{}, serviceBayErr
+		}
+		return domain.ServiceBayCapability{}, app.ErrBayCapabilityNotFound
+	}
+	if err != nil {
+		return domain.ServiceBayCapability{}, err
+	}
+	return r.GetServiceBayCapability(ctx, dealershipID, uuid.UUID(row.ServiceBayID.Bytes), uuid.UUID(row.ServiceBayCapabilityID.Bytes))
+}
+
+func (r *DealershipRepository) GetServiceBayCapability(ctx context.Context, dealershipID, serviceBayID, serviceBayCapabilityID uuid.UUID) (domain.ServiceBayCapability, error) {
+	row, err := r.queries.GetServiceBayCapability(ctx, dbmodels.GetServiceBayCapabilityParams{
+		ServiceBayCapabilityID: toPGUUID(serviceBayCapabilityID),
+		ServiceBayID:           toPGUUID(serviceBayID),
+		DealershipID:           toPGUUID(dealershipID),
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.ServiceBayCapability{}, app.ErrServiceBayCapabilityNotFound
+	}
+	if err != nil {
+		return domain.ServiceBayCapability{}, err
+	}
+	return serviceBayCapabilityFromRow(row.ServiceBayCapabilityID, row.ServiceBayID, row.BayCapabilityID, row.Code, row.Name, row.CreatedAt, row.UpdatedAt)
+}
+
+func (r *DealershipRepository) ListServiceBayCapabilities(ctx context.Context, dealershipID, serviceBayID uuid.UUID) ([]domain.ServiceBayCapability, error) {
+	if _, err := r.GetServiceBay(ctx, dealershipID, serviceBayID); err != nil {
+		return nil, err
+	}
+	rows, err := r.queries.ListServiceBayCapabilities(ctx, dbmodels.ListServiceBayCapabilitiesParams{
+		ServiceBayID: toPGUUID(serviceBayID),
+		DealershipID: toPGUUID(dealershipID),
+	})
+	if err != nil {
+		return nil, err
+	}
+	capabilities := make([]domain.ServiceBayCapability, 0, len(rows))
+	for _, row := range rows {
+		capability, err := serviceBayCapabilityFromRow(row.ServiceBayCapabilityID, row.ServiceBayID, row.BayCapabilityID, row.Code, row.Name, row.CreatedAt, row.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		capabilities = append(capabilities, capability)
+	}
+	return capabilities, nil
+}
+
+func (r *DealershipRepository) UpdateServiceBayCapability(ctx context.Context, dealershipID uuid.UUID, capability domain.ServiceBayCapability) (domain.ServiceBayCapability, error) {
+	exists, err := r.queries.BayCapabilityExists(ctx, toPGUUID(capability.BayCapabilityID()))
+	if err != nil {
+		return domain.ServiceBayCapability{}, err
+	}
+	if !exists {
+		return domain.ServiceBayCapability{}, app.ErrBayCapabilityNotFound
+	}
+	_, err = r.queries.UpdateServiceBayCapability(ctx, dbmodels.UpdateServiceBayCapabilityParams{
+		BayCapabilityID:        toPGUUID(capability.BayCapabilityID()),
+		UpdatedAt:              capability.UpdatedAt(),
+		ServiceBayCapabilityID: toPGUUID(capability.ID()),
+		ServiceBayID:           toPGUUID(capability.ServiceBayID()),
+		DealershipID:           toPGUUID(dealershipID),
+	})
+	if common.IsUniqueViolationError(err, "service_bay_capabilities_service_bay_bay_capability_unique") {
+		return domain.ServiceBayCapability{}, app.ErrServiceBayCapabilityTaken
+	}
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.ServiceBayCapability{}, app.ErrServiceBayCapabilityNotFound
+	}
+	if err != nil {
+		return domain.ServiceBayCapability{}, err
+	}
+	return r.GetServiceBayCapability(ctx, dealershipID, capability.ServiceBayID(), capability.ID())
+}
+
+func (r *DealershipRepository) DeleteServiceBayCapability(ctx context.Context, dealershipID, serviceBayID, serviceBayCapabilityID uuid.UUID) error {
+	deleted, err := r.queries.DeleteServiceBayCapability(ctx, dbmodels.DeleteServiceBayCapabilityParams{
+		ServiceBayCapabilityID: toPGUUID(serviceBayCapabilityID),
+		ServiceBayID:           toPGUUID(serviceBayID),
+		DealershipID:           toPGUUID(dealershipID),
+	})
+	if err != nil {
+		return err
+	}
+	if deleted == 0 {
+		return app.ErrServiceBayCapabilityNotFound
+	}
+	return nil
+}
+
 func (r *DealershipRepository) CreateServiceBay(ctx context.Context, serviceBay domain.ServiceBay) error {
 	err := r.queries.CreateServiceBay(ctx, dbmodels.CreateServiceBayParams{
 		ServiceBayID: toPGUUID(serviceBay.ID()),
@@ -463,6 +817,14 @@ func requiredSkillFromRow(id, serviceTypeID, skillID pgtype.UUID, skillCode, ski
 	return domain.RehydrateServiceTypeRequiredSkill(uuid.UUID(id.Bytes), uuid.UUID(serviceTypeID.Bytes), uuid.UUID(skillID.Bytes), skillCode, skillName, createdAt, updatedAt)
 }
 
+func requiredBayCapabilityFromRow(id, serviceTypeID, bayCapabilityID pgtype.UUID, capabilityCode, capabilityName string, createdAt, updatedAt time.Time) (domain.ServiceTypeRequiredBayCapability, error) {
+	return domain.RehydrateServiceTypeRequiredBayCapability(uuid.UUID(id.Bytes), uuid.UUID(serviceTypeID.Bytes), uuid.UUID(bayCapabilityID.Bytes), capabilityCode, capabilityName, createdAt, updatedAt)
+}
+
+func serviceBayCapabilityFromRow(id, serviceBayID, bayCapabilityID pgtype.UUID, capabilityCode, capabilityName string, createdAt, updatedAt time.Time) (domain.ServiceBayCapability, error) {
+	return domain.RehydrateServiceBayCapability(uuid.UUID(id.Bytes), uuid.UUID(serviceBayID.Bytes), uuid.UUID(bayCapabilityID.Bytes), capabilityCode, capabilityName, createdAt, updatedAt)
+}
+
 func serviceBayFromRow(id, dealershipID pgtype.UUID, code, name string, isActive bool, createdAt, updatedAt time.Time) (domain.ServiceBay, error) {
 	return domain.RehydrateServiceBay(uuid.UUID(id.Bytes), uuid.UUID(dealershipID.Bytes), code, name, isActive, createdAt, updatedAt)
 }
@@ -471,6 +833,32 @@ func toPGUUID(value uuid.UUID) pgtype.UUID {
 	result := pgtype.UUID{Valid: true}
 	copy(result.Bytes[:], value[:])
 	return result
+}
+
+func fromPGUUID(value pgtype.UUID) uuid.UUID {
+	if !value.Valid {
+		return uuid.Nil
+	}
+	return uuid.UUID(value.Bytes)
+}
+
+func toPGTime(value time.Duration) pgtype.Time {
+	return pgtype.Time{Microseconds: value.Microseconds(), Valid: true}
+}
+
+func operationTimeFromRow(row dbmodels.AppointmentSchedulerDealershipOperationTime) (domain.DealershipOperationTime, error) {
+	return domain.RehydrateDealershipOperationTime(fromPGUUID(row.DealershipOperationTimeID), fromPGUUID(row.DealershipID), int(row.DayOfWeek), time.Duration(row.OpensAt.Microseconds)*time.Microsecond, time.Duration(row.ClosesAt.Microseconds)*time.Microsecond, row.CreatedAt, row.UpdatedAt)
+}
+
+func operationTimeWriteError(err error) error {
+	if common.IsUniqueViolationError(err, "dealership_operation_time_no_overlap") {
+		return app.ErrDealershipOperationTimeOverlaps
+	}
+	var postgresErr *pgconn.PgError
+	if errors.As(err, &postgresErr) && postgresErr.Code == "23P01" && postgresErr.ConstraintName == "dealership_operation_time_no_overlap" {
+		return app.ErrDealershipOperationTimeOverlaps
+	}
+	return err
 }
 
 func isDuplicateDealershipCode(err error) bool {

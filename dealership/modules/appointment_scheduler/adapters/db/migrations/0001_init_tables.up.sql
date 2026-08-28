@@ -127,22 +127,43 @@ CREATE UNIQUE INDEX service_types_dealership_name_unique
   ON appointment_scheduler.service_types (dealership_id, lower(name))
   WHERE deleted_at IS NULL;
 
+CREATE TABLE appointment_scheduler.skills (
+  skill_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code VARCHAR(100) NOT NULL UNIQUE,
+  name VARCHAR(255) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE appointment_scheduler.service_type_required_skills (
   service_type_required_skill_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   service_type_id UUID NOT NULL REFERENCES appointment_scheduler.service_types(service_type_id) ON DELETE CASCADE,
-  skill_code VARCHAR(100) NOT NULL,
+  skill_id UUID NOT NULL REFERENCES appointment_scheduler.skills(skill_id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  deleted_at TIMESTAMPTZ,
-  CONSTRAINT service_type_required_skills_unique UNIQUE (service_type_id, skill_code)
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT service_type_required_skills_service_type_skill_unique UNIQUE (service_type_id, skill_id)
 );
+
+CREATE TABLE appointment_scheduler.bay_capabilities (
+  bay_capability_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code VARCHAR(100) NOT NULL UNIQUE,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX bay_capabilities_code_lower_unique
+  ON appointment_scheduler.bay_capabilities (lower(code));
 
 CREATE TABLE appointment_scheduler.service_type_required_bay_capabilities (
   service_type_required_bay_capability_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   service_type_id UUID NOT NULL REFERENCES appointment_scheduler.service_types(service_type_id) ON DELETE CASCADE,
-  capability_code VARCHAR(100) NOT NULL,
+  bay_capability_id UUID NOT NULL REFERENCES appointment_scheduler.bay_capabilities(bay_capability_id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  deleted_at TIMESTAMPTZ,
-  CONSTRAINT service_type_required_bay_capabilities_unique UNIQUE (service_type_id, capability_code)
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT service_type_required_bay_capabilities_service_type_bay_capability_unique
+    UNIQUE (service_type_id, bay_capability_id)
 );
 
 CREATE TABLE appointment_scheduler.service_bays (
@@ -153,17 +174,21 @@ CREATE TABLE appointment_scheduler.service_bays (
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   deleted_at TIMESTAMPTZ,
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT service_bays_dealership_code_unique UNIQUE (dealership_id, code)
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE UNIQUE INDEX service_bays_dealership_code_lower_unique
+  ON appointment_scheduler.service_bays (dealership_id, LOWER(code))
+  WHERE deleted_at IS NULL;
 
 CREATE TABLE appointment_scheduler.service_bay_capabilities (
   service_bay_capability_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   service_bay_id UUID NOT NULL REFERENCES appointment_scheduler.service_bays(service_bay_id) ON DELETE CASCADE,
-  capability_code VARCHAR(100) NOT NULL,
+  bay_capability_id UUID NOT NULL REFERENCES appointment_scheduler.bay_capabilities(bay_capability_id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  deleted_at TIMESTAMPTZ,
-  CONSTRAINT service_bay_capabilities_unique UNIQUE (service_bay_id, capability_code)
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT service_bay_capabilities_service_bay_bay_capability_unique
+    UNIQUE (service_bay_id, bay_capability_id)
 );
 
 CREATE TABLE appointment_scheduler.technicians (

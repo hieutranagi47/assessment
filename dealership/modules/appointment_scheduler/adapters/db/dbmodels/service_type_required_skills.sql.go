@@ -33,15 +33,7 @@ type CreateServiceTypeRequiredSkillParams struct {
 	DealershipID               pgtype.UUID
 }
 
-type CreateServiceTypeRequiredSkillRow struct {
-	ServiceTypeRequiredSkillID pgtype.UUID
-	ServiceTypeID              pgtype.UUID
-	SkillID                    pgtype.UUID
-	CreatedAt                  time.Time
-	UpdatedAt                  time.Time
-}
-
-func (q *Queries) CreateServiceTypeRequiredSkill(ctx context.Context, arg CreateServiceTypeRequiredSkillParams) (CreateServiceTypeRequiredSkillRow, error) {
+func (q *Queries) CreateServiceTypeRequiredSkill(ctx context.Context, arg CreateServiceTypeRequiredSkillParams) (AppointmentSchedulerServiceTypeRequiredSkill, error) {
 	row := q.db.QueryRow(ctx, createServiceTypeRequiredSkill,
 		arg.ServiceTypeRequiredSkillID,
 		arg.CreatedAt,
@@ -50,7 +42,7 @@ func (q *Queries) CreateServiceTypeRequiredSkill(ctx context.Context, arg Create
 		arg.ServiceTypeID,
 		arg.DealershipID,
 	)
-	var i CreateServiceTypeRequiredSkillRow
+	var i AppointmentSchedulerServiceTypeRequiredSkill
 	err := row.Scan(
 		&i.ServiceTypeRequiredSkillID,
 		&i.ServiceTypeID,
@@ -221,15 +213,7 @@ type UpdateServiceTypeRequiredSkillParams struct {
 	DealershipID               pgtype.UUID
 }
 
-type UpdateServiceTypeRequiredSkillRow struct {
-	ServiceTypeRequiredSkillID pgtype.UUID
-	ServiceTypeID              pgtype.UUID
-	SkillID                    pgtype.UUID
-	CreatedAt                  time.Time
-	UpdatedAt                  time.Time
-}
-
-func (q *Queries) UpdateServiceTypeRequiredSkill(ctx context.Context, arg UpdateServiceTypeRequiredSkillParams) (UpdateServiceTypeRequiredSkillRow, error) {
+func (q *Queries) UpdateServiceTypeRequiredSkill(ctx context.Context, arg UpdateServiceTypeRequiredSkillParams) (AppointmentSchedulerServiceTypeRequiredSkill, error) {
 	row := q.db.QueryRow(ctx, updateServiceTypeRequiredSkill,
 		arg.SkillID,
 		arg.UpdatedAt,
@@ -237,7 +221,7 @@ func (q *Queries) UpdateServiceTypeRequiredSkill(ctx context.Context, arg Update
 		arg.ServiceTypeID,
 		arg.DealershipID,
 	)
-	var i UpdateServiceTypeRequiredSkillRow
+	var i AppointmentSchedulerServiceTypeRequiredSkill
 	err := row.Scan(
 		&i.ServiceTypeRequiredSkillID,
 		&i.ServiceTypeID,

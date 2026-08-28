@@ -6,6 +6,7 @@ import (
 	"errors"
 	stdhttp "net/http"
 	"strings"
+	"time"
 
 	"assessment/modules/appointment_scheduler/app"
 	"assessment/modules/appointment_scheduler/domain"
@@ -34,27 +35,124 @@ func NewHandler(service *app.Service, auth client.Authenticator) *Handler {
 func Register(_ context.Context, router common.EchoRouter, handler *Handler) error {
 	RegisterHandlersWithOptions(router, NewStrictHandler(handler, nil), RegisterHandlersOptions{
 		OperationMiddlewares: map[string][]echo.MiddlewareFunc{
-			"createServiceBay":               {handler.requireIdentity},
-			"listServiceBays":                {handler.requireIdentity},
-			"getServiceBay":                  {handler.requireIdentity},
-			"updateServiceBay":               {handler.requireIdentity},
-			"deleteServiceBay":               {handler.requireIdentity},
-			"createServiceType":              {handler.requireIdentity},
-			"listServiceTypes":               {handler.requireIdentity},
-			"getServiceType":                 {handler.requireIdentity},
-			"updateServiceType":              {handler.requireIdentity},
-			"deleteServiceType":              {handler.requireIdentity},
-			"createServiceTypeRequiredSkill": {handler.requireIdentity},
-			"listServiceTypeRequiredSkills":  {handler.requireIdentity},
-			"updateServiceTypeRequiredSkill": {handler.requireIdentity},
-			"deleteServiceTypeRequiredSkill": {handler.requireIdentity},
-			"createDealershipUser":           {handler.requireIdentity},
-			"createDealership":               {handler.requireIdentity},
-			"createDealershipAdmin":          {handler.requireIdentity},
-			"searchAuthUserByEmail":          {handler.requireIdentity},
+			"createDealershipOperationTime":          {handler.requireIdentity},
+			"listDealershipOperationTimes":           {handler.requireIdentity},
+			"updateDealershipOperationTime":          {handler.requireIdentity},
+			"deleteDealershipOperationTime":          {handler.requireIdentity},
+			"createServiceBayCapability":             {handler.requireIdentity},
+			"listServiceBayCapabilities":             {handler.requireIdentity},
+			"updateServiceBayCapability":             {handler.requireIdentity},
+			"deleteServiceBayCapability":             {handler.requireIdentity},
+			"createServiceBay":                       {handler.requireIdentity},
+			"listServiceBays":                        {handler.requireIdentity},
+			"getServiceBay":                          {handler.requireIdentity},
+			"updateServiceBay":                       {handler.requireIdentity},
+			"deleteServiceBay":                       {handler.requireIdentity},
+			"createServiceType":                      {handler.requireIdentity},
+			"listServiceTypes":                       {handler.requireIdentity},
+			"getServiceType":                         {handler.requireIdentity},
+			"updateServiceType":                      {handler.requireIdentity},
+			"deleteServiceType":                      {handler.requireIdentity},
+			"createServiceTypeRequiredSkill":         {handler.requireIdentity},
+			"listServiceTypeRequiredSkills":          {handler.requireIdentity},
+			"updateServiceTypeRequiredSkill":         {handler.requireIdentity},
+			"deleteServiceTypeRequiredSkill":         {handler.requireIdentity},
+			"createServiceTypeRequiredBayCapability": {handler.requireIdentity},
+			"listServiceTypeRequiredBayCapabilities": {handler.requireIdentity},
+			"updateServiceTypeRequiredBayCapability": {handler.requireIdentity},
+			"deleteServiceTypeRequiredBayCapability": {handler.requireIdentity},
+			"createDealershipUser":                   {handler.requireIdentity},
+			"createDealership":                       {handler.requireIdentity},
+			"createDealershipAdmin":                  {handler.requireIdentity},
+			"searchAuthUserByEmail":                  {handler.requireIdentity},
+			"createCustomer":                         {handler.requireIdentity},
+			"getCustomer":                            {handler.requireIdentity},
+			"updateCustomer":                         {handler.requireIdentity},
+			"searchCustomers":                        {handler.requireIdentity},
 		},
 	})
 	return nil
+}
+
+func (h *Handler) CreateDealershipOperationTime(ctx context.Context, request CreateDealershipOperationTimeRequestObject) (CreateDealershipOperationTimeResponseObject, error) {
+	if request.Body == nil {
+		return CreateDealershipOperationTime400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(errorResponse(common.NewInvalidInputError("request_body_required", "request body is required")))}, nil
+	}
+	opensAt, err := parseOperationTime(request.Body.OpensAt)
+	if err != nil {
+		return createOperationTimeErrorResponse(err)
+	}
+	closesAt, err := parseOperationTime(request.Body.ClosesAt)
+	if err != nil {
+		return createOperationTimeErrorResponse(err)
+	}
+	operationTime, err := h.service.CreateDealershipOperationTime(ctx, identityFrom(ctx), uuid.UUID(request.DealershipId), app.CreateDealershipOperationTimeInput{DayOfWeek: request.Body.DayOfWeek, OpensAt: opensAt, ClosesAt: closesAt})
+	if err != nil {
+		return createOperationTimeErrorResponse(err)
+	}
+	return CreateDealershipOperationTime201JSONResponse{OperationTimeCreatedJSONResponse: OperationTimeCreatedJSONResponse(operationTimeResponse(operationTime))}, nil
+}
+
+func (h *Handler) ListDealershipOperationTimes(ctx context.Context, request ListDealershipOperationTimesRequestObject) (ListDealershipOperationTimesResponseObject, error) {
+	operationTimes, err := h.service.ListDealershipOperationTimes(ctx, identityFrom(ctx), uuid.UUID(request.DealershipId))
+	if err != nil {
+		return listOperationTimeErrorResponse(err)
+	}
+	response := make(OperationTimesListedJSONResponse, 0, len(operationTimes))
+	for _, operationTime := range operationTimes {
+		response = append(response, operationTimeResponse(operationTime))
+	}
+	return ListDealershipOperationTimes200JSONResponse{OperationTimesListedJSONResponse: response}, nil
+}
+
+func (h *Handler) UpdateDealershipOperationTime(ctx context.Context, request UpdateDealershipOperationTimeRequestObject) (UpdateDealershipOperationTimeResponseObject, error) {
+	if request.Body == nil || (request.Body.DayOfWeek == nil && request.Body.OpensAt == nil && request.Body.ClosesAt == nil) {
+		return UpdateDealershipOperationTime400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(errorResponse(common.NewInvalidInputError("request_body_required", "at least one field is required")))}, nil
+	}
+	input := app.UpdateDealershipOperationTimeInput{DayOfWeek: request.Body.DayOfWeek}
+	if request.Body.OpensAt != nil {
+		parsed, err := parseOperationTime(*request.Body.OpensAt)
+		if err != nil {
+			return updateOperationTimeErrorResponse(err)
+		}
+		input.OpensAt = &parsed
+	}
+	if request.Body.ClosesAt != nil {
+		parsed, err := parseOperationTime(*request.Body.ClosesAt)
+		if err != nil {
+			return updateOperationTimeErrorResponse(err)
+		}
+		input.ClosesAt = &parsed
+	}
+	operationTime, err := h.service.UpdateDealershipOperationTime(ctx, identityFrom(ctx), uuid.UUID(request.DealershipId), uuid.UUID(request.OperationTimeId), input)
+	if err != nil {
+		return updateOperationTimeErrorResponse(err)
+	}
+	return UpdateDealershipOperationTime200JSONResponse{OperationTimeUpdatedJSONResponse: OperationTimeUpdatedJSONResponse(operationTimeResponse(operationTime))}, nil
+}
+
+func (h *Handler) DeleteDealershipOperationTime(ctx context.Context, request DeleteDealershipOperationTimeRequestObject) (DeleteDealershipOperationTimeResponseObject, error) {
+	err := h.service.DeleteDealershipOperationTime(ctx, identityFrom(ctx), uuid.UUID(request.DealershipId), uuid.UUID(request.OperationTimeId))
+	if err != nil {
+		return deleteOperationTimeErrorResponse(err)
+	}
+	return DeleteDealershipOperationTime204Response{}, nil
+}
+
+func parseOperationTime(value string) (time.Duration, error) {
+	parsed, err := time.Parse("15:04", value)
+	if err != nil || len(value) != 5 || parsed.Format("15:04") != value {
+		return 0, common.NewInvalidInputError("invalid_operation_time", "time must use HH:MM format")
+	}
+	return time.Duration(parsed.Hour())*time.Hour + time.Duration(parsed.Minute())*time.Minute, nil
+}
+
+func operationTimeResponse(operationTime domain.DealershipOperationTime) DealershipOperationTime {
+	return DealershipOperationTime{OperationTimeId: operationTime.ID(), DealershipId: operationTime.DealershipID(), DayOfWeek: operationTime.DayOfWeek(), OpensAt: formatOperationTime(operationTime.OpensAt()), ClosesAt: formatOperationTime(operationTime.ClosesAt()), CreatedAt: operationTime.CreatedAt(), UpdatedAt: operationTime.UpdatedAt()}
+}
+
+func formatOperationTime(value time.Duration) string {
+	return time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC).Add(value).Format("15:04")
 }
 
 func (h *Handler) CreateServiceBay(ctx context.Context, request CreateServiceBayRequestObject) (CreateServiceBayResponseObject, error) {
@@ -124,6 +222,63 @@ func (h *Handler) DeleteServiceBay(ctx context.Context, request DeleteServiceBay
 
 func serviceBayResponse(serviceBay domain.ServiceBay) ServiceBay {
 	return ServiceBay{ServiceBayId: serviceBay.ID(), DealershipId: serviceBay.DealershipID(), Code: serviceBay.Code(), Name: serviceBay.Name(), IsActive: serviceBay.IsActive(), CreatedAt: serviceBay.CreatedAt(), UpdatedAt: serviceBay.UpdatedAt()}
+}
+
+func (h *Handler) CreateServiceBayCapability(ctx context.Context, request CreateServiceBayCapabilityRequestObject) (CreateServiceBayCapabilityResponseObject, error) {
+	if request.Body == nil {
+		return CreateServiceBayCapability400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(errorResponse(common.NewInvalidInputError("request_body_required", "request body is required")))}, nil
+	}
+	capability, err := h.service.CreateServiceBayCapability(ctx, identityFrom(ctx), uuid.UUID(request.DealershipId), uuid.UUID(request.ServiceBayId), app.CreateServiceBayCapabilityInput{BayCapabilityID: uuid.UUID(request.Body.BayCapabilityId)})
+	if err != nil {
+		return createServiceBayCapabilityErrorResponse(err)
+	}
+	return CreateServiceBayCapability201JSONResponse{ServiceBayCapabilityCreatedJSONResponse: ServiceBayCapabilityCreatedJSONResponse(serviceBayCapabilityResponse(capability))}, nil
+}
+
+func (h *Handler) ListServiceBayCapabilities(ctx context.Context, request ListServiceBayCapabilitiesRequestObject) (ListServiceBayCapabilitiesResponseObject, error) {
+	capabilities, err := h.service.ListServiceBayCapabilities(ctx, identityFrom(ctx), uuid.UUID(request.DealershipId), uuid.UUID(request.ServiceBayId))
+	if err != nil {
+		return listServiceBayCapabilitiesErrorResponse(err)
+	}
+	response := make(ServiceBayCapabilitiesListedJSONResponse, 0, len(capabilities))
+	for _, capability := range capabilities {
+		response = append(response, serviceBayCapabilityResponse(capability))
+	}
+	return ListServiceBayCapabilities200JSONResponse{ServiceBayCapabilitiesListedJSONResponse: response}, nil
+}
+
+func (h *Handler) UpdateServiceBayCapability(ctx context.Context, request UpdateServiceBayCapabilityRequestObject) (UpdateServiceBayCapabilityResponseObject, error) {
+	if request.Body == nil {
+		return UpdateServiceBayCapability400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(errorResponse(common.NewInvalidInputError("request_body_required", "request body is required")))}, nil
+	}
+	bayCapabilityID := uuid.UUID(request.Body.BayCapabilityId)
+	capability, err := h.service.UpdateServiceBayCapability(ctx, identityFrom(ctx), uuid.UUID(request.DealershipId), uuid.UUID(request.ServiceBayId), uuid.UUID(request.ServiceBayCapabilityId), app.UpdateServiceBayCapabilityInput{BayCapabilityID: &bayCapabilityID})
+	if err != nil {
+		return updateServiceBayCapabilityErrorResponse(err)
+	}
+	return UpdateServiceBayCapability200JSONResponse{ServiceBayCapabilityUpdatedJSONResponse: ServiceBayCapabilityUpdatedJSONResponse(serviceBayCapabilityResponse(capability))}, nil
+}
+
+func (h *Handler) DeleteServiceBayCapability(ctx context.Context, request DeleteServiceBayCapabilityRequestObject) (DeleteServiceBayCapabilityResponseObject, error) {
+	err := h.service.DeleteServiceBayCapability(ctx, identityFrom(ctx), uuid.UUID(request.DealershipId), uuid.UUID(request.ServiceBayId), uuid.UUID(request.ServiceBayCapabilityId))
+	if err != nil {
+		return deleteServiceBayCapabilityErrorResponse(err)
+	}
+	return DeleteServiceBayCapability204Response{}, nil
+}
+
+func serviceBayCapabilityResponse(capability domain.ServiceBayCapability) ServiceBayCapability {
+	return ServiceBayCapability{
+		ServiceBayCapabilityId: capability.ID(),
+		ServiceBayId:           capability.ServiceBayID(),
+		BayCapability: BayCapability{
+			BayCapabilityId: capability.BayCapabilityID(),
+			Code:            capability.CapabilityCode(),
+			Name:            capability.CapabilityName(),
+		},
+		CreatedAt: capability.CreatedAt(),
+		UpdatedAt: capability.UpdatedAt(),
+	}
 }
 
 func (h *Handler) CreateServiceType(ctx context.Context, request CreateServiceTypeRequestObject) (CreateServiceTypeResponseObject, error) {
@@ -292,6 +447,63 @@ func requiredSkillResponse(requiredSkill domain.ServiceTypeRequiredSkill) Servic
 	return ServiceTypeRequiredSkill{RequiredSkillId: requiredSkill.ID(), ServiceTypeId: requiredSkill.ServiceTypeID(), Skill: Skill{SkillId: requiredSkill.SkillID(), Code: requiredSkill.SkillCode(), Name: requiredSkill.SkillName()}, CreatedAt: requiredSkill.CreatedAt(), UpdatedAt: requiredSkill.UpdatedAt()}
 }
 
+func (h *Handler) CreateServiceTypeRequiredBayCapability(ctx context.Context, request CreateServiceTypeRequiredBayCapabilityRequestObject) (CreateServiceTypeRequiredBayCapabilityResponseObject, error) {
+	if request.Body == nil {
+		return CreateServiceTypeRequiredBayCapability400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(errorResponse(common.NewInvalidInputError("request_body_required", "request body is required")))}, nil
+	}
+	requiredCapability, err := h.service.CreateServiceTypeRequiredBayCapability(ctx, identityFrom(ctx), uuid.UUID(request.DealershipId), uuid.UUID(request.ServiceTypeId), app.CreateServiceTypeRequiredBayCapabilityInput{BayCapabilityID: uuid.UUID(request.Body.BayCapabilityId)})
+	if err != nil {
+		return createServiceTypeRequiredBayCapabilityErrorResponse(err)
+	}
+	return CreateServiceTypeRequiredBayCapability201JSONResponse{ServiceTypeRequiredBayCapabilityCreatedJSONResponse: ServiceTypeRequiredBayCapabilityCreatedJSONResponse(requiredBayCapabilityResponse(requiredCapability))}, nil
+}
+
+func (h *Handler) ListServiceTypeRequiredBayCapabilities(ctx context.Context, request ListServiceTypeRequiredBayCapabilitiesRequestObject) (ListServiceTypeRequiredBayCapabilitiesResponseObject, error) {
+	requiredCapabilities, err := h.service.ListServiceTypeRequiredBayCapabilities(ctx, identityFrom(ctx), uuid.UUID(request.DealershipId), uuid.UUID(request.ServiceTypeId))
+	if err != nil {
+		return listServiceTypeRequiredBayCapabilitiesErrorResponse(err)
+	}
+	response := make(ServiceTypeRequiredBayCapabilitiesListedJSONResponse, 0, len(requiredCapabilities))
+	for _, requiredCapability := range requiredCapabilities {
+		response = append(response, requiredBayCapabilityResponse(requiredCapability))
+	}
+	return ListServiceTypeRequiredBayCapabilities200JSONResponse{ServiceTypeRequiredBayCapabilitiesListedJSONResponse: response}, nil
+}
+
+func (h *Handler) UpdateServiceTypeRequiredBayCapability(ctx context.Context, request UpdateServiceTypeRequiredBayCapabilityRequestObject) (UpdateServiceTypeRequiredBayCapabilityResponseObject, error) {
+	if request.Body == nil {
+		return UpdateServiceTypeRequiredBayCapability400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(errorResponse(common.NewInvalidInputError("request_body_required", "request body is required")))}, nil
+	}
+	bayCapabilityID := uuid.UUID(request.Body.BayCapabilityId)
+	requiredCapability, err := h.service.UpdateServiceTypeRequiredBayCapability(ctx, identityFrom(ctx), uuid.UUID(request.DealershipId), uuid.UUID(request.ServiceTypeId), uuid.UUID(request.RequiredCapabilityId), app.UpdateServiceTypeRequiredBayCapabilityInput{BayCapabilityID: &bayCapabilityID})
+	if err != nil {
+		return updateServiceTypeRequiredBayCapabilityErrorResponse(err)
+	}
+	return UpdateServiceTypeRequiredBayCapability200JSONResponse{ServiceTypeRequiredBayCapabilityUpdatedJSONResponse: ServiceTypeRequiredBayCapabilityUpdatedJSONResponse(requiredBayCapabilityResponse(requiredCapability))}, nil
+}
+
+func (h *Handler) DeleteServiceTypeRequiredBayCapability(ctx context.Context, request DeleteServiceTypeRequiredBayCapabilityRequestObject) (DeleteServiceTypeRequiredBayCapabilityResponseObject, error) {
+	err := h.service.DeleteServiceTypeRequiredBayCapability(ctx, identityFrom(ctx), uuid.UUID(request.DealershipId), uuid.UUID(request.ServiceTypeId), uuid.UUID(request.RequiredCapabilityId))
+	if err != nil {
+		return deleteServiceTypeRequiredBayCapabilityErrorResponse(err)
+	}
+	return DeleteServiceTypeRequiredBayCapability204Response{}, nil
+}
+
+func requiredBayCapabilityResponse(requiredCapability domain.ServiceTypeRequiredBayCapability) ServiceTypeRequiredBayCapability {
+	return ServiceTypeRequiredBayCapability{
+		RequiredCapabilityId: requiredCapability.ID(),
+		ServiceTypeId:        requiredCapability.ServiceTypeID(),
+		BayCapability: BayCapability{
+			BayCapabilityId: requiredCapability.BayCapabilityID(),
+			Code:            requiredCapability.CapabilityCode(),
+			Name:            requiredCapability.CapabilityName(),
+		},
+		CreatedAt: requiredCapability.CreatedAt(),
+		UpdatedAt: requiredCapability.UpdatedAt(),
+	}
+}
+
 func (h *Handler) CreateDealershipUser(ctx context.Context, request CreateDealershipUserRequestObject) (CreateDealershipUserResponseObject, error) {
 	if request.Body == nil {
 		response := errorResponse(common.NewInvalidInputError("request_body_required", "request body is required"))
@@ -369,6 +581,86 @@ func adminEmailPointer(value *string) *openapi_types.Email {
 	return &result
 }
 
+func (h *Handler) CreateCustomer(ctx context.Context, request CreateCustomerRequestObject) (CreateCustomerResponseObject, error) {
+	if request.Body == nil {
+		return CreateCustomer400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(errorResponse(common.NewInvalidInputError("invalid_request", "request body is required")))}, nil
+	}
+	var email *string
+	if request.Body.Email != nil {
+		value := string(*request.Body.Email)
+		email = &value
+	}
+	customer, err := h.service.CreateCustomer(ctx, identityFrom(ctx), app.CreateCustomerInput{
+		Name:  request.Body.Name,
+		Phone: request.Body.Phone,
+		Email: email,
+	})
+	if err != nil {
+		return createCustomerErrorResponse(err)
+	}
+	return CreateCustomer201JSONResponse{CustomerCreatedJSONResponse: CustomerCreatedJSONResponse{
+		Body:    customerResponse(customer),
+		Headers: CustomerCreatedResponseHeaders{Location: "/v1/customers/" + customer.ID().String()},
+	}}, nil
+}
+
+func (h *Handler) GetCustomer(ctx context.Context, request GetCustomerRequestObject) (GetCustomerResponseObject, error) {
+	customer, err := h.service.GetCustomer(ctx, identityFrom(ctx), uuid.UUID(request.CustomerId))
+	if err != nil {
+		return getCustomerErrorResponse(err)
+	}
+	return GetCustomer200JSONResponse{CustomerFoundJSONResponse: CustomerFoundJSONResponse(customerResponse(customer))}, nil
+}
+
+func (h *Handler) UpdateCustomer(ctx context.Context, request UpdateCustomerRequestObject) (UpdateCustomerResponseObject, error) {
+	if request.Body == nil {
+		return UpdateCustomer400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(errorResponse(common.NewInvalidInputError("invalid_request", "request body is required")))}, nil
+	}
+	input := app.UpdateCustomerInput{Name: request.Body.Name, Phone: request.Body.Phone}
+	if request.Body.Email != nil {
+		input.EmailPresent = request.Body.Email.Present
+		input.Email = request.Body.Email.Value
+	}
+	customer, err := h.service.UpdateCustomer(ctx, identityFrom(ctx), uuid.UUID(request.CustomerId), input)
+	if err != nil {
+		return updateCustomerErrorResponse(err)
+	}
+	return UpdateCustomer200JSONResponse{CustomerUpdatedJSONResponse: CustomerUpdatedJSONResponse(customerResponse(customer))}, nil
+}
+
+func (h *Handler) SearchCustomers(ctx context.Context, request SearchCustomersRequestObject) (SearchCustomersResponseObject, error) {
+	var email *string
+	if request.Params.Email != nil {
+		value := string(*request.Params.Email)
+		email = &value
+	}
+	customers, err := h.service.SearchCustomers(ctx, identityFrom(ctx), request.Params.Phone, email)
+	if err != nil {
+		return searchCustomersErrorResponse(err)
+	}
+	items := make([]Customer, 0, len(customers))
+	for _, customer := range customers {
+		items = append(items, customerResponse(customer))
+	}
+	return SearchCustomers200JSONResponse{CustomersListedJSONResponse: CustomersListedJSONResponse(CustomerListResponse{Items: items})}, nil
+}
+
+func customerResponse(customer domain.Customer) Customer {
+	var email *openapi_types.Email
+	if customer.Email() != nil {
+		value := openapi_types.Email(*customer.Email())
+		email = &value
+	}
+	return Customer{
+		CustomerId: customer.ID(),
+		Name:       customer.Name(),
+		Phone:      customer.Phone(),
+		Email:      email,
+		CreatedAt:  customer.CreatedAt(),
+		UpdatedAt:  customer.UpdatedAt(),
+	}
+}
+
 func (h *Handler) CreateDealership(ctx context.Context, request CreateDealershipRequestObject) (CreateDealershipResponseObject, error) {
 	if request.Body == nil {
 		response := errorResponse(common.NewInvalidInputError("request_body_required", "request body is required"))
@@ -419,6 +711,82 @@ func bearerToken(request *stdhttp.Request) string {
 func identityFrom(ctx context.Context) uuid.UUID {
 	identity, _ := ctx.Value(identityKey{}).(uuid.UUID)
 	return identity
+}
+
+func customerProblem(err error) common.Error {
+	var structured common.Error
+	if errors.As(err, &structured) {
+		return structured
+	}
+	return common.Error{PublicError: "internal server error", ErrorSlug: "internal_error"}
+}
+
+func createCustomerErrorResponse(err error) (CreateCustomerResponseObject, error) {
+	structured := customerProblem(err)
+	response := errorResponse(structured)
+	switch structured.HttpErrorCode {
+	case stdhttp.StatusBadRequest:
+		return CreateCustomer400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(response)}, nil
+	case stdhttp.StatusUnauthorized:
+		return CreateCustomer401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case stdhttp.StatusForbidden:
+		return CreateCustomer403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case stdhttp.StatusConflict:
+		return CreateCustomer409JSONResponse{ConflictJSONResponse: ConflictJSONResponse(response)}, nil
+	default:
+		return CreateCustomer500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
+}
+
+func getCustomerErrorResponse(err error) (GetCustomerResponseObject, error) {
+	structured := customerProblem(err)
+	response := errorResponse(structured)
+	switch structured.HttpErrorCode {
+	case stdhttp.StatusBadRequest:
+		return GetCustomer400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(response)}, nil
+	case stdhttp.StatusUnauthorized:
+		return GetCustomer401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case stdhttp.StatusForbidden:
+		return GetCustomer403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case stdhttp.StatusNotFound:
+		return GetCustomer404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	default:
+		return GetCustomer500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
+}
+
+func updateCustomerErrorResponse(err error) (UpdateCustomerResponseObject, error) {
+	structured := customerProblem(err)
+	response := errorResponse(structured)
+	switch structured.HttpErrorCode {
+	case stdhttp.StatusBadRequest:
+		return UpdateCustomer400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(response)}, nil
+	case stdhttp.StatusUnauthorized:
+		return UpdateCustomer401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case stdhttp.StatusForbidden:
+		return UpdateCustomer403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case stdhttp.StatusNotFound:
+		return UpdateCustomer404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	case stdhttp.StatusConflict:
+		return UpdateCustomer409JSONResponse{ConflictJSONResponse: ConflictJSONResponse(response)}, nil
+	default:
+		return UpdateCustomer500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
+}
+
+func searchCustomersErrorResponse(err error) (SearchCustomersResponseObject, error) {
+	structured := customerProblem(err)
+	response := errorResponse(structured)
+	switch structured.HttpErrorCode {
+	case stdhttp.StatusBadRequest:
+		return SearchCustomers400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(response)}, nil
+	case stdhttp.StatusUnauthorized:
+		return SearchCustomers401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case stdhttp.StatusForbidden:
+		return SearchCustomers403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	default:
+		return SearchCustomers500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
 }
 
 func createDealershipErrorResponse(err error) (CreateDealershipResponseObject, error) {
@@ -670,6 +1038,74 @@ func deleteServiceTypeRequiredSkillErrorResponse(err error) (DeleteServiceTypeRe
 	}
 }
 
+func createServiceTypeRequiredBayCapabilityErrorResponse(err error) (CreateServiceTypeRequiredBayCapabilityResponseObject, error) {
+	structured, _ := serviceTypeProblem(err)
+	response := errorResponse(structured)
+	switch structured.HttpErrorCode {
+	case stdhttp.StatusBadRequest:
+		return CreateServiceTypeRequiredBayCapability400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(response)}, nil
+	case stdhttp.StatusUnauthorized:
+		return CreateServiceTypeRequiredBayCapability401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case stdhttp.StatusForbidden:
+		return CreateServiceTypeRequiredBayCapability403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case stdhttp.StatusNotFound:
+		return CreateServiceTypeRequiredBayCapability404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	case stdhttp.StatusConflict:
+		return CreateServiceTypeRequiredBayCapability409JSONResponse{ConflictJSONResponse: ConflictJSONResponse(response)}, nil
+	default:
+		return CreateServiceTypeRequiredBayCapability500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
+}
+
+func listServiceTypeRequiredBayCapabilitiesErrorResponse(err error) (ListServiceTypeRequiredBayCapabilitiesResponseObject, error) {
+	structured, _ := serviceTypeProblem(err)
+	response := errorResponse(structured)
+	switch structured.HttpErrorCode {
+	case stdhttp.StatusUnauthorized:
+		return ListServiceTypeRequiredBayCapabilities401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case stdhttp.StatusForbidden:
+		return ListServiceTypeRequiredBayCapabilities403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case stdhttp.StatusNotFound:
+		return ListServiceTypeRequiredBayCapabilities404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	default:
+		return ListServiceTypeRequiredBayCapabilities500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
+}
+
+func updateServiceTypeRequiredBayCapabilityErrorResponse(err error) (UpdateServiceTypeRequiredBayCapabilityResponseObject, error) {
+	structured, _ := serviceTypeProblem(err)
+	response := errorResponse(structured)
+	switch structured.HttpErrorCode {
+	case stdhttp.StatusBadRequest:
+		return UpdateServiceTypeRequiredBayCapability400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(response)}, nil
+	case stdhttp.StatusUnauthorized:
+		return UpdateServiceTypeRequiredBayCapability401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case stdhttp.StatusForbidden:
+		return UpdateServiceTypeRequiredBayCapability403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case stdhttp.StatusNotFound:
+		return UpdateServiceTypeRequiredBayCapability404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	case stdhttp.StatusConflict:
+		return UpdateServiceTypeRequiredBayCapability409JSONResponse{ConflictJSONResponse: ConflictJSONResponse(response)}, nil
+	default:
+		return UpdateServiceTypeRequiredBayCapability500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
+}
+
+func deleteServiceTypeRequiredBayCapabilityErrorResponse(err error) (DeleteServiceTypeRequiredBayCapabilityResponseObject, error) {
+	structured, _ := serviceTypeProblem(err)
+	response := errorResponse(structured)
+	switch structured.HttpErrorCode {
+	case stdhttp.StatusUnauthorized:
+		return DeleteServiceTypeRequiredBayCapability401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case stdhttp.StatusForbidden:
+		return DeleteServiceTypeRequiredBayCapability403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case stdhttp.StatusNotFound:
+		return DeleteServiceTypeRequiredBayCapability404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	default:
+		return DeleteServiceTypeRequiredBayCapability500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
+}
+
 func createServiceBayErrorResponse(err error) (CreateServiceBayResponseObject, error) {
 	structured, _ := serviceTypeProblem(err)
 	response := errorResponse(structured)
@@ -753,6 +1189,74 @@ func deleteServiceBayErrorResponse(err error) (DeleteServiceBayResponseObject, e
 	}
 }
 
+func createServiceBayCapabilityErrorResponse(err error) (CreateServiceBayCapabilityResponseObject, error) {
+	structured, _ := serviceTypeProblem(err)
+	response := errorResponse(structured)
+	switch structured.HttpErrorCode {
+	case stdhttp.StatusBadRequest:
+		return CreateServiceBayCapability400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(response)}, nil
+	case stdhttp.StatusUnauthorized:
+		return CreateServiceBayCapability401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case stdhttp.StatusForbidden:
+		return CreateServiceBayCapability403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case stdhttp.StatusNotFound:
+		return CreateServiceBayCapability404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	case stdhttp.StatusConflict:
+		return CreateServiceBayCapability409JSONResponse{ConflictJSONResponse: ConflictJSONResponse(response)}, nil
+	default:
+		return CreateServiceBayCapability500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
+}
+
+func listServiceBayCapabilitiesErrorResponse(err error) (ListServiceBayCapabilitiesResponseObject, error) {
+	structured, _ := serviceTypeProblem(err)
+	response := errorResponse(structured)
+	switch structured.HttpErrorCode {
+	case stdhttp.StatusUnauthorized:
+		return ListServiceBayCapabilities401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case stdhttp.StatusForbidden:
+		return ListServiceBayCapabilities403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case stdhttp.StatusNotFound:
+		return ListServiceBayCapabilities404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	default:
+		return ListServiceBayCapabilities500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
+}
+
+func updateServiceBayCapabilityErrorResponse(err error) (UpdateServiceBayCapabilityResponseObject, error) {
+	structured, _ := serviceTypeProblem(err)
+	response := errorResponse(structured)
+	switch structured.HttpErrorCode {
+	case stdhttp.StatusBadRequest:
+		return UpdateServiceBayCapability400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(response)}, nil
+	case stdhttp.StatusUnauthorized:
+		return UpdateServiceBayCapability401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case stdhttp.StatusForbidden:
+		return UpdateServiceBayCapability403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case stdhttp.StatusNotFound:
+		return UpdateServiceBayCapability404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	case stdhttp.StatusConflict:
+		return UpdateServiceBayCapability409JSONResponse{ConflictJSONResponse: ConflictJSONResponse(response)}, nil
+	default:
+		return UpdateServiceBayCapability500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
+}
+
+func deleteServiceBayCapabilityErrorResponse(err error) (DeleteServiceBayCapabilityResponseObject, error) {
+	structured, _ := serviceTypeProblem(err)
+	response := errorResponse(structured)
+	switch structured.HttpErrorCode {
+	case stdhttp.StatusUnauthorized:
+		return DeleteServiceBayCapability401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case stdhttp.StatusForbidden:
+		return DeleteServiceBayCapability403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case stdhttp.StatusNotFound:
+		return DeleteServiceBayCapability404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	default:
+		return DeleteServiceBayCapability500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
+}
+
 func errorResponse(err common.Error) ErrorResponse {
 	details := make([]ErrorDetail, 0, len(err.Details))
 	for _, detail := range err.Details {
@@ -764,4 +1268,84 @@ func errorResponse(err common.Error) ErrorResponse {
 		})
 	}
 	return ErrorResponse{Message: err.PublicError, Slug: err.ErrorSlug, Details: details}
+}
+
+func operationTimeProblem(err error) common.Error {
+	var structured common.Error
+	if errors.As(err, &structured) {
+		return structured
+	}
+	return common.Error{PublicError: "internal server error", ErrorSlug: "internal_server_error"}
+}
+
+func createOperationTimeErrorResponse(err error) (CreateDealershipOperationTimeResponseObject, error) {
+	structured := operationTimeProblem(err)
+	response := errorResponse(structured)
+	switch structured.HttpErrorCode {
+	case stdhttp.StatusBadRequest:
+		return CreateDealershipOperationTime400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(response)}, nil
+	case stdhttp.StatusUnauthorized:
+		return CreateDealershipOperationTime401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case stdhttp.StatusForbidden:
+		return CreateDealershipOperationTime403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case stdhttp.StatusNotFound:
+		return CreateDealershipOperationTime404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	case stdhttp.StatusConflict:
+		return CreateDealershipOperationTime409JSONResponse{ConflictJSONResponse: ConflictJSONResponse(response)}, nil
+	case 422:
+		return CreateDealershipOperationTime422JSONResponse{UnprocessableEntityJSONResponse: UnprocessableEntityJSONResponse(response)}, nil
+	default:
+		return CreateDealershipOperationTime500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
+}
+
+func listOperationTimeErrorResponse(err error) (ListDealershipOperationTimesResponseObject, error) {
+	structured := operationTimeProblem(err)
+	response := errorResponse(structured)
+	switch structured.HttpErrorCode {
+	case stdhttp.StatusUnauthorized:
+		return ListDealershipOperationTimes401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case stdhttp.StatusForbidden:
+		return ListDealershipOperationTimes403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case stdhttp.StatusNotFound:
+		return ListDealershipOperationTimes404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	default:
+		return ListDealershipOperationTimes500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
+}
+
+func updateOperationTimeErrorResponse(err error) (UpdateDealershipOperationTimeResponseObject, error) {
+	structured := operationTimeProblem(err)
+	response := errorResponse(structured)
+	switch structured.HttpErrorCode {
+	case stdhttp.StatusBadRequest:
+		return UpdateDealershipOperationTime400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(response)}, nil
+	case stdhttp.StatusUnauthorized:
+		return UpdateDealershipOperationTime401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case stdhttp.StatusForbidden:
+		return UpdateDealershipOperationTime403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case stdhttp.StatusNotFound:
+		return UpdateDealershipOperationTime404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	case stdhttp.StatusConflict:
+		return UpdateDealershipOperationTime409JSONResponse{ConflictJSONResponse: ConflictJSONResponse(response)}, nil
+	case 422:
+		return UpdateDealershipOperationTime422JSONResponse{UnprocessableEntityJSONResponse: UnprocessableEntityJSONResponse(response)}, nil
+	default:
+		return UpdateDealershipOperationTime500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
+}
+
+func deleteOperationTimeErrorResponse(err error) (DeleteDealershipOperationTimeResponseObject, error) {
+	structured := operationTimeProblem(err)
+	response := errorResponse(structured)
+	switch structured.HttpErrorCode {
+	case stdhttp.StatusUnauthorized:
+		return DeleteDealershipOperationTime401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case stdhttp.StatusForbidden:
+		return DeleteDealershipOperationTime403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case stdhttp.StatusNotFound:
+		return DeleteDealershipOperationTime404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	default:
+		return DeleteDealershipOperationTime500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
 }

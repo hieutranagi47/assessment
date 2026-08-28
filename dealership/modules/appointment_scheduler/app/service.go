@@ -16,18 +16,28 @@ import (
 )
 
 var (
-	ErrDealershipCodeTaken              = errors.New("dealership code already exists")
-	ErrAuthUserAlreadyAssigned          = errors.New("auth user already assigned")
-	ErrDealershipNotFound               = errors.New("dealership not found")
-	ErrServiceTypeNameTaken             = errors.New("service type name already exists")
-	ErrServiceTypeNotFound              = errors.New("service type not found")
-	ErrServiceTypeInUse                 = errors.New("service type is referenced by an appointment")
-	ErrServiceBayCodeTaken              = errors.New("service bay code already exists")
-	ErrServiceBayNotFound               = errors.New("service bay not found")
-	ErrServiceBayInUse                  = errors.New("service bay is referenced by an appointment")
-	ErrServiceTypeRequiredSkillNotFound = errors.New("service type required skill not found")
-	ErrServiceTypeRequiredSkillTaken    = errors.New("service type already requires this skill")
-	ErrSkillNotFound                    = errors.New("skill not found")
+	ErrDealershipCodeTaken                      = errors.New("dealership code already exists")
+	ErrAuthUserAlreadyAssigned                  = errors.New("auth user already assigned")
+	ErrDealershipNotFound                       = errors.New("dealership not found")
+	ErrServiceTypeNameTaken                     = errors.New("service type name already exists")
+	ErrServiceTypeNotFound                      = errors.New("service type not found")
+	ErrServiceTypeInUse                         = errors.New("service type is referenced by an appointment")
+	ErrServiceBayCodeTaken                      = errors.New("service bay code already exists")
+	ErrServiceBayNotFound                       = errors.New("service bay not found")
+	ErrServiceBayInUse                          = errors.New("service bay is referenced by an appointment")
+	ErrServiceTypeRequiredSkillNotFound         = errors.New("service type required skill not found")
+	ErrServiceTypeRequiredSkillTaken            = errors.New("service type already requires this skill")
+	ErrSkillNotFound                            = errors.New("skill not found")
+	ErrServiceTypeRequiredBayCapabilityNotFound = errors.New("service type required bay capability not found")
+	ErrServiceTypeRequiredBayCapabilityTaken    = errors.New("service type already requires this bay capability")
+	ErrBayCapabilityNotFound                    = errors.New("bay capability not found")
+	ErrServiceBayCapabilityNotFound             = errors.New("service bay capability not found")
+	ErrServiceBayCapabilityTaken                = errors.New("service bay already has this capability")
+	ErrCustomerNotFound                         = errors.New("customer not found")
+	ErrCustomerPhoneTaken                       = errors.New("customer phone already exists")
+	ErrCustomerEmailTaken                       = errors.New("customer email already exists")
+	ErrDealershipOperationTimeNotFound          = errors.New("dealership operation time not found")
+	ErrDealershipOperationTimeOverlaps          = errors.New("dealership operation time overlaps an existing interval")
 )
 
 // Repository is the persistence capability the create-dealership use case needs.
@@ -45,6 +55,17 @@ type AdminRepository interface {
 // user and grants exactly one scheduler role.
 type DealershipUserRepository interface {
 	CreateDealershipUser(context.Context, domain.DealershipUser) error
+}
+
+// CustomerRepository holds the global-customer persistence and the existing
+// scheduler employee role check used by every customer operation.
+type CustomerRepository interface {
+	IsActiveCustomerEmployee(context.Context, uuid.UUID) (bool, error)
+	CreateCustomer(context.Context, domain.Customer) (domain.Customer, error)
+	GetCustomer(context.Context, uuid.UUID) (domain.Customer, error)
+	UpdateCustomer(context.Context, domain.Customer) (domain.Customer, error)
+	GetCustomerByPhone(context.Context, string) (domain.Customer, error)
+	GetCustomerByEmail(context.Context, string) (domain.Customer, error)
 }
 
 // SchedulerAdminAuthorizer verifies scheduler-side admin access without
@@ -79,6 +100,27 @@ type ServiceBayRepository interface {
 	DeleteServiceBay(context.Context, uuid.UUID, uuid.UUID, time.Time) error
 }
 
+type DealershipOperationTimeRepository interface {
+	IsActiveSchedulerAdminForDealership(context.Context, uuid.UUID, uuid.UUID) (bool, error)
+	IsActiveDealership(context.Context, uuid.UUID) (bool, error)
+	CreateDealershipOperationTime(context.Context, domain.DealershipOperationTime) error
+	GetDealershipOperationTime(context.Context, uuid.UUID, uuid.UUID) (domain.DealershipOperationTime, error)
+	ListDealershipOperationTimes(context.Context, uuid.UUID) ([]domain.DealershipOperationTime, error)
+	UpdateDealershipOperationTime(context.Context, domain.DealershipOperationTime) error
+	DeleteDealershipOperationTime(context.Context, uuid.UUID, uuid.UUID) error
+}
+
+// ServiceBayCapabilityRepository scopes every association through its owning
+// service bay and dealership, preventing nested IDs from crossing boundaries.
+type ServiceBayCapabilityRepository interface {
+	IsActiveSchedulerAdminForDealership(context.Context, uuid.UUID, uuid.UUID) (bool, error)
+	CreateServiceBayCapability(context.Context, uuid.UUID, domain.ServiceBayCapability) (domain.ServiceBayCapability, error)
+	GetServiceBayCapability(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) (domain.ServiceBayCapability, error)
+	ListServiceBayCapabilities(context.Context, uuid.UUID, uuid.UUID) ([]domain.ServiceBayCapability, error)
+	UpdateServiceBayCapability(context.Context, uuid.UUID, domain.ServiceBayCapability) (domain.ServiceBayCapability, error)
+	DeleteServiceBayCapability(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) error
+}
+
 // ServiceTypeRequiredSkillRepository keeps the association scoped through its
 // owning service type, so nested resource IDs cannot cross dealership bounds.
 type ServiceTypeRequiredSkillRepository interface {
@@ -88,6 +130,15 @@ type ServiceTypeRequiredSkillRepository interface {
 	ListServiceTypeRequiredSkills(context.Context, uuid.UUID, uuid.UUID) ([]domain.ServiceTypeRequiredSkill, error)
 	UpdateServiceTypeRequiredSkill(context.Context, uuid.UUID, domain.ServiceTypeRequiredSkill) (domain.ServiceTypeRequiredSkill, error)
 	DeleteServiceTypeRequiredSkill(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) error
+}
+
+type ServiceTypeRequiredBayCapabilityRepository interface {
+	IsActiveSchedulerAdminForDealership(context.Context, uuid.UUID, uuid.UUID) (bool, error)
+	CreateServiceTypeRequiredBayCapability(context.Context, uuid.UUID, domain.ServiceTypeRequiredBayCapability) (domain.ServiceTypeRequiredBayCapability, error)
+	GetServiceTypeRequiredBayCapability(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) (domain.ServiceTypeRequiredBayCapability, error)
+	ListServiceTypeRequiredBayCapabilities(context.Context, uuid.UUID, uuid.UUID) ([]domain.ServiceTypeRequiredBayCapability, error)
+	UpdateServiceTypeRequiredBayCapability(context.Context, uuid.UUID, domain.ServiceTypeRequiredBayCapability) (domain.ServiceTypeRequiredBayCapability, error)
+	DeleteServiceTypeRequiredBayCapability(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) error
 }
 
 // UserInfoProvider is deliberately limited to auth's public module contract.
@@ -158,8 +209,35 @@ type UpdateServiceBayInput struct {
 	IsActive *bool
 }
 
+type CreateDealershipOperationTimeInput struct {
+	DayOfWeek         int
+	OpensAt, ClosesAt time.Duration
+}
+type UpdateDealershipOperationTimeInput struct {
+	DayOfWeek         *int
+	OpensAt, ClosesAt *time.Duration
+}
+
+type CreateServiceBayCapabilityInput struct{ BayCapabilityID uuid.UUID }
+type UpdateServiceBayCapabilityInput struct{ BayCapabilityID *uuid.UUID }
+
+type CreateCustomerInput struct {
+	Name  string
+	Phone string
+	Email *string
+}
+
+type UpdateCustomerInput struct {
+	Name         *string
+	Phone        *string
+	Email        *string
+	EmailPresent bool
+}
+
 type CreateServiceTypeRequiredSkillInput struct{ SkillID uuid.UUID }
 type UpdateServiceTypeRequiredSkillInput struct{ SkillID *uuid.UUID }
+type CreateServiceTypeRequiredBayCapabilityInput struct{ BayCapabilityID uuid.UUID }
+type UpdateServiceTypeRequiredBayCapabilityInput struct{ BayCapabilityID *uuid.UUID }
 
 // AuthUser is the scheduler-facing view of an account found in auth.
 type AuthUser struct {
@@ -402,6 +480,107 @@ func (s *Service) DeleteServiceType(ctx context.Context, actorID, dealershipID, 
 	}
 }
 
+func (s *Service) CreateDealershipOperationTime(ctx context.Context, actorID, dealershipID uuid.UUID, input CreateDealershipOperationTimeInput) (domain.DealershipOperationTime, error) {
+	repository, err := s.authorizeDealershipOperationTimes(ctx, actorID, dealershipID)
+	if err != nil {
+		return domain.DealershipOperationTime{}, err
+	}
+	operationTime, err := domain.NewDealershipOperationTime(s.newID(), dealershipID, input.DayOfWeek, input.OpensAt, input.ClosesAt, s.now())
+	if err != nil {
+		return domain.DealershipOperationTime{}, invalidOperationTimeInput(err)
+	}
+	if err := repository.CreateDealershipOperationTime(ctx, operationTime); err != nil {
+		if errors.Is(err, ErrDealershipOperationTimeOverlaps) {
+			return domain.DealershipOperationTime{}, common.NewConflictError("operation_time_overlaps", "operation time overlaps an existing interval")
+		}
+		return domain.DealershipOperationTime{}, err
+	}
+	return operationTime, nil
+}
+
+func (s *Service) ListDealershipOperationTimes(ctx context.Context, actorID, dealershipID uuid.UUID) ([]domain.DealershipOperationTime, error) {
+	repository, err := s.authorizeDealershipOperationTimes(ctx, actorID, dealershipID)
+	if err != nil {
+		return nil, err
+	}
+	return repository.ListDealershipOperationTimes(ctx, dealershipID)
+}
+
+func (s *Service) UpdateDealershipOperationTime(ctx context.Context, actorID, dealershipID, operationTimeID uuid.UUID, input UpdateDealershipOperationTimeInput) (domain.DealershipOperationTime, error) {
+	repository, err := s.authorizeDealershipOperationTimes(ctx, actorID, dealershipID)
+	if err != nil {
+		return domain.DealershipOperationTime{}, err
+	}
+	current, err := repository.GetDealershipOperationTime(ctx, dealershipID, operationTimeID)
+	if errors.Is(err, ErrDealershipOperationTimeNotFound) {
+		return domain.DealershipOperationTime{}, common.NewNotFoundError("operation_time_not_found", "operation time was not found")
+	}
+	if err != nil {
+		return domain.DealershipOperationTime{}, err
+	}
+	updated, err := current.Update(valueOr(input.DayOfWeek, current.DayOfWeek()), valueOr(input.OpensAt, current.OpensAt()), valueOr(input.ClosesAt, current.ClosesAt()), s.now())
+	if err != nil {
+		return domain.DealershipOperationTime{}, invalidOperationTimeInput(err)
+	}
+	if err := repository.UpdateDealershipOperationTime(ctx, updated); err != nil {
+		if errors.Is(err, ErrDealershipOperationTimeOverlaps) {
+			return domain.DealershipOperationTime{}, common.NewConflictError("operation_time_overlaps", "operation time overlaps an existing interval")
+		}
+		if errors.Is(err, ErrDealershipOperationTimeNotFound) {
+			return domain.DealershipOperationTime{}, common.NewNotFoundError("operation_time_not_found", "operation time was not found")
+		}
+		return domain.DealershipOperationTime{}, err
+	}
+	return updated, nil
+}
+
+func (s *Service) DeleteDealershipOperationTime(ctx context.Context, actorID, dealershipID, operationTimeID uuid.UUID) error {
+	repository, err := s.authorizeDealershipOperationTimes(ctx, actorID, dealershipID)
+	if err != nil {
+		return err
+	}
+	err = repository.DeleteDealershipOperationTime(ctx, dealershipID, operationTimeID)
+	if errors.Is(err, ErrDealershipOperationTimeNotFound) {
+		return common.NewNotFoundError("operation_time_not_found", "operation time was not found")
+	}
+	return err
+}
+
+func (s *Service) authorizeDealershipOperationTimes(ctx context.Context, actorID, dealershipID uuid.UUID) (DealershipOperationTimeRepository, error) {
+	if actorID == uuid.Nil {
+		return nil, common.NewUnauthorizedError("authentication_required", "authentication required")
+	}
+	if dealershipID == uuid.Nil {
+		return nil, common.NewInvalidInputError("invalid_dealership_id", "dealership ID is required")
+	}
+	repository, ok := s.repository.(DealershipOperationTimeRepository)
+	if !ok {
+		return nil, errors.New("dealership operation time repository is not configured")
+	}
+	isAdmin, err := repository.IsActiveSchedulerAdminForDealership(ctx, actorID, dealershipID)
+	if err != nil {
+		return nil, err
+	}
+	if !isAdmin {
+		return nil, common.NewForbiddenError("operation_time_access_forbidden", "you are not allowed to manage operation times for this dealership")
+	}
+	isActive, err := repository.IsActiveDealership(ctx, dealershipID)
+	if err != nil {
+		return nil, err
+	}
+	if !isActive {
+		return nil, common.NewNotFoundError("dealership_not_found", "dealership was not found")
+	}
+	return repository, nil
+}
+
+func invalidOperationTimeInput(err error) common.Error {
+	if errors.Is(err, domain.ErrInvalidOperationHours) {
+		return common.Error{HttpErrorCode: 422, PublicError: "opens at must be earlier than closes at", ErrorSlug: "invalid_operation_time"}
+	}
+	return common.NewInvalidInputError("invalid_operation_time", "%s", err)
+}
+
 func (s *Service) CreateServiceTypeRequiredSkill(ctx context.Context, actorID, dealershipID, serviceTypeID uuid.UUID, input CreateServiceTypeRequiredSkillInput) (domain.ServiceTypeRequiredSkill, error) {
 	repository, err := s.authorizeServiceTypeRequiredSkills(ctx, actorID, dealershipID)
 	if err != nil {
@@ -496,6 +675,97 @@ func invalidServiceTypeRequiredSkillInput(err error) common.Error {
 	return common.NewInvalidInputError("invalid_service_type_required_skill", "%s", err)
 }
 
+func (s *Service) CreateServiceTypeRequiredBayCapability(ctx context.Context, actorID, dealershipID, serviceTypeID uuid.UUID, input CreateServiceTypeRequiredBayCapabilityInput) (domain.ServiceTypeRequiredBayCapability, error) {
+	repository, err := s.authorizeServiceTypeRequiredBayCapabilities(ctx, actorID, dealershipID)
+	if err != nil {
+		return domain.ServiceTypeRequiredBayCapability{}, err
+	}
+	requiredCapability, err := domain.NewServiceTypeRequiredBayCapability(s.newID(), serviceTypeID, input.BayCapabilityID, s.now())
+	if err != nil {
+		return domain.ServiceTypeRequiredBayCapability{}, invalidServiceTypeRequiredBayCapabilityInput(err)
+	}
+	result, err := repository.CreateServiceTypeRequiredBayCapability(ctx, dealershipID, requiredCapability)
+	return result, serviceTypeRequiredBayCapabilityError(err)
+}
+
+func (s *Service) ListServiceTypeRequiredBayCapabilities(ctx context.Context, actorID, dealershipID, serviceTypeID uuid.UUID) ([]domain.ServiceTypeRequiredBayCapability, error) {
+	repository, err := s.authorizeServiceTypeRequiredBayCapabilities(ctx, actorID, dealershipID)
+	if err != nil {
+		return nil, err
+	}
+	result, err := repository.ListServiceTypeRequiredBayCapabilities(ctx, dealershipID, serviceTypeID)
+	return result, serviceTypeRequiredBayCapabilityError(err)
+}
+
+func (s *Service) UpdateServiceTypeRequiredBayCapability(ctx context.Context, actorID, dealershipID, serviceTypeID, requiredCapabilityID uuid.UUID, input UpdateServiceTypeRequiredBayCapabilityInput) (domain.ServiceTypeRequiredBayCapability, error) {
+	if input.BayCapabilityID == nil {
+		return domain.ServiceTypeRequiredBayCapability{}, common.NewInvalidInputError("request_body_required", "bayCapabilityId is required")
+	}
+	repository, err := s.authorizeServiceTypeRequiredBayCapabilities(ctx, actorID, dealershipID)
+	if err != nil {
+		return domain.ServiceTypeRequiredBayCapability{}, err
+	}
+	current, err := repository.GetServiceTypeRequiredBayCapability(ctx, dealershipID, serviceTypeID, requiredCapabilityID)
+	if err != nil {
+		return domain.ServiceTypeRequiredBayCapability{}, serviceTypeRequiredBayCapabilityError(err)
+	}
+	updated, err := current.WithBayCapability(*input.BayCapabilityID, s.now())
+	if err != nil {
+		return domain.ServiceTypeRequiredBayCapability{}, invalidServiceTypeRequiredBayCapabilityInput(err)
+	}
+	result, err := repository.UpdateServiceTypeRequiredBayCapability(ctx, dealershipID, updated)
+	return result, serviceTypeRequiredBayCapabilityError(err)
+}
+
+func (s *Service) DeleteServiceTypeRequiredBayCapability(ctx context.Context, actorID, dealershipID, serviceTypeID, requiredCapabilityID uuid.UUID) error {
+	repository, err := s.authorizeServiceTypeRequiredBayCapabilities(ctx, actorID, dealershipID)
+	if err != nil {
+		return err
+	}
+	err = repository.DeleteServiceTypeRequiredBayCapability(ctx, dealershipID, serviceTypeID, requiredCapabilityID)
+	return serviceTypeRequiredBayCapabilityError(err)
+}
+
+func (s *Service) authorizeServiceTypeRequiredBayCapabilities(ctx context.Context, actorID, dealershipID uuid.UUID) (ServiceTypeRequiredBayCapabilityRepository, error) {
+	if actorID == uuid.Nil {
+		return nil, common.NewUnauthorizedError("authentication_required", "authentication required")
+	}
+	if dealershipID == uuid.Nil {
+		return nil, common.NewInvalidInputError("invalid_dealership_id", "dealership ID is required")
+	}
+	repository, ok := s.repository.(ServiceTypeRequiredBayCapabilityRepository)
+	if !ok {
+		return nil, errors.New("service type required bay capability repository is not configured")
+	}
+	isAdmin, err := repository.IsActiveSchedulerAdminForDealership(ctx, actorID, dealershipID)
+	if err != nil {
+		return nil, err
+	}
+	if !isAdmin {
+		return nil, common.NewForbiddenError("service_type_required_bay_capability_access_forbidden", "you are not allowed to manage required bay capabilities for this dealership")
+	}
+	return repository, nil
+}
+
+func serviceTypeRequiredBayCapabilityError(err error) error {
+	switch {
+	case errors.Is(err, ErrServiceTypeNotFound):
+		return common.NewNotFoundError("service_type_not_found", "service type was not found")
+	case errors.Is(err, ErrServiceTypeRequiredBayCapabilityNotFound):
+		return common.NewNotFoundError("service_type_required_bay_capability_not_found", "required bay capability was not found")
+	case errors.Is(err, ErrBayCapabilityNotFound):
+		return common.NewNotFoundError("bay_capability_not_found", "bay capability was not found")
+	case errors.Is(err, ErrServiceTypeRequiredBayCapabilityTaken):
+		return common.NewConflictError("service_type_required_bay_capability_taken", "the service type already requires this bay capability")
+	default:
+		return err
+	}
+}
+
+func invalidServiceTypeRequiredBayCapabilityInput(err error) common.Error {
+	return common.NewInvalidInputError("invalid_service_type_required_bay_capability", "%s", err)
+}
+
 func (s *Service) CreateServiceBay(ctx context.Context, actorID, dealershipID uuid.UUID, input CreateServiceBayInput) (domain.ServiceBay, error) {
 	repository, err := s.authorizeServiceBays(ctx, actorID, dealershipID)
 	if err != nil {
@@ -582,6 +852,97 @@ func (s *Service) DeleteServiceBay(ctx context.Context, actorID, dealershipID, s
 	}
 }
 
+func (s *Service) CreateServiceBayCapability(ctx context.Context, actorID, dealershipID, serviceBayID uuid.UUID, input CreateServiceBayCapabilityInput) (domain.ServiceBayCapability, error) {
+	repository, err := s.authorizeServiceBayCapabilities(ctx, actorID, dealershipID)
+	if err != nil {
+		return domain.ServiceBayCapability{}, err
+	}
+	capability, err := domain.NewServiceBayCapability(s.newID(), serviceBayID, input.BayCapabilityID, s.now())
+	if err != nil {
+		return domain.ServiceBayCapability{}, invalidServiceBayCapabilityInput(err)
+	}
+	result, err := repository.CreateServiceBayCapability(ctx, dealershipID, capability)
+	return result, serviceBayCapabilityError(err)
+}
+
+func (s *Service) ListServiceBayCapabilities(ctx context.Context, actorID, dealershipID, serviceBayID uuid.UUID) ([]domain.ServiceBayCapability, error) {
+	repository, err := s.authorizeServiceBayCapabilities(ctx, actorID, dealershipID)
+	if err != nil {
+		return nil, err
+	}
+	result, err := repository.ListServiceBayCapabilities(ctx, dealershipID, serviceBayID)
+	return result, serviceBayCapabilityError(err)
+}
+
+func (s *Service) UpdateServiceBayCapability(ctx context.Context, actorID, dealershipID, serviceBayID, serviceBayCapabilityID uuid.UUID, input UpdateServiceBayCapabilityInput) (domain.ServiceBayCapability, error) {
+	if input.BayCapabilityID == nil {
+		return domain.ServiceBayCapability{}, common.NewInvalidInputError("request_body_required", "bayCapabilityId is required")
+	}
+	repository, err := s.authorizeServiceBayCapabilities(ctx, actorID, dealershipID)
+	if err != nil {
+		return domain.ServiceBayCapability{}, err
+	}
+	current, err := repository.GetServiceBayCapability(ctx, dealershipID, serviceBayID, serviceBayCapabilityID)
+	if err != nil {
+		return domain.ServiceBayCapability{}, serviceBayCapabilityError(err)
+	}
+	updated, err := current.WithBayCapability(*input.BayCapabilityID, s.now())
+	if err != nil {
+		return domain.ServiceBayCapability{}, invalidServiceBayCapabilityInput(err)
+	}
+	result, err := repository.UpdateServiceBayCapability(ctx, dealershipID, updated)
+	return result, serviceBayCapabilityError(err)
+}
+
+func (s *Service) DeleteServiceBayCapability(ctx context.Context, actorID, dealershipID, serviceBayID, serviceBayCapabilityID uuid.UUID) error {
+	repository, err := s.authorizeServiceBayCapabilities(ctx, actorID, dealershipID)
+	if err != nil {
+		return err
+	}
+	err = repository.DeleteServiceBayCapability(ctx, dealershipID, serviceBayID, serviceBayCapabilityID)
+	return serviceBayCapabilityError(err)
+}
+
+func (s *Service) authorizeServiceBayCapabilities(ctx context.Context, actorID, dealershipID uuid.UUID) (ServiceBayCapabilityRepository, error) {
+	if actorID == uuid.Nil {
+		return nil, common.NewUnauthorizedError("authentication_required", "authentication required")
+	}
+	if dealershipID == uuid.Nil {
+		return nil, common.NewInvalidInputError("invalid_dealership_id", "dealership ID is required")
+	}
+	repository, ok := s.repository.(ServiceBayCapabilityRepository)
+	if !ok {
+		return nil, errors.New("service bay capability repository is not configured")
+	}
+	allowed, err := repository.IsActiveSchedulerAdminForDealership(ctx, actorID, dealershipID)
+	if err != nil {
+		return nil, err
+	}
+	if !allowed {
+		return nil, common.NewForbiddenError("service_bay_capability_access_forbidden", "active dealership admin access is required")
+	}
+	return repository, nil
+}
+
+func serviceBayCapabilityError(err error) error {
+	switch {
+	case errors.Is(err, ErrServiceBayNotFound):
+		return common.NewNotFoundError("service_bay_not_found", "service bay was not found")
+	case errors.Is(err, ErrServiceBayCapabilityNotFound):
+		return common.NewNotFoundError("service_bay_capability_not_found", "service bay capability was not found")
+	case errors.Is(err, ErrBayCapabilityNotFound):
+		return common.NewNotFoundError("bay_capability_not_found", "bay capability was not found")
+	case errors.Is(err, ErrServiceBayCapabilityTaken):
+		return common.NewConflictError("service_bay_capability_taken", "the service bay already has this capability")
+	default:
+		return err
+	}
+}
+
+func invalidServiceBayCapabilityInput(err error) common.Error {
+	return common.NewInvalidInputError("invalid_service_bay_capability", "%s", err)
+}
+
 func (s *Service) authorizeServiceBays(ctx context.Context, actorID, dealershipID uuid.UUID) (ServiceBayRepository, error) {
 	if actorID == uuid.Nil {
 		return nil, common.NewUnauthorizedError("authentication_required", "authentication required")
@@ -622,6 +983,187 @@ func (s *Service) authorizeServiceTypes(ctx context.Context, actorID, dealership
 		return nil, common.NewForbiddenError("service_type_access_forbidden", "you are not allowed to manage service types for this dealership")
 	}
 	return repository, nil
+}
+
+// CreateCustomer adds a global customer record. Customer records are not
+// owned by a dealership in the current schema.
+func (s *Service) CreateCustomer(ctx context.Context, actorID uuid.UUID, input CreateCustomerInput) (domain.Customer, error) {
+	repository, err := s.authorizeCustomers(ctx, actorID)
+	if err != nil {
+		return domain.Customer{}, err
+	}
+	name, phone, email, err := normalizeCustomerInput(input.Name, input.Phone, input.Email)
+	if err != nil {
+		return domain.Customer{}, err
+	}
+	customer, err := domain.NewCustomer(s.newID(), name, phone, email, s.now())
+	if err != nil {
+		return domain.Customer{}, common.NewInvalidInputError("invalid_request", "customer name is required")
+	}
+	customer, err = repository.CreateCustomer(ctx, customer)
+	return customer, customerError(err)
+}
+
+func (s *Service) GetCustomer(ctx context.Context, actorID, customerID uuid.UUID) (domain.Customer, error) {
+	repository, err := s.authorizeCustomers(ctx, actorID)
+	if err != nil {
+		return domain.Customer{}, err
+	}
+	if customerID == uuid.Nil {
+		return domain.Customer{}, common.NewInvalidInputError("invalid_request", "customer ID must be a valid UUID")
+	}
+	customer, err := repository.GetCustomer(ctx, customerID)
+	return customer, customerError(err)
+}
+
+func (s *Service) UpdateCustomer(ctx context.Context, actorID, customerID uuid.UUID, input UpdateCustomerInput) (domain.Customer, error) {
+	repository, err := s.authorizeCustomers(ctx, actorID)
+	if err != nil {
+		return domain.Customer{}, err
+	}
+	if customerID == uuid.Nil {
+		return domain.Customer{}, common.NewInvalidInputError("invalid_request", "customer ID must be a valid UUID")
+	}
+	if input.Name == nil && input.Phone == nil && !input.EmailPresent {
+		return domain.Customer{}, common.NewInvalidInputError("invalid_request", "at least one field is required")
+	}
+	existing, err := repository.GetCustomer(ctx, customerID)
+	if err != nil {
+		return domain.Customer{}, customerError(err)
+	}
+	name := existing.Name()
+	if input.Name != nil {
+		name = *input.Name
+	}
+	phone := existing.Phone()
+	if input.Phone != nil {
+		phone = *input.Phone
+	}
+	email := existing.Email()
+	if input.EmailPresent {
+		email = input.Email
+	}
+	name, phone, email, err = normalizeCustomerInput(name, phone, email)
+	if err != nil {
+		return domain.Customer{}, err
+	}
+	updated, err := existing.Update(name, phone, email, s.now())
+	if err != nil {
+		return domain.Customer{}, common.NewInvalidInputError("invalid_request", "customer name is required")
+	}
+	updated, err = repository.UpdateCustomer(ctx, updated)
+	return updated, customerError(err)
+}
+
+func (s *Service) SearchCustomers(ctx context.Context, actorID uuid.UUID, phone, email *string) ([]domain.Customer, error) {
+	repository, err := s.authorizeCustomers(ctx, actorID)
+	if err != nil {
+		return nil, err
+	}
+	if (phone == nil && email == nil) || (phone != nil && email != nil) {
+		return nil, common.NewInvalidInputError("invalid_request", "exactly one of phone or email is required")
+	}
+	if phone != nil {
+		normalizedPhone, err := normalizePhone(*phone)
+		if err != nil {
+			return nil, err
+		}
+		customer, err := repository.GetCustomerByPhone(ctx, normalizedPhone)
+		if errors.Is(err, ErrCustomerNotFound) {
+			return []domain.Customer{}, nil
+		}
+		if err != nil {
+			return nil, customerError(err)
+		}
+		return []domain.Customer{customer}, nil
+	}
+	normalizedEmail, err := normalizeEmail(*email)
+	if err != nil {
+		return nil, err
+	}
+	customer, err := repository.GetCustomerByEmail(ctx, normalizedEmail)
+	if errors.Is(err, ErrCustomerNotFound) {
+		return []domain.Customer{}, nil
+	}
+	if err != nil {
+		return nil, customerError(err)
+	}
+	return []domain.Customer{customer}, nil
+}
+
+func (s *Service) authorizeCustomers(ctx context.Context, actorID uuid.UUID) (CustomerRepository, error) {
+	if actorID == uuid.Nil {
+		return nil, common.NewUnauthorizedError("authentication_required", "authentication required")
+	}
+	repository, ok := s.repository.(CustomerRepository)
+	if !ok {
+		return nil, errors.New("customer repository is not configured")
+	}
+	allowed, err := repository.IsActiveCustomerEmployee(ctx, actorID)
+	if err != nil {
+		return nil, err
+	}
+	if !allowed {
+		return nil, common.NewForbiddenError("customer_access_forbidden", "you are not allowed to manage customers")
+	}
+	return repository, nil
+}
+
+func normalizeCustomerInput(name, phone string, email *string) (string, string, *string, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return "", "", nil, common.NewInvalidInputError("invalid_request", "customer name is required")
+	}
+	normalizedPhone, err := normalizePhone(phone)
+	if err != nil {
+		return "", "", nil, err
+	}
+	if email == nil {
+		return name, normalizedPhone, nil, nil
+	}
+	normalizedEmail, err := normalizeEmail(*email)
+	if err != nil {
+		return "", "", nil, err
+	}
+	return name, normalizedPhone, &normalizedEmail, nil
+}
+
+func normalizePhone(value string) (string, error) {
+	value = strings.TrimSpace(value)
+	value = strings.NewReplacer(" ", "", "-", "", "(", "", ")", "", ".", "").Replace(value)
+	if len(value) < 9 || len(value) > 16 || value[0] != '+' || value[1] == '0' {
+		return "", common.NewInvalidInputError("invalid_request", "phone must be a valid E.164 number")
+	}
+	for _, character := range value[1:] {
+		if character < '0' || character > '9' {
+			return "", common.NewInvalidInputError("invalid_request", "phone must be a valid E.164 number")
+		}
+	}
+	return value, nil
+}
+
+func normalizeEmail(value string) (string, error) {
+	value = strings.ToLower(strings.TrimSpace(value))
+	parsed, err := mail.ParseAddress(value)
+	if err != nil || parsed.Address != value {
+		return "", common.NewInvalidInputError("invalid_request", "email must be a valid email address")
+	}
+	return value, nil
+}
+
+func customerError(err error) error {
+	switch {
+	case err == nil:
+		return nil
+	case errors.Is(err, ErrCustomerNotFound):
+		return common.NewNotFoundError("customer_not_found", "customer was not found")
+	case errors.Is(err, ErrCustomerPhoneTaken):
+		return common.NewConflictError("customer_phone_already_exists", "a customer with this phone already exists")
+	case errors.Is(err, ErrCustomerEmailTaken):
+		return common.NewConflictError("customer_email_already_exists", "a customer with this email already exists")
+	default:
+		return err
+	}
 }
 
 func valueOr[T any](value *T, fallback T) T {

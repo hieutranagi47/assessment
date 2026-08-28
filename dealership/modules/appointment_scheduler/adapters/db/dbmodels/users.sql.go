@@ -270,6 +270,29 @@ func (q *Queries) GetUsers(ctx context.Context, userID pgtype.UUID) (GetUsersRow
 	return i, err
 }
 
+const isActiveCustomerEmployee = `-- name: IsActiveCustomerEmployee :one
+SELECT EXISTS (
+  SELECT 1
+  FROM appointment_scheduler.users AS users
+  JOIN appointment_scheduler.user_roles AS user_roles ON user_roles.user_id = users.user_id
+  JOIN appointment_scheduler.roles AS roles ON roles.role_id = user_roles.role_id
+  WHERE users.auth_user_id = $1
+    AND users.auth_user_id IS NOT NULL
+    AND users.is_active
+    AND users.deleted_at IS NULL
+    AND user_roles.deleted_at IS NULL
+    AND roles.deleted_at IS NULL
+    AND roles.code IN ('admin', 'dealer', 'staff')
+)
+`
+
+func (q *Queries) IsActiveCustomerEmployee(ctx context.Context, authUserID pgtype.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, isActiveCustomerEmployee, authUserID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const isActiveSchedulerAdmin = `-- name: IsActiveSchedulerAdmin :one
 SELECT EXISTS (
   SELECT 1

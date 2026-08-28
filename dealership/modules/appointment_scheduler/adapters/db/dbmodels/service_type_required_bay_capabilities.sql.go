@@ -12,84 +12,199 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const createServiceTypeRequiredBayCapabilities = `-- name: CreateServiceTypeRequiredBayCapabilities :exec
-INSERT INTO appointment_scheduler.service_type_required_bay_capabilities (service_type_required_bay_capability_id, service_type_id, capability_code, created_at)
-VALUES ($1, $2, $3, $4)
+const bayCapabilityExists = `-- name: BayCapabilityExists :one
+
+SELECT EXISTS(SELECT 1 FROM appointment_scheduler.bay_capabilities WHERE bay_capability_id = $1)
 `
 
-type CreateServiceTypeRequiredBayCapabilitiesParams struct {
+// Required bay capabilities are selected through their dealership-owned service type.
+func (q *Queries) BayCapabilityExists(ctx context.Context, bayCapabilityID pgtype.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, bayCapabilityExists, bayCapabilityID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const createServiceTypeRequiredBayCapability = `-- name: CreateServiceTypeRequiredBayCapability :one
+INSERT INTO appointment_scheduler.service_type_required_bay_capabilities (service_type_required_bay_capability_id, service_type_id, bay_capability_id, created_at, updated_at)
+SELECT $1, service_types.service_type_id, bay_capabilities.bay_capability_id, $2, $3
+FROM appointment_scheduler.service_types
+JOIN appointment_scheduler.bay_capabilities ON bay_capabilities.bay_capability_id = $4
+WHERE service_types.service_type_id = $5 AND service_types.dealership_id = $6 AND service_types.deleted_at IS NULL
+RETURNING service_type_required_bay_capability_id, service_type_id, bay_capability_id, created_at, updated_at
+`
+
+type CreateServiceTypeRequiredBayCapabilityParams struct {
 	ServiceTypeRequiredBayCapabilityID pgtype.UUID
-	ServiceTypeID                      pgtype.UUID
-	CapabilityCode                     string
 	CreatedAt                          time.Time
+	UpdatedAt                          time.Time
+	BayCapabilityID                    pgtype.UUID
+	ServiceTypeID                      pgtype.UUID
+	DealershipID                       pgtype.UUID
 }
 
-func (q *Queries) CreateServiceTypeRequiredBayCapabilities(ctx context.Context, arg CreateServiceTypeRequiredBayCapabilitiesParams) error {
-	_, err := q.db.Exec(ctx, createServiceTypeRequiredBayCapabilities,
+func (q *Queries) CreateServiceTypeRequiredBayCapability(ctx context.Context, arg CreateServiceTypeRequiredBayCapabilityParams) (AppointmentSchedulerServiceTypeRequiredBayCapability, error) {
+	row := q.db.QueryRow(ctx, createServiceTypeRequiredBayCapability,
 		arg.ServiceTypeRequiredBayCapabilityID,
-		arg.ServiceTypeID,
-		arg.CapabilityCode,
 		arg.CreatedAt,
+		arg.UpdatedAt,
+		arg.BayCapabilityID,
+		arg.ServiceTypeID,
+		arg.DealershipID,
 	)
-	return err
-}
-
-const deleteServiceTypeRequiredBayCapabilities = `-- name: DeleteServiceTypeRequiredBayCapabilities :execrows
-UPDATE appointment_scheduler.service_type_required_bay_capabilities
-SET deleted_at = $1::timestamptz
-WHERE service_type_required_bay_capability_id = $2 AND deleted_at IS NULL
-`
-
-type DeleteServiceTypeRequiredBayCapabilitiesParams struct {
-	DeletedAt                          time.Time
-	ServiceTypeRequiredBayCapabilityID pgtype.UUID
-}
-
-func (q *Queries) DeleteServiceTypeRequiredBayCapabilities(ctx context.Context, arg DeleteServiceTypeRequiredBayCapabilitiesParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteServiceTypeRequiredBayCapabilities, arg.DeletedAt, arg.ServiceTypeRequiredBayCapabilityID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
-}
-
-const getServiceTypeRequiredBayCapabilities = `-- name: GetServiceTypeRequiredBayCapabilities :one
-
-SELECT service_type_required_bay_capability_id, service_type_id, capability_code, created_at, deleted_at
-FROM appointment_scheduler.service_type_required_bay_capabilities
-WHERE service_type_required_bay_capability_id = $1 AND deleted_at IS NULL
-`
-
-// service type required bay capabilities CRUD queries.
-func (q *Queries) GetServiceTypeRequiredBayCapabilities(ctx context.Context, serviceTypeRequiredBayCapabilityID pgtype.UUID) (AppointmentSchedulerServiceTypeRequiredBayCapability, error) {
-	row := q.db.QueryRow(ctx, getServiceTypeRequiredBayCapabilities, serviceTypeRequiredBayCapabilityID)
 	var i AppointmentSchedulerServiceTypeRequiredBayCapability
 	err := row.Scan(
 		&i.ServiceTypeRequiredBayCapabilityID,
 		&i.ServiceTypeID,
-		&i.CapabilityCode,
+		&i.BayCapabilityID,
 		&i.CreatedAt,
-		&i.DeletedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
-const updateServiceTypeRequiredBayCapabilities = `-- name: UpdateServiceTypeRequiredBayCapabilities :execrows
-UPDATE appointment_scheduler.service_type_required_bay_capabilities
-SET service_type_id = $1, capability_code = $2
-WHERE service_type_required_bay_capability_id = $3 AND deleted_at IS NULL
+const deleteServiceTypeRequiredBayCapability = `-- name: DeleteServiceTypeRequiredBayCapability :execrows
+DELETE FROM appointment_scheduler.service_type_required_bay_capabilities required_capability
+USING appointment_scheduler.service_types service_types
+WHERE required_capability.service_type_required_bay_capability_id = $1 AND required_capability.service_type_id = $2 AND service_types.service_type_id = required_capability.service_type_id AND service_types.dealership_id = $3 AND service_types.deleted_at IS NULL
 `
 
-type UpdateServiceTypeRequiredBayCapabilitiesParams struct {
-	ServiceTypeID                      pgtype.UUID
-	CapabilityCode                     string
+type DeleteServiceTypeRequiredBayCapabilityParams struct {
 	ServiceTypeRequiredBayCapabilityID pgtype.UUID
+	ServiceTypeID                      pgtype.UUID
+	DealershipID                       pgtype.UUID
 }
 
-func (q *Queries) UpdateServiceTypeRequiredBayCapabilities(ctx context.Context, arg UpdateServiceTypeRequiredBayCapabilitiesParams) (int64, error) {
-	result, err := q.db.Exec(ctx, updateServiceTypeRequiredBayCapabilities, arg.ServiceTypeID, arg.CapabilityCode, arg.ServiceTypeRequiredBayCapabilityID)
+func (q *Queries) DeleteServiceTypeRequiredBayCapability(ctx context.Context, arg DeleteServiceTypeRequiredBayCapabilityParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteServiceTypeRequiredBayCapability, arg.ServiceTypeRequiredBayCapabilityID, arg.ServiceTypeID, arg.DealershipID)
 	if err != nil {
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const getServiceTypeRequiredBayCapability = `-- name: GetServiceTypeRequiredBayCapability :one
+SELECT required_capability.service_type_required_bay_capability_id, required_capability.service_type_id, capabilities.bay_capability_id, capabilities.code, capabilities.name, required_capability.created_at, required_capability.updated_at
+FROM appointment_scheduler.service_type_required_bay_capabilities required_capability
+JOIN appointment_scheduler.service_types service_types ON service_types.service_type_id = required_capability.service_type_id
+JOIN appointment_scheduler.bay_capabilities capabilities ON capabilities.bay_capability_id = required_capability.bay_capability_id
+WHERE required_capability.service_type_required_bay_capability_id = $1 AND required_capability.service_type_id = $2 AND service_types.dealership_id = $3 AND service_types.deleted_at IS NULL
+`
+
+type GetServiceTypeRequiredBayCapabilityParams struct {
+	ServiceTypeRequiredBayCapabilityID pgtype.UUID
+	ServiceTypeID                      pgtype.UUID
+	DealershipID                       pgtype.UUID
+}
+
+type GetServiceTypeRequiredBayCapabilityRow struct {
+	ServiceTypeRequiredBayCapabilityID pgtype.UUID
+	ServiceTypeID                      pgtype.UUID
+	BayCapabilityID                    pgtype.UUID
+	Code                               string
+	Name                               string
+	CreatedAt                          time.Time
+	UpdatedAt                          time.Time
+}
+
+func (q *Queries) GetServiceTypeRequiredBayCapability(ctx context.Context, arg GetServiceTypeRequiredBayCapabilityParams) (GetServiceTypeRequiredBayCapabilityRow, error) {
+	row := q.db.QueryRow(ctx, getServiceTypeRequiredBayCapability, arg.ServiceTypeRequiredBayCapabilityID, arg.ServiceTypeID, arg.DealershipID)
+	var i GetServiceTypeRequiredBayCapabilityRow
+	err := row.Scan(
+		&i.ServiceTypeRequiredBayCapabilityID,
+		&i.ServiceTypeID,
+		&i.BayCapabilityID,
+		&i.Code,
+		&i.Name,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const listServiceTypeRequiredBayCapabilities = `-- name: ListServiceTypeRequiredBayCapabilities :many
+SELECT required_capability.service_type_required_bay_capability_id, required_capability.service_type_id, capabilities.bay_capability_id, capabilities.code, capabilities.name, required_capability.created_at, required_capability.updated_at
+FROM appointment_scheduler.service_type_required_bay_capabilities required_capability
+JOIN appointment_scheduler.service_types service_types ON service_types.service_type_id = required_capability.service_type_id
+JOIN appointment_scheduler.bay_capabilities capabilities ON capabilities.bay_capability_id = required_capability.bay_capability_id
+WHERE required_capability.service_type_id = $1 AND service_types.dealership_id = $2 AND service_types.deleted_at IS NULL
+ORDER BY capabilities.name, capabilities.bay_capability_id
+`
+
+type ListServiceTypeRequiredBayCapabilitiesParams struct {
+	ServiceTypeID pgtype.UUID
+	DealershipID  pgtype.UUID
+}
+
+type ListServiceTypeRequiredBayCapabilitiesRow struct {
+	ServiceTypeRequiredBayCapabilityID pgtype.UUID
+	ServiceTypeID                      pgtype.UUID
+	BayCapabilityID                    pgtype.UUID
+	Code                               string
+	Name                               string
+	CreatedAt                          time.Time
+	UpdatedAt                          time.Time
+}
+
+func (q *Queries) ListServiceTypeRequiredBayCapabilities(ctx context.Context, arg ListServiceTypeRequiredBayCapabilitiesParams) ([]ListServiceTypeRequiredBayCapabilitiesRow, error) {
+	rows, err := q.db.Query(ctx, listServiceTypeRequiredBayCapabilities, arg.ServiceTypeID, arg.DealershipID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListServiceTypeRequiredBayCapabilitiesRow{}
+	for rows.Next() {
+		var i ListServiceTypeRequiredBayCapabilitiesRow
+		if err := rows.Scan(
+			&i.ServiceTypeRequiredBayCapabilityID,
+			&i.ServiceTypeID,
+			&i.BayCapabilityID,
+			&i.Code,
+			&i.Name,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateServiceTypeRequiredBayCapability = `-- name: UpdateServiceTypeRequiredBayCapability :one
+UPDATE appointment_scheduler.service_type_required_bay_capabilities required_capability
+SET bay_capability_id = $1, updated_at = $2
+FROM appointment_scheduler.service_types service_types
+WHERE required_capability.service_type_required_bay_capability_id = $3 AND required_capability.service_type_id = $4 AND service_types.service_type_id = required_capability.service_type_id AND service_types.dealership_id = $5 AND service_types.deleted_at IS NULL
+RETURNING required_capability.service_type_required_bay_capability_id, required_capability.service_type_id, required_capability.bay_capability_id, required_capability.created_at, required_capability.updated_at
+`
+
+type UpdateServiceTypeRequiredBayCapabilityParams struct {
+	BayCapabilityID                    pgtype.UUID
+	UpdatedAt                          time.Time
+	ServiceTypeRequiredBayCapabilityID pgtype.UUID
+	ServiceTypeID                      pgtype.UUID
+	DealershipID                       pgtype.UUID
+}
+
+func (q *Queries) UpdateServiceTypeRequiredBayCapability(ctx context.Context, arg UpdateServiceTypeRequiredBayCapabilityParams) (AppointmentSchedulerServiceTypeRequiredBayCapability, error) {
+	row := q.db.QueryRow(ctx, updateServiceTypeRequiredBayCapability,
+		arg.BayCapabilityID,
+		arg.UpdatedAt,
+		arg.ServiceTypeRequiredBayCapabilityID,
+		arg.ServiceTypeID,
+		arg.DealershipID,
+	)
+	var i AppointmentSchedulerServiceTypeRequiredBayCapability
+	err := row.Scan(
+		&i.ServiceTypeRequiredBayCapabilityID,
+		&i.ServiceTypeID,
+		&i.BayCapabilityID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }

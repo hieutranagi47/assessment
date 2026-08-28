@@ -82,6 +82,20 @@ type AuthUser struct {
 	UserId   openapi_types.UUID  `json:"userId"`
 }
 
+// BayCapability defines model for BayCapability.
+type BayCapability struct {
+	BayCapabilityId openapi_types.UUID `json:"bayCapabilityId"`
+	Code            string             `json:"code"`
+	Name            string             `json:"name"`
+}
+
+// CreateCustomerRequest defines model for CreateCustomerRequest.
+type CreateCustomerRequest struct {
+	Email *openapi_types.Email `json:"email,omitempty"`
+	Name  string               `json:"name"`
+	Phone string               `json:"phone"`
+}
+
 // CreateDealershipAdminRequest defines model for CreateDealershipAdminRequest.
 type CreateDealershipAdminRequest struct {
 	DealershipId openapi_types.UUID `json:"dealershipId"`
@@ -92,6 +106,13 @@ type CreateDealershipAdminRequest struct {
 
 	// Phone Example: +84901234567
 	Phone *string `json:"phone,omitempty"`
+}
+
+// CreateDealershipOperationTimeRequest defines model for CreateDealershipOperationTimeRequest.
+type CreateDealershipOperationTimeRequest struct {
+	ClosesAt  string `json:"closesAt"`
+	DayOfWeek int    `json:"dayOfWeek"`
+	OpensAt   string `json:"opensAt"`
 }
 
 // CreateDealershipRequest defines model for CreateDealershipRequest.
@@ -116,6 +137,11 @@ type CreateDealershipUserRequest struct {
 // CreateDealershipUserRequestRole defines model for CreateDealershipUserRequest.Role.
 type CreateDealershipUserRequestRole string
 
+// CreateServiceBayCapabilityRequest defines model for CreateServiceBayCapabilityRequest.
+type CreateServiceBayCapabilityRequest struct {
+	BayCapabilityId openapi_types.UUID `json:"bayCapabilityId"`
+}
+
 // CreateServiceBayRequest defines model for CreateServiceBayRequest.
 type CreateServiceBayRequest struct {
 	Code     string `json:"code"`
@@ -132,9 +158,29 @@ type CreateServiceTypeRequest struct {
 	Name                   string `json:"name"`
 }
 
+// CreateServiceTypeRequiredBayCapabilityRequest defines model for CreateServiceTypeRequiredBayCapabilityRequest.
+type CreateServiceTypeRequiredBayCapabilityRequest struct {
+	BayCapabilityId openapi_types.UUID `json:"bayCapabilityId"`
+}
+
 // CreateServiceTypeRequiredSkillRequest defines model for CreateServiceTypeRequiredSkillRequest.
 type CreateServiceTypeRequiredSkillRequest struct {
 	SkillId openapi_types.UUID `json:"skillId"`
+}
+
+// Customer defines model for Customer.
+type Customer struct {
+	CreatedAt  time.Time            `json:"createdAt"`
+	CustomerId openapi_types.UUID   `json:"customerId"`
+	Email      *openapi_types.Email `json:"email"`
+	Name       string               `json:"name"`
+	Phone      string               `json:"phone"`
+	UpdatedAt  time.Time            `json:"updatedAt"`
+}
+
+// CustomerListResponse defines model for CustomerListResponse.
+type CustomerListResponse struct {
+	Items []Customer `json:"items"`
 }
 
 // Dealership defines model for Dealership.
@@ -165,6 +211,17 @@ type DealershipAdmin struct {
 
 // DealershipAdminRole defines model for DealershipAdmin.Role.
 type DealershipAdminRole string
+
+// DealershipOperationTime defines model for DealershipOperationTime.
+type DealershipOperationTime struct {
+	ClosesAt        string             `json:"closesAt"`
+	CreatedAt       time.Time          `json:"createdAt"`
+	DayOfWeek       int                `json:"dayOfWeek"`
+	DealershipId    openapi_types.UUID `json:"dealershipId"`
+	OpensAt         string             `json:"opensAt"`
+	OperationTimeId openapi_types.UUID `json:"operationTimeId"`
+	UpdatedAt       time.Time          `json:"updatedAt"`
+}
 
 // DealershipUser defines model for DealershipUser.
 type DealershipUser struct {
@@ -208,6 +265,15 @@ type ServiceBay struct {
 	UpdatedAt    time.Time          `json:"updatedAt"`
 }
 
+// ServiceBayCapability defines model for ServiceBayCapability.
+type ServiceBayCapability struct {
+	BayCapability          BayCapability      `json:"bayCapability"`
+	CreatedAt              time.Time          `json:"createdAt"`
+	ServiceBayCapabilityId openapi_types.UUID `json:"serviceBayCapabilityId"`
+	ServiceBayId           openapi_types.UUID `json:"serviceBayId"`
+	UpdatedAt              time.Time          `json:"updatedAt"`
+}
+
 // ServiceBayPage defines model for ServiceBayPage.
 type ServiceBayPage struct {
 	Items  []ServiceBay `json:"items"`
@@ -228,6 +294,15 @@ type ServiceType struct {
 	UpdatedAt              time.Time          `json:"updatedAt"`
 }
 
+// ServiceTypeRequiredBayCapability defines model for ServiceTypeRequiredBayCapability.
+type ServiceTypeRequiredBayCapability struct {
+	BayCapability        BayCapability      `json:"bayCapability"`
+	CreatedAt            time.Time          `json:"createdAt"`
+	RequiredCapabilityId openapi_types.UUID `json:"requiredCapabilityId"`
+	ServiceTypeId        openapi_types.UUID `json:"serviceTypeId"`
+	UpdatedAt            time.Time          `json:"updatedAt"`
+}
+
 // ServiceTypeRequiredSkill defines model for ServiceTypeRequiredSkill.
 type ServiceTypeRequiredSkill struct {
 	CreatedAt       time.Time          `json:"createdAt"`
@@ -242,6 +317,25 @@ type Skill struct {
 	Code    string             `json:"code"`
 	Name    string             `json:"name"`
 	SkillId openapi_types.UUID `json:"skillId"`
+}
+
+// UpdateCustomerRequest defines model for UpdateCustomerRequest.
+type UpdateCustomerRequest struct {
+	Email *OptionalNullableString `json:"email,omitempty"`
+	Name  *string                 `json:"name,omitempty"`
+	Phone *string                 `json:"phone,omitempty"`
+}
+
+// UpdateDealershipOperationTimeRequest defines model for UpdateDealershipOperationTimeRequest.
+type UpdateDealershipOperationTimeRequest struct {
+	ClosesAt  *string `json:"closesAt,omitempty"`
+	DayOfWeek *int    `json:"dayOfWeek,omitempty"`
+	OpensAt   *string `json:"opensAt,omitempty"`
+}
+
+// UpdateServiceBayCapabilityRequest defines model for UpdateServiceBayCapabilityRequest.
+type UpdateServiceBayCapabilityRequest struct {
+	BayCapabilityId openapi_types.UUID `json:"bayCapabilityId"`
 }
 
 // UpdateServiceBayRequest defines model for UpdateServiceBayRequest.
@@ -260,16 +354,33 @@ type UpdateServiceTypeRequest struct {
 	Name                   *string `json:"name,omitempty"`
 }
 
+// UpdateServiceTypeRequiredBayCapabilityRequest defines model for UpdateServiceTypeRequiredBayCapabilityRequest.
+type UpdateServiceTypeRequiredBayCapabilityRequest struct {
+	BayCapabilityId openapi_types.UUID `json:"bayCapabilityId"`
+}
+
 // UpdateServiceTypeRequiredSkillRequest defines model for UpdateServiceTypeRequiredSkillRequest.
 type UpdateServiceTypeRequiredSkillRequest struct {
 	SkillId openapi_types.UUID `json:"skillId"`
 }
 
+// CustomerId defines model for CustomerId.
+type CustomerId = openapi_types.UUID
+
 // DealershipId defines model for DealershipId.
 type DealershipId = openapi_types.UUID
 
+// OperationTimeId defines model for OperationTimeId.
+type OperationTimeId = openapi_types.UUID
+
+// RequiredCapabilityId defines model for RequiredCapabilityId.
+type RequiredCapabilityId = openapi_types.UUID
+
 // RequiredSkillId defines model for RequiredSkillId.
 type RequiredSkillId = openapi_types.UUID
+
+// ServiceBayCapabilityId defines model for ServiceBayCapabilityId.
+type ServiceBayCapabilityId = openapi_types.UUID
 
 // ServiceBayId defines model for ServiceBayId.
 type ServiceBayId = openapi_types.UUID
@@ -285,6 +396,18 @@ type BadRequest = ErrorResponse
 
 // Conflict defines model for Conflict.
 type Conflict = ErrorResponse
+
+// CustomerCreated defines model for CustomerCreated.
+type CustomerCreated = Customer
+
+// CustomerFound defines model for CustomerFound.
+type CustomerFound = Customer
+
+// CustomerUpdated defines model for CustomerUpdated.
+type CustomerUpdated = Customer
+
+// CustomersListed defines model for CustomersListed.
+type CustomersListed = CustomerListResponse
 
 // DealershipAdminCreated defines model for DealershipAdminCreated.
 type DealershipAdminCreated = DealershipAdmin
@@ -304,6 +427,24 @@ type InternalServerError = ErrorResponse
 // NotFound defines model for NotFound.
 type NotFound = ErrorResponse
 
+// OperationTimeCreated defines model for OperationTimeCreated.
+type OperationTimeCreated = DealershipOperationTime
+
+// OperationTimeUpdated defines model for OperationTimeUpdated.
+type OperationTimeUpdated = DealershipOperationTime
+
+// OperationTimesListed defines model for OperationTimesListed.
+type OperationTimesListed = []DealershipOperationTime
+
+// ServiceBayCapabilitiesListed defines model for ServiceBayCapabilitiesListed.
+type ServiceBayCapabilitiesListed = []ServiceBayCapability
+
+// ServiceBayCapabilityCreated defines model for ServiceBayCapabilityCreated.
+type ServiceBayCapabilityCreated = ServiceBayCapability
+
+// ServiceBayCapabilityUpdated defines model for ServiceBayCapabilityUpdated.
+type ServiceBayCapabilityUpdated = ServiceBayCapability
+
 // ServiceBayCreated defines model for ServiceBayCreated.
 type ServiceBayCreated = ServiceBay
 
@@ -321,6 +462,15 @@ type ServiceTypeCreated = ServiceType
 
 // ServiceTypeFound defines model for ServiceTypeFound.
 type ServiceTypeFound = ServiceType
+
+// ServiceTypeRequiredBayCapabilitiesListed defines model for ServiceTypeRequiredBayCapabilitiesListed.
+type ServiceTypeRequiredBayCapabilitiesListed = []ServiceTypeRequiredBayCapability
+
+// ServiceTypeRequiredBayCapabilityCreated defines model for ServiceTypeRequiredBayCapabilityCreated.
+type ServiceTypeRequiredBayCapabilityCreated = ServiceTypeRequiredBayCapability
+
+// ServiceTypeRequiredBayCapabilityUpdated defines model for ServiceTypeRequiredBayCapabilityUpdated.
+type ServiceTypeRequiredBayCapabilityUpdated = ServiceTypeRequiredBayCapability
 
 // ServiceTypeRequiredSkillCreated defines model for ServiceTypeRequiredSkillCreated.
 type ServiceTypeRequiredSkillCreated = ServiceTypeRequiredSkill
@@ -340,9 +490,18 @@ type ServiceTypesListed = []ServiceType
 // Unauthorized defines model for Unauthorized.
 type Unauthorized = ErrorResponse
 
+// UnprocessableEntity defines model for UnprocessableEntity.
+type UnprocessableEntity = ErrorResponse
+
 // SearchAuthUserByEmailParams defines parameters for SearchAuthUserByEmail.
 type SearchAuthUserByEmailParams struct {
 	Email openapi_types.Email `form:"email" json:"email"`
+}
+
+// SearchCustomersParams defines parameters for SearchCustomers.
+type SearchCustomersParams struct {
+	Phone *string              `form:"phone,omitempty" json:"phone,omitempty"`
+	Email *openapi_types.Email `form:"email,omitempty" json:"email,omitempty"`
 }
 
 // ListServiceBaysParams defines parameters for ListServiceBays.
@@ -361,17 +520,41 @@ type CreateDealershipAdminJSONRequestBody = CreateDealershipAdminRequest
 // CreateDealershipJSONRequestBody defines body for CreateDealership for application/json ContentType.
 type CreateDealershipJSONRequestBody = CreateDealershipRequest
 
+// CreateCustomerJSONRequestBody defines body for CreateCustomer for application/json ContentType.
+type CreateCustomerJSONRequestBody = CreateCustomerRequest
+
+// UpdateCustomerJSONRequestBody defines body for UpdateCustomer for application/json ContentType.
+type UpdateCustomerJSONRequestBody = UpdateCustomerRequest
+
+// CreateDealershipOperationTimeJSONRequestBody defines body for CreateDealershipOperationTime for application/json ContentType.
+type CreateDealershipOperationTimeJSONRequestBody = CreateDealershipOperationTimeRequest
+
+// UpdateDealershipOperationTimeJSONRequestBody defines body for UpdateDealershipOperationTime for application/json ContentType.
+type UpdateDealershipOperationTimeJSONRequestBody = UpdateDealershipOperationTimeRequest
+
 // CreateServiceBayJSONRequestBody defines body for CreateServiceBay for application/json ContentType.
 type CreateServiceBayJSONRequestBody = CreateServiceBayRequest
 
 // UpdateServiceBayJSONRequestBody defines body for UpdateServiceBay for application/json ContentType.
 type UpdateServiceBayJSONRequestBody = UpdateServiceBayRequest
 
+// CreateServiceBayCapabilityJSONRequestBody defines body for CreateServiceBayCapability for application/json ContentType.
+type CreateServiceBayCapabilityJSONRequestBody = CreateServiceBayCapabilityRequest
+
+// UpdateServiceBayCapabilityJSONRequestBody defines body for UpdateServiceBayCapability for application/json ContentType.
+type UpdateServiceBayCapabilityJSONRequestBody = UpdateServiceBayCapabilityRequest
+
 // CreateServiceTypeJSONRequestBody defines body for CreateServiceType for application/json ContentType.
 type CreateServiceTypeJSONRequestBody = CreateServiceTypeRequest
 
 // UpdateServiceTypeJSONRequestBody defines body for UpdateServiceType for application/json ContentType.
 type UpdateServiceTypeJSONRequestBody = UpdateServiceTypeRequest
+
+// CreateServiceTypeRequiredBayCapabilityJSONRequestBody defines body for CreateServiceTypeRequiredBayCapability for application/json ContentType.
+type CreateServiceTypeRequiredBayCapabilityJSONRequestBody = CreateServiceTypeRequiredBayCapabilityRequest
+
+// UpdateServiceTypeRequiredBayCapabilityJSONRequestBody defines body for UpdateServiceTypeRequiredBayCapability for application/json ContentType.
+type UpdateServiceTypeRequiredBayCapabilityJSONRequestBody = UpdateServiceTypeRequiredBayCapabilityRequest
 
 // CreateServiceTypeRequiredSkillJSONRequestBody defines body for CreateServiceTypeRequiredSkill for application/json ContentType.
 type CreateServiceTypeRequiredSkillJSONRequestBody = CreateServiceTypeRequiredSkillRequest
@@ -393,6 +576,30 @@ type ServerInterface interface {
 	// CreateDealership Create a dealership
 	// (POST /dealerships)
 	CreateDealership(ctx *echo.Context) error
+	// CreateCustomer Create a global customer record
+	// (POST /v1/customers)
+	CreateCustomer(ctx *echo.Context) error
+
+	// (GET /v1/customers/{customerId})
+	GetCustomer(ctx *echo.Context, customerId CustomerId) error
+
+	// (PATCH /v1/customers/{customerId})
+	UpdateCustomer(ctx *echo.Context, customerId CustomerId) error
+	// SearchCustomers Find global customer records by exact normalized phone or email
+	// (GET /v1/customers:search)
+	SearchCustomers(ctx *echo.Context, params SearchCustomersParams) error
+
+	// (GET /v1/dealerships/{dealershipId}/operation-times)
+	ListDealershipOperationTimes(ctx *echo.Context, dealershipId DealershipId) error
+
+	// (POST /v1/dealerships/{dealershipId}/operation-times)
+	CreateDealershipOperationTime(ctx *echo.Context, dealershipId DealershipId) error
+
+	// (DELETE /v1/dealerships/{dealershipId}/operation-times/{operationTimeId})
+	DeleteDealershipOperationTime(ctx *echo.Context, dealershipId DealershipId, operationTimeId OperationTimeId) error
+
+	// (PATCH /v1/dealerships/{dealershipId}/operation-times/{operationTimeId})
+	UpdateDealershipOperationTime(ctx *echo.Context, dealershipId DealershipId, operationTimeId OperationTimeId) error
 
 	// (GET /v1/dealerships/{dealershipId}/service-bays)
 	ListServiceBays(ctx *echo.Context, dealershipId DealershipId, params ListServiceBaysParams) error
@@ -409,6 +616,18 @@ type ServerInterface interface {
 	// (PATCH /v1/dealerships/{dealershipId}/service-bays/{serviceBayId})
 	UpdateServiceBay(ctx *echo.Context, dealershipId DealershipId, serviceBayId ServiceBayId) error
 
+	// (GET /v1/dealerships/{dealershipId}/service-bays/{serviceBayId}/capabilities)
+	ListServiceBayCapabilities(ctx *echo.Context, dealershipId DealershipId, serviceBayId ServiceBayId) error
+
+	// (POST /v1/dealerships/{dealershipId}/service-bays/{serviceBayId}/capabilities)
+	CreateServiceBayCapability(ctx *echo.Context, dealershipId DealershipId, serviceBayId ServiceBayId) error
+
+	// (DELETE /v1/dealerships/{dealershipId}/service-bays/{serviceBayId}/capabilities/{serviceBayCapabilityId})
+	DeleteServiceBayCapability(ctx *echo.Context, dealershipId DealershipId, serviceBayId ServiceBayId, serviceBayCapabilityId ServiceBayCapabilityId) error
+
+	// (PATCH /v1/dealerships/{dealershipId}/service-bays/{serviceBayId}/capabilities/{serviceBayCapabilityId})
+	UpdateServiceBayCapability(ctx *echo.Context, dealershipId DealershipId, serviceBayId ServiceBayId, serviceBayCapabilityId ServiceBayCapabilityId) error
+
 	// (GET /v1/dealerships/{dealershipId}/service-types)
 	ListServiceTypes(ctx *echo.Context, dealershipId DealershipId) error
 
@@ -423,6 +642,18 @@ type ServerInterface interface {
 
 	// (PATCH /v1/dealerships/{dealershipId}/service-types/{serviceTypeId})
 	UpdateServiceType(ctx *echo.Context, dealershipId DealershipId, serviceTypeId ServiceTypeId) error
+
+	// (GET /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-bay-capabilities)
+	ListServiceTypeRequiredBayCapabilities(ctx *echo.Context, dealershipId DealershipId, serviceTypeId ServiceTypeId) error
+
+	// (POST /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-bay-capabilities)
+	CreateServiceTypeRequiredBayCapability(ctx *echo.Context, dealershipId DealershipId, serviceTypeId ServiceTypeId) error
+
+	// (DELETE /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-bay-capabilities/{requiredCapabilityId})
+	DeleteServiceTypeRequiredBayCapability(ctx *echo.Context, dealershipId DealershipId, serviceTypeId ServiceTypeId, requiredCapabilityId RequiredCapabilityId) error
+
+	// (PATCH /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-bay-capabilities/{requiredCapabilityId})
+	UpdateServiceTypeRequiredBayCapability(ctx *echo.Context, dealershipId DealershipId, serviceTypeId ServiceTypeId, requiredCapabilityId RequiredCapabilityId) error
 
 	// (GET /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-skills)
 	ListServiceTypeRequiredSkills(ctx *echo.Context, dealershipId DealershipId, serviceTypeId ServiceTypeId) error
@@ -484,6 +715,152 @@ func (w *ServerInterfaceWrapper) CreateDealership(ctx *echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.CreateDealership(ctx)
+	return err
+}
+
+// CreateCustomer converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateCustomer(ctx *echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateCustomer(ctx)
+	return err
+}
+
+// GetCustomer converts echo context to params.
+func (w *ServerInterfaceWrapper) GetCustomer(ctx *echo.Context) error {
+	var err error
+	// ------------- Path parameter "customerId" -------------
+	var customerId CustomerId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "customerId", ctx.Param("customerId"), &customerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter customerId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetCustomer(ctx, customerId)
+	return err
+}
+
+// UpdateCustomer converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateCustomer(ctx *echo.Context) error {
+	var err error
+	// ------------- Path parameter "customerId" -------------
+	var customerId CustomerId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "customerId", ctx.Param("customerId"), &customerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter customerId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateCustomer(ctx, customerId)
+	return err
+}
+
+// SearchCustomers converts echo context to params.
+func (w *ServerInterfaceWrapper) SearchCustomers(ctx *echo.Context) error {
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params SearchCustomersParams
+	// ------------- Optional query parameter "phone" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "phone", ctx.QueryParams(), &params.Phone, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter phone: %s", err))
+	}
+
+	// ------------- Optional query parameter "email" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "email", ctx.QueryParams(), &params.Email, runtime.BindQueryParameterOptions{Type: "string", Format: "email"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter email: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.SearchCustomers(ctx, params)
+	return err
+}
+
+// ListDealershipOperationTimes converts echo context to params.
+func (w *ServerInterfaceWrapper) ListDealershipOperationTimes(ctx *echo.Context) error {
+	var err error
+	// ------------- Path parameter "dealershipId" -------------
+	var dealershipId DealershipId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "dealershipId", ctx.Param("dealershipId"), &dealershipId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter dealershipId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListDealershipOperationTimes(ctx, dealershipId)
+	return err
+}
+
+// CreateDealershipOperationTime converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateDealershipOperationTime(ctx *echo.Context) error {
+	var err error
+	// ------------- Path parameter "dealershipId" -------------
+	var dealershipId DealershipId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "dealershipId", ctx.Param("dealershipId"), &dealershipId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter dealershipId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateDealershipOperationTime(ctx, dealershipId)
+	return err
+}
+
+// DeleteDealershipOperationTime converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteDealershipOperationTime(ctx *echo.Context) error {
+	var err error
+	// ------------- Path parameter "dealershipId" -------------
+	var dealershipId DealershipId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "dealershipId", ctx.Param("dealershipId"), &dealershipId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter dealershipId: %s", err))
+	}
+
+	// ------------- Path parameter "operationTimeId" -------------
+	var operationTimeId OperationTimeId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "operationTimeId", ctx.Param("operationTimeId"), &operationTimeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter operationTimeId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteDealershipOperationTime(ctx, dealershipId, operationTimeId)
+	return err
+}
+
+// UpdateDealershipOperationTime converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateDealershipOperationTime(ctx *echo.Context) error {
+	var err error
+	// ------------- Path parameter "dealershipId" -------------
+	var dealershipId DealershipId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "dealershipId", ctx.Param("dealershipId"), &dealershipId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter dealershipId: %s", err))
+	}
+
+	// ------------- Path parameter "operationTimeId" -------------
+	var operationTimeId OperationTimeId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "operationTimeId", ctx.Param("operationTimeId"), &operationTimeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter operationTimeId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateDealershipOperationTime(ctx, dealershipId, operationTimeId)
 	return err
 }
 
@@ -614,6 +991,118 @@ func (w *ServerInterfaceWrapper) UpdateServiceBay(ctx *echo.Context) error {
 	return err
 }
 
+// ListServiceBayCapabilities converts echo context to params.
+func (w *ServerInterfaceWrapper) ListServiceBayCapabilities(ctx *echo.Context) error {
+	var err error
+	// ------------- Path parameter "dealershipId" -------------
+	var dealershipId DealershipId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "dealershipId", ctx.Param("dealershipId"), &dealershipId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter dealershipId: %s", err))
+	}
+
+	// ------------- Path parameter "serviceBayId" -------------
+	var serviceBayId ServiceBayId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "serviceBayId", ctx.Param("serviceBayId"), &serviceBayId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter serviceBayId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListServiceBayCapabilities(ctx, dealershipId, serviceBayId)
+	return err
+}
+
+// CreateServiceBayCapability converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateServiceBayCapability(ctx *echo.Context) error {
+	var err error
+	// ------------- Path parameter "dealershipId" -------------
+	var dealershipId DealershipId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "dealershipId", ctx.Param("dealershipId"), &dealershipId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter dealershipId: %s", err))
+	}
+
+	// ------------- Path parameter "serviceBayId" -------------
+	var serviceBayId ServiceBayId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "serviceBayId", ctx.Param("serviceBayId"), &serviceBayId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter serviceBayId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateServiceBayCapability(ctx, dealershipId, serviceBayId)
+	return err
+}
+
+// DeleteServiceBayCapability converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteServiceBayCapability(ctx *echo.Context) error {
+	var err error
+	// ------------- Path parameter "dealershipId" -------------
+	var dealershipId DealershipId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "dealershipId", ctx.Param("dealershipId"), &dealershipId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter dealershipId: %s", err))
+	}
+
+	// ------------- Path parameter "serviceBayId" -------------
+	var serviceBayId ServiceBayId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "serviceBayId", ctx.Param("serviceBayId"), &serviceBayId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter serviceBayId: %s", err))
+	}
+
+	// ------------- Path parameter "serviceBayCapabilityId" -------------
+	var serviceBayCapabilityId ServiceBayCapabilityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "serviceBayCapabilityId", ctx.Param("serviceBayCapabilityId"), &serviceBayCapabilityId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter serviceBayCapabilityId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteServiceBayCapability(ctx, dealershipId, serviceBayId, serviceBayCapabilityId)
+	return err
+}
+
+// UpdateServiceBayCapability converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateServiceBayCapability(ctx *echo.Context) error {
+	var err error
+	// ------------- Path parameter "dealershipId" -------------
+	var dealershipId DealershipId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "dealershipId", ctx.Param("dealershipId"), &dealershipId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter dealershipId: %s", err))
+	}
+
+	// ------------- Path parameter "serviceBayId" -------------
+	var serviceBayId ServiceBayId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "serviceBayId", ctx.Param("serviceBayId"), &serviceBayId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter serviceBayId: %s", err))
+	}
+
+	// ------------- Path parameter "serviceBayCapabilityId" -------------
+	var serviceBayCapabilityId ServiceBayCapabilityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "serviceBayCapabilityId", ctx.Param("serviceBayCapabilityId"), &serviceBayCapabilityId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter serviceBayCapabilityId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateServiceBayCapability(ctx, dealershipId, serviceBayId, serviceBayCapabilityId)
+	return err
+}
+
 // ListServiceTypes converts echo context to params.
 func (w *ServerInterfaceWrapper) ListServiceTypes(ctx *echo.Context) error {
 	var err error
@@ -715,6 +1204,118 @@ func (w *ServerInterfaceWrapper) UpdateServiceType(ctx *echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.UpdateServiceType(ctx, dealershipId, serviceTypeId)
+	return err
+}
+
+// ListServiceTypeRequiredBayCapabilities converts echo context to params.
+func (w *ServerInterfaceWrapper) ListServiceTypeRequiredBayCapabilities(ctx *echo.Context) error {
+	var err error
+	// ------------- Path parameter "dealershipId" -------------
+	var dealershipId DealershipId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "dealershipId", ctx.Param("dealershipId"), &dealershipId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter dealershipId: %s", err))
+	}
+
+	// ------------- Path parameter "serviceTypeId" -------------
+	var serviceTypeId ServiceTypeId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "serviceTypeId", ctx.Param("serviceTypeId"), &serviceTypeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter serviceTypeId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListServiceTypeRequiredBayCapabilities(ctx, dealershipId, serviceTypeId)
+	return err
+}
+
+// CreateServiceTypeRequiredBayCapability converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateServiceTypeRequiredBayCapability(ctx *echo.Context) error {
+	var err error
+	// ------------- Path parameter "dealershipId" -------------
+	var dealershipId DealershipId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "dealershipId", ctx.Param("dealershipId"), &dealershipId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter dealershipId: %s", err))
+	}
+
+	// ------------- Path parameter "serviceTypeId" -------------
+	var serviceTypeId ServiceTypeId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "serviceTypeId", ctx.Param("serviceTypeId"), &serviceTypeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter serviceTypeId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateServiceTypeRequiredBayCapability(ctx, dealershipId, serviceTypeId)
+	return err
+}
+
+// DeleteServiceTypeRequiredBayCapability converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteServiceTypeRequiredBayCapability(ctx *echo.Context) error {
+	var err error
+	// ------------- Path parameter "dealershipId" -------------
+	var dealershipId DealershipId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "dealershipId", ctx.Param("dealershipId"), &dealershipId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter dealershipId: %s", err))
+	}
+
+	// ------------- Path parameter "serviceTypeId" -------------
+	var serviceTypeId ServiceTypeId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "serviceTypeId", ctx.Param("serviceTypeId"), &serviceTypeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter serviceTypeId: %s", err))
+	}
+
+	// ------------- Path parameter "requiredCapabilityId" -------------
+	var requiredCapabilityId RequiredCapabilityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "requiredCapabilityId", ctx.Param("requiredCapabilityId"), &requiredCapabilityId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter requiredCapabilityId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteServiceTypeRequiredBayCapability(ctx, dealershipId, serviceTypeId, requiredCapabilityId)
+	return err
+}
+
+// UpdateServiceTypeRequiredBayCapability converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateServiceTypeRequiredBayCapability(ctx *echo.Context) error {
+	var err error
+	// ------------- Path parameter "dealershipId" -------------
+	var dealershipId DealershipId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "dealershipId", ctx.Param("dealershipId"), &dealershipId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter dealershipId: %s", err))
+	}
+
+	// ------------- Path parameter "serviceTypeId" -------------
+	var serviceTypeId ServiceTypeId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "serviceTypeId", ctx.Param("serviceTypeId"), &serviceTypeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter serviceTypeId: %s", err))
+	}
+
+	// ------------- Path parameter "requiredCapabilityId" -------------
+	var requiredCapabilityId RequiredCapabilityId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "requiredCapabilityId", ctx.Param("requiredCapabilityId"), &requiredCapabilityId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter requiredCapabilityId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateServiceTypeRequiredBayCapability(ctx, dealershipId, serviceTypeId, requiredCapabilityId)
 	return err
 }
 
@@ -877,11 +1478,19 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 		Handler: si,
 	}
 
+	router.GET(options.BaseURL+"/v1/dealerships/:dealershipId/operation-times", wrapper.ListDealershipOperationTimes, options.OperationMiddlewares["listDealershipOperationTimes"]...)
+	router.POST(options.BaseURL+"/v1/dealerships/:dealershipId/operation-times", wrapper.CreateDealershipOperationTime, options.OperationMiddlewares["createDealershipOperationTime"]...)
+	router.DELETE(options.BaseURL+"/v1/dealerships/:dealershipId/operation-times/:operationTimeId", wrapper.DeleteDealershipOperationTime, options.OperationMiddlewares["deleteDealershipOperationTime"]...)
+	router.PATCH(options.BaseURL+"/v1/dealerships/:dealershipId/operation-times/:operationTimeId", wrapper.UpdateDealershipOperationTime, options.OperationMiddlewares["updateDealershipOperationTime"]...)
 	router.GET(options.BaseURL+"/v1/dealerships/:dealershipId/service-bays", wrapper.ListServiceBays, options.OperationMiddlewares["listServiceBays"]...)
 	router.POST(options.BaseURL+"/v1/dealerships/:dealershipId/service-bays", wrapper.CreateServiceBay, options.OperationMiddlewares["createServiceBay"]...)
 	router.DELETE(options.BaseURL+"/v1/dealerships/:dealershipId/service-bays/:serviceBayId", wrapper.DeleteServiceBay, options.OperationMiddlewares["deleteServiceBay"]...)
 	router.GET(options.BaseURL+"/v1/dealerships/:dealershipId/service-bays/:serviceBayId", wrapper.GetServiceBay, options.OperationMiddlewares["getServiceBay"]...)
 	router.PATCH(options.BaseURL+"/v1/dealerships/:dealershipId/service-bays/:serviceBayId", wrapper.UpdateServiceBay, options.OperationMiddlewares["updateServiceBay"]...)
+	router.GET(options.BaseURL+"/v1/dealerships/:dealershipId/service-bays/:serviceBayId/capabilities", wrapper.ListServiceBayCapabilities, options.OperationMiddlewares["listServiceBayCapabilities"]...)
+	router.POST(options.BaseURL+"/v1/dealerships/:dealershipId/service-bays/:serviceBayId/capabilities", wrapper.CreateServiceBayCapability, options.OperationMiddlewares["createServiceBayCapability"]...)
+	router.DELETE(options.BaseURL+"/v1/dealerships/:dealershipId/service-bays/:serviceBayId/capabilities/:serviceBayCapabilityId", wrapper.DeleteServiceBayCapability, options.OperationMiddlewares["deleteServiceBayCapability"]...)
+	router.PATCH(options.BaseURL+"/v1/dealerships/:dealershipId/service-bays/:serviceBayId/capabilities/:serviceBayCapabilityId", wrapper.UpdateServiceBayCapability, options.OperationMiddlewares["updateServiceBayCapability"]...)
 	router.GET(options.BaseURL+"/v1/dealerships/:dealershipId/service-types", wrapper.ListServiceTypes, options.OperationMiddlewares["listServiceTypes"]...)
 	router.POST(options.BaseURL+"/v1/dealerships/:dealershipId/service-types", wrapper.CreateServiceType, options.OperationMiddlewares["createServiceType"]...)
 	router.DELETE(options.BaseURL+"/v1/dealerships/:dealershipId/service-types/:serviceTypeId", wrapper.DeleteServiceType, options.OperationMiddlewares["deleteServiceType"]...)
@@ -891,10 +1500,18 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.POST(options.BaseURL+"/v1/dealerships/:dealershipId/service-types/:serviceTypeId/required-skills", wrapper.CreateServiceTypeRequiredSkill, options.OperationMiddlewares["createServiceTypeRequiredSkill"]...)
 	router.DELETE(options.BaseURL+"/v1/dealerships/:dealershipId/service-types/:serviceTypeId/required-skills/:requiredSkillId", wrapper.DeleteServiceTypeRequiredSkill, options.OperationMiddlewares["deleteServiceTypeRequiredSkill"]...)
 	router.PATCH(options.BaseURL+"/v1/dealerships/:dealershipId/service-types/:serviceTypeId/required-skills/:requiredSkillId", wrapper.UpdateServiceTypeRequiredSkill, options.OperationMiddlewares["updateServiceTypeRequiredSkill"]...)
+	router.GET(options.BaseURL+"/v1/dealerships/:dealershipId/service-types/:serviceTypeId/required-bay-capabilities", wrapper.ListServiceTypeRequiredBayCapabilities, options.OperationMiddlewares["listServiceTypeRequiredBayCapabilities"]...)
+	router.POST(options.BaseURL+"/v1/dealerships/:dealershipId/service-types/:serviceTypeId/required-bay-capabilities", wrapper.CreateServiceTypeRequiredBayCapability, options.OperationMiddlewares["createServiceTypeRequiredBayCapability"]...)
+	router.DELETE(options.BaseURL+"/v1/dealerships/:dealershipId/service-types/:serviceTypeId/required-bay-capabilities/:requiredCapabilityId", wrapper.DeleteServiceTypeRequiredBayCapability, options.OperationMiddlewares["deleteServiceTypeRequiredBayCapability"]...)
+	router.PATCH(options.BaseURL+"/v1/dealerships/:dealershipId/service-types/:serviceTypeId/required-bay-capabilities/:requiredCapabilityId", wrapper.UpdateServiceTypeRequiredBayCapability, options.OperationMiddlewares["updateServiceTypeRequiredBayCapability"]...)
 	router.POST(options.BaseURL+"/dealership-users", wrapper.CreateDealershipUser, options.OperationMiddlewares["createDealershipUser"]...)
 	router.GET(options.BaseURL+"/dealership-users/search", wrapper.SearchAuthUserByEmail, options.OperationMiddlewares["searchAuthUserByEmail"]...)
 	router.POST(options.BaseURL+"/dealership-users/admins", wrapper.CreateDealershipAdmin, options.OperationMiddlewares["createDealershipAdmin"]...)
 	router.POST(options.BaseURL+"/dealerships", wrapper.CreateDealership, options.OperationMiddlewares["createDealership"]...)
+	router.POST(options.BaseURL+"/v1/customers", wrapper.CreateCustomer, options.OperationMiddlewares["createCustomer"]...)
+	router.GET(options.BaseURL+"/v1/customers/:customerId", wrapper.GetCustomer, options.OperationMiddlewares["getCustomer"]...)
+	router.PATCH(options.BaseURL+"/v1/customers/:customerId", wrapper.UpdateCustomer, options.OperationMiddlewares["updateCustomer"]...)
+	router.GET(options.BaseURL+"/v1/customers\\:search", wrapper.SearchCustomers, options.OperationMiddlewares["searchCustomers"]...)
 
 }
 
@@ -903,6 +1520,21 @@ type AuthUserFoundJSONResponse AuthUser
 type BadRequestJSONResponse ErrorResponse
 
 type ConflictJSONResponse ErrorResponse
+
+type CustomerCreatedResponseHeaders struct {
+	Location string
+}
+type CustomerCreatedJSONResponse struct {
+	Body Customer
+
+	Headers CustomerCreatedResponseHeaders
+}
+
+type CustomerFoundJSONResponse Customer
+
+type CustomerUpdatedJSONResponse Customer
+
+type CustomersListedJSONResponse CustomerListResponse
 
 type DealershipAdminCreatedJSONResponse DealershipAdmin
 
@@ -916,6 +1548,18 @@ type InternalServerErrorJSONResponse ErrorResponse
 
 type NotFoundJSONResponse ErrorResponse
 
+type OperationTimeCreatedJSONResponse DealershipOperationTime
+
+type OperationTimeUpdatedJSONResponse DealershipOperationTime
+
+type OperationTimesListedJSONResponse []DealershipOperationTime
+
+type ServiceBayCapabilitiesListedJSONResponse []ServiceBayCapability
+
+type ServiceBayCapabilityCreatedJSONResponse ServiceBayCapability
+
+type ServiceBayCapabilityUpdatedJSONResponse ServiceBayCapability
+
 type ServiceBayCreatedJSONResponse ServiceBay
 
 type ServiceBayFoundJSONResponse ServiceBay
@@ -928,6 +1572,12 @@ type ServiceTypeCreatedJSONResponse ServiceType
 
 type ServiceTypeFoundJSONResponse ServiceType
 
+type ServiceTypeRequiredBayCapabilitiesListedJSONResponse []ServiceTypeRequiredBayCapability
+
+type ServiceTypeRequiredBayCapabilityCreatedJSONResponse ServiceTypeRequiredBayCapability
+
+type ServiceTypeRequiredBayCapabilityUpdatedJSONResponse ServiceTypeRequiredBayCapability
+
 type ServiceTypeRequiredSkillCreatedJSONResponse ServiceTypeRequiredSkill
 
 type ServiceTypeRequiredSkillUpdatedJSONResponse ServiceTypeRequiredSkill
@@ -939,6 +1589,8 @@ type ServiceTypeUpdatedJSONResponse ServiceType
 type ServiceTypesListedJSONResponse []ServiceType
 
 type UnauthorizedJSONResponse ErrorResponse
+
+type UnprocessableEntityJSONResponse ErrorResponse
 
 type CreateDealershipUserRequestObject struct {
 	Body *CreateDealershipUserJSONRequestBody
@@ -1337,6 +1989,796 @@ type CreateDealership500JSONResponse struct {
 }
 
 func (response CreateDealership500JSONResponse) VisitCreateDealershipResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateCustomerRequestObject struct {
+	Body *CreateCustomerJSONRequestBody
+}
+
+type CreateCustomerResponseObject interface {
+	VisitCreateCustomerResponse(w http.ResponseWriter) error
+}
+
+type CreateCustomer201JSONResponse struct{ CustomerCreatedJSONResponse }
+
+func (response CreateCustomer201JSONResponse) VisitCreateCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Location", fmt.Sprint(response.Headers.Location))
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateCustomer400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreateCustomer400JSONResponse) VisitCreateCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateCustomer401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response CreateCustomer401JSONResponse) VisitCreateCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateCustomer403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response CreateCustomer403JSONResponse) VisitCreateCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateCustomer409JSONResponse struct{ ConflictJSONResponse }
+
+func (response CreateCustomer409JSONResponse) VisitCreateCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateCustomer500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response CreateCustomer500JSONResponse) VisitCreateCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustomerRequestObject struct {
+	CustomerId CustomerId `json:"customerId"`
+}
+
+type GetCustomerResponseObject interface {
+	VisitGetCustomerResponse(w http.ResponseWriter) error
+}
+
+type GetCustomer200JSONResponse struct{ CustomerFoundJSONResponse }
+
+func (response GetCustomer200JSONResponse) VisitGetCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustomer400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response GetCustomer400JSONResponse) VisitGetCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustomer401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response GetCustomer401JSONResponse) VisitGetCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustomer403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response GetCustomer403JSONResponse) VisitGetCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustomer404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetCustomer404JSONResponse) VisitGetCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCustomer500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response GetCustomer500JSONResponse) VisitGetCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateCustomerRequestObject struct {
+	CustomerId CustomerId `json:"customerId"`
+	Body       *UpdateCustomerJSONRequestBody
+}
+
+type UpdateCustomerResponseObject interface {
+	VisitUpdateCustomerResponse(w http.ResponseWriter) error
+}
+
+type UpdateCustomer200JSONResponse struct{ CustomerUpdatedJSONResponse }
+
+func (response UpdateCustomer200JSONResponse) VisitUpdateCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateCustomer400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response UpdateCustomer400JSONResponse) VisitUpdateCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateCustomer401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response UpdateCustomer401JSONResponse) VisitUpdateCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateCustomer403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response UpdateCustomer403JSONResponse) VisitUpdateCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateCustomer404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response UpdateCustomer404JSONResponse) VisitUpdateCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateCustomer409JSONResponse struct{ ConflictJSONResponse }
+
+func (response UpdateCustomer409JSONResponse) VisitUpdateCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateCustomer500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response UpdateCustomer500JSONResponse) VisitUpdateCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SearchCustomersRequestObject struct {
+	Params SearchCustomersParams
+}
+
+type SearchCustomersResponseObject interface {
+	VisitSearchCustomersResponse(w http.ResponseWriter) error
+}
+
+type SearchCustomers200JSONResponse struct{ CustomersListedJSONResponse }
+
+func (response SearchCustomers200JSONResponse) VisitSearchCustomersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SearchCustomers400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response SearchCustomers400JSONResponse) VisitSearchCustomersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SearchCustomers401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response SearchCustomers401JSONResponse) VisitSearchCustomersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SearchCustomers403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response SearchCustomers403JSONResponse) VisitSearchCustomersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SearchCustomers500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response SearchCustomers500JSONResponse) VisitSearchCustomersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListDealershipOperationTimesRequestObject struct {
+	DealershipId DealershipId `json:"dealershipId"`
+}
+
+type ListDealershipOperationTimesResponseObject interface {
+	VisitListDealershipOperationTimesResponse(w http.ResponseWriter) error
+}
+
+type ListDealershipOperationTimes200JSONResponse struct {
+	OperationTimesListedJSONResponse
+}
+
+func (response ListDealershipOperationTimes200JSONResponse) VisitListDealershipOperationTimesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListDealershipOperationTimes401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListDealershipOperationTimes401JSONResponse) VisitListDealershipOperationTimesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListDealershipOperationTimes403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListDealershipOperationTimes403JSONResponse) VisitListDealershipOperationTimesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListDealershipOperationTimes404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ListDealershipOperationTimes404JSONResponse) VisitListDealershipOperationTimesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListDealershipOperationTimes500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ListDealershipOperationTimes500JSONResponse) VisitListDealershipOperationTimesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDealershipOperationTimeRequestObject struct {
+	DealershipId DealershipId `json:"dealershipId"`
+	Body         *CreateDealershipOperationTimeJSONRequestBody
+}
+
+type CreateDealershipOperationTimeResponseObject interface {
+	VisitCreateDealershipOperationTimeResponse(w http.ResponseWriter) error
+}
+
+type CreateDealershipOperationTime201JSONResponse struct {
+	OperationTimeCreatedJSONResponse
+}
+
+func (response CreateDealershipOperationTime201JSONResponse) VisitCreateDealershipOperationTimeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDealershipOperationTime400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreateDealershipOperationTime400JSONResponse) VisitCreateDealershipOperationTimeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDealershipOperationTime401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response CreateDealershipOperationTime401JSONResponse) VisitCreateDealershipOperationTimeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDealershipOperationTime403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response CreateDealershipOperationTime403JSONResponse) VisitCreateDealershipOperationTimeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDealershipOperationTime404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response CreateDealershipOperationTime404JSONResponse) VisitCreateDealershipOperationTimeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDealershipOperationTime409JSONResponse struct{ ConflictJSONResponse }
+
+func (response CreateDealershipOperationTime409JSONResponse) VisitCreateDealershipOperationTimeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDealershipOperationTime422JSONResponse struct {
+	UnprocessableEntityJSONResponse
+}
+
+func (response CreateDealershipOperationTime422JSONResponse) VisitCreateDealershipOperationTimeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDealershipOperationTime500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response CreateDealershipOperationTime500JSONResponse) VisitCreateDealershipOperationTimeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteDealershipOperationTimeRequestObject struct {
+	DealershipId    DealershipId    `json:"dealershipId"`
+	OperationTimeId OperationTimeId `json:"operationTimeId"`
+}
+
+type DeleteDealershipOperationTimeResponseObject interface {
+	VisitDeleteDealershipOperationTimeResponse(w http.ResponseWriter) error
+}
+
+type DeleteDealershipOperationTime204Response struct {
+}
+
+func (response DeleteDealershipOperationTime204Response) VisitDeleteDealershipOperationTimeResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteDealershipOperationTime401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response DeleteDealershipOperationTime401JSONResponse) VisitDeleteDealershipOperationTimeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteDealershipOperationTime403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response DeleteDealershipOperationTime403JSONResponse) VisitDeleteDealershipOperationTimeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteDealershipOperationTime404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response DeleteDealershipOperationTime404JSONResponse) VisitDeleteDealershipOperationTimeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteDealershipOperationTime500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response DeleteDealershipOperationTime500JSONResponse) VisitDeleteDealershipOperationTimeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateDealershipOperationTimeRequestObject struct {
+	DealershipId    DealershipId    `json:"dealershipId"`
+	OperationTimeId OperationTimeId `json:"operationTimeId"`
+	Body            *UpdateDealershipOperationTimeJSONRequestBody
+}
+
+type UpdateDealershipOperationTimeResponseObject interface {
+	VisitUpdateDealershipOperationTimeResponse(w http.ResponseWriter) error
+}
+
+type UpdateDealershipOperationTime200JSONResponse struct {
+	OperationTimeUpdatedJSONResponse
+}
+
+func (response UpdateDealershipOperationTime200JSONResponse) VisitUpdateDealershipOperationTimeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateDealershipOperationTime400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response UpdateDealershipOperationTime400JSONResponse) VisitUpdateDealershipOperationTimeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateDealershipOperationTime401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response UpdateDealershipOperationTime401JSONResponse) VisitUpdateDealershipOperationTimeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateDealershipOperationTime403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response UpdateDealershipOperationTime403JSONResponse) VisitUpdateDealershipOperationTimeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateDealershipOperationTime404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response UpdateDealershipOperationTime404JSONResponse) VisitUpdateDealershipOperationTimeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateDealershipOperationTime409JSONResponse struct{ ConflictJSONResponse }
+
+func (response UpdateDealershipOperationTime409JSONResponse) VisitUpdateDealershipOperationTimeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateDealershipOperationTime422JSONResponse struct {
+	UnprocessableEntityJSONResponse
+}
+
+func (response UpdateDealershipOperationTime422JSONResponse) VisitUpdateDealershipOperationTimeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateDealershipOperationTime500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response UpdateDealershipOperationTime500JSONResponse) VisitUpdateDealershipOperationTimeResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -1804,6 +3246,390 @@ func (response UpdateServiceBay500JSONResponse) VisitUpdateServiceBayResponse(w 
 	return err
 }
 
+type ListServiceBayCapabilitiesRequestObject struct {
+	DealershipId DealershipId `json:"dealershipId"`
+	ServiceBayId ServiceBayId `json:"serviceBayId"`
+}
+
+type ListServiceBayCapabilitiesResponseObject interface {
+	VisitListServiceBayCapabilitiesResponse(w http.ResponseWriter) error
+}
+
+type ListServiceBayCapabilities200JSONResponse struct {
+	ServiceBayCapabilitiesListedJSONResponse
+}
+
+func (response ListServiceBayCapabilities200JSONResponse) VisitListServiceBayCapabilitiesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListServiceBayCapabilities401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListServiceBayCapabilities401JSONResponse) VisitListServiceBayCapabilitiesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListServiceBayCapabilities403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListServiceBayCapabilities403JSONResponse) VisitListServiceBayCapabilitiesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListServiceBayCapabilities404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ListServiceBayCapabilities404JSONResponse) VisitListServiceBayCapabilitiesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListServiceBayCapabilities500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ListServiceBayCapabilities500JSONResponse) VisitListServiceBayCapabilitiesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateServiceBayCapabilityRequestObject struct {
+	DealershipId DealershipId `json:"dealershipId"`
+	ServiceBayId ServiceBayId `json:"serviceBayId"`
+	Body         *CreateServiceBayCapabilityJSONRequestBody
+}
+
+type CreateServiceBayCapabilityResponseObject interface {
+	VisitCreateServiceBayCapabilityResponse(w http.ResponseWriter) error
+}
+
+type CreateServiceBayCapability201JSONResponse struct {
+	ServiceBayCapabilityCreatedJSONResponse
+}
+
+func (response CreateServiceBayCapability201JSONResponse) VisitCreateServiceBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateServiceBayCapability400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreateServiceBayCapability400JSONResponse) VisitCreateServiceBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateServiceBayCapability401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response CreateServiceBayCapability401JSONResponse) VisitCreateServiceBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateServiceBayCapability403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response CreateServiceBayCapability403JSONResponse) VisitCreateServiceBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateServiceBayCapability404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response CreateServiceBayCapability404JSONResponse) VisitCreateServiceBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateServiceBayCapability409JSONResponse struct{ ConflictJSONResponse }
+
+func (response CreateServiceBayCapability409JSONResponse) VisitCreateServiceBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateServiceBayCapability500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response CreateServiceBayCapability500JSONResponse) VisitCreateServiceBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteServiceBayCapabilityRequestObject struct {
+	DealershipId           DealershipId           `json:"dealershipId"`
+	ServiceBayId           ServiceBayId           `json:"serviceBayId"`
+	ServiceBayCapabilityId ServiceBayCapabilityId `json:"serviceBayCapabilityId"`
+}
+
+type DeleteServiceBayCapabilityResponseObject interface {
+	VisitDeleteServiceBayCapabilityResponse(w http.ResponseWriter) error
+}
+
+type DeleteServiceBayCapability204Response struct {
+}
+
+func (response DeleteServiceBayCapability204Response) VisitDeleteServiceBayCapabilityResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteServiceBayCapability401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response DeleteServiceBayCapability401JSONResponse) VisitDeleteServiceBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteServiceBayCapability403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response DeleteServiceBayCapability403JSONResponse) VisitDeleteServiceBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteServiceBayCapability404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response DeleteServiceBayCapability404JSONResponse) VisitDeleteServiceBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteServiceBayCapability500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response DeleteServiceBayCapability500JSONResponse) VisitDeleteServiceBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateServiceBayCapabilityRequestObject struct {
+	DealershipId           DealershipId           `json:"dealershipId"`
+	ServiceBayId           ServiceBayId           `json:"serviceBayId"`
+	ServiceBayCapabilityId ServiceBayCapabilityId `json:"serviceBayCapabilityId"`
+	Body                   *UpdateServiceBayCapabilityJSONRequestBody
+}
+
+type UpdateServiceBayCapabilityResponseObject interface {
+	VisitUpdateServiceBayCapabilityResponse(w http.ResponseWriter) error
+}
+
+type UpdateServiceBayCapability200JSONResponse struct {
+	ServiceBayCapabilityUpdatedJSONResponse
+}
+
+func (response UpdateServiceBayCapability200JSONResponse) VisitUpdateServiceBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateServiceBayCapability400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response UpdateServiceBayCapability400JSONResponse) VisitUpdateServiceBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateServiceBayCapability401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response UpdateServiceBayCapability401JSONResponse) VisitUpdateServiceBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateServiceBayCapability403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response UpdateServiceBayCapability403JSONResponse) VisitUpdateServiceBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateServiceBayCapability404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response UpdateServiceBayCapability404JSONResponse) VisitUpdateServiceBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateServiceBayCapability409JSONResponse struct{ ConflictJSONResponse }
+
+func (response UpdateServiceBayCapability409JSONResponse) VisitUpdateServiceBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateServiceBayCapability500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response UpdateServiceBayCapability500JSONResponse) VisitUpdateServiceBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListServiceTypesRequestObject struct {
 	DealershipId DealershipId `json:"dealershipId"`
 }
@@ -2245,6 +4071,390 @@ func (response UpdateServiceType500JSONResponse) VisitUpdateServiceTypeResponse(
 	return err
 }
 
+type ListServiceTypeRequiredBayCapabilitiesRequestObject struct {
+	DealershipId  DealershipId  `json:"dealershipId"`
+	ServiceTypeId ServiceTypeId `json:"serviceTypeId"`
+}
+
+type ListServiceTypeRequiredBayCapabilitiesResponseObject interface {
+	VisitListServiceTypeRequiredBayCapabilitiesResponse(w http.ResponseWriter) error
+}
+
+type ListServiceTypeRequiredBayCapabilities200JSONResponse struct {
+	ServiceTypeRequiredBayCapabilitiesListedJSONResponse
+}
+
+func (response ListServiceTypeRequiredBayCapabilities200JSONResponse) VisitListServiceTypeRequiredBayCapabilitiesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListServiceTypeRequiredBayCapabilities401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListServiceTypeRequiredBayCapabilities401JSONResponse) VisitListServiceTypeRequiredBayCapabilitiesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListServiceTypeRequiredBayCapabilities403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListServiceTypeRequiredBayCapabilities403JSONResponse) VisitListServiceTypeRequiredBayCapabilitiesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListServiceTypeRequiredBayCapabilities404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ListServiceTypeRequiredBayCapabilities404JSONResponse) VisitListServiceTypeRequiredBayCapabilitiesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListServiceTypeRequiredBayCapabilities500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ListServiceTypeRequiredBayCapabilities500JSONResponse) VisitListServiceTypeRequiredBayCapabilitiesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateServiceTypeRequiredBayCapabilityRequestObject struct {
+	DealershipId  DealershipId  `json:"dealershipId"`
+	ServiceTypeId ServiceTypeId `json:"serviceTypeId"`
+	Body          *CreateServiceTypeRequiredBayCapabilityJSONRequestBody
+}
+
+type CreateServiceTypeRequiredBayCapabilityResponseObject interface {
+	VisitCreateServiceTypeRequiredBayCapabilityResponse(w http.ResponseWriter) error
+}
+
+type CreateServiceTypeRequiredBayCapability201JSONResponse struct {
+	ServiceTypeRequiredBayCapabilityCreatedJSONResponse
+}
+
+func (response CreateServiceTypeRequiredBayCapability201JSONResponse) VisitCreateServiceTypeRequiredBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateServiceTypeRequiredBayCapability400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreateServiceTypeRequiredBayCapability400JSONResponse) VisitCreateServiceTypeRequiredBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateServiceTypeRequiredBayCapability401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response CreateServiceTypeRequiredBayCapability401JSONResponse) VisitCreateServiceTypeRequiredBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateServiceTypeRequiredBayCapability403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response CreateServiceTypeRequiredBayCapability403JSONResponse) VisitCreateServiceTypeRequiredBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateServiceTypeRequiredBayCapability404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response CreateServiceTypeRequiredBayCapability404JSONResponse) VisitCreateServiceTypeRequiredBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateServiceTypeRequiredBayCapability409JSONResponse struct{ ConflictJSONResponse }
+
+func (response CreateServiceTypeRequiredBayCapability409JSONResponse) VisitCreateServiceTypeRequiredBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateServiceTypeRequiredBayCapability500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response CreateServiceTypeRequiredBayCapability500JSONResponse) VisitCreateServiceTypeRequiredBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteServiceTypeRequiredBayCapabilityRequestObject struct {
+	DealershipId         DealershipId         `json:"dealershipId"`
+	ServiceTypeId        ServiceTypeId        `json:"serviceTypeId"`
+	RequiredCapabilityId RequiredCapabilityId `json:"requiredCapabilityId"`
+}
+
+type DeleteServiceTypeRequiredBayCapabilityResponseObject interface {
+	VisitDeleteServiceTypeRequiredBayCapabilityResponse(w http.ResponseWriter) error
+}
+
+type DeleteServiceTypeRequiredBayCapability204Response struct {
+}
+
+func (response DeleteServiceTypeRequiredBayCapability204Response) VisitDeleteServiceTypeRequiredBayCapabilityResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteServiceTypeRequiredBayCapability401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response DeleteServiceTypeRequiredBayCapability401JSONResponse) VisitDeleteServiceTypeRequiredBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteServiceTypeRequiredBayCapability403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response DeleteServiceTypeRequiredBayCapability403JSONResponse) VisitDeleteServiceTypeRequiredBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteServiceTypeRequiredBayCapability404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response DeleteServiceTypeRequiredBayCapability404JSONResponse) VisitDeleteServiceTypeRequiredBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteServiceTypeRequiredBayCapability500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response DeleteServiceTypeRequiredBayCapability500JSONResponse) VisitDeleteServiceTypeRequiredBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateServiceTypeRequiredBayCapabilityRequestObject struct {
+	DealershipId         DealershipId         `json:"dealershipId"`
+	ServiceTypeId        ServiceTypeId        `json:"serviceTypeId"`
+	RequiredCapabilityId RequiredCapabilityId `json:"requiredCapabilityId"`
+	Body                 *UpdateServiceTypeRequiredBayCapabilityJSONRequestBody
+}
+
+type UpdateServiceTypeRequiredBayCapabilityResponseObject interface {
+	VisitUpdateServiceTypeRequiredBayCapabilityResponse(w http.ResponseWriter) error
+}
+
+type UpdateServiceTypeRequiredBayCapability200JSONResponse struct {
+	ServiceTypeRequiredBayCapabilityUpdatedJSONResponse
+}
+
+func (response UpdateServiceTypeRequiredBayCapability200JSONResponse) VisitUpdateServiceTypeRequiredBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateServiceTypeRequiredBayCapability400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response UpdateServiceTypeRequiredBayCapability400JSONResponse) VisitUpdateServiceTypeRequiredBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateServiceTypeRequiredBayCapability401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response UpdateServiceTypeRequiredBayCapability401JSONResponse) VisitUpdateServiceTypeRequiredBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateServiceTypeRequiredBayCapability403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response UpdateServiceTypeRequiredBayCapability403JSONResponse) VisitUpdateServiceTypeRequiredBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateServiceTypeRequiredBayCapability404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response UpdateServiceTypeRequiredBayCapability404JSONResponse) VisitUpdateServiceTypeRequiredBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateServiceTypeRequiredBayCapability409JSONResponse struct{ ConflictJSONResponse }
+
+func (response UpdateServiceTypeRequiredBayCapability409JSONResponse) VisitUpdateServiceTypeRequiredBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateServiceTypeRequiredBayCapability500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response UpdateServiceTypeRequiredBayCapability500JSONResponse) VisitUpdateServiceTypeRequiredBayCapabilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListServiceTypeRequiredSkillsRequestObject struct {
 	DealershipId  DealershipId  `json:"dealershipId"`
 	ServiceTypeId ServiceTypeId `json:"serviceTypeId"`
@@ -2643,6 +4853,30 @@ type StrictServerInterface interface {
 	// CreateDealership Create a dealership
 	// (POST /dealerships)
 	CreateDealership(ctx context.Context, request CreateDealershipRequestObject) (CreateDealershipResponseObject, error)
+	// CreateCustomer Create a global customer record
+	// (POST /v1/customers)
+	CreateCustomer(ctx context.Context, request CreateCustomerRequestObject) (CreateCustomerResponseObject, error)
+
+	// (GET /v1/customers/{customerId})
+	GetCustomer(ctx context.Context, request GetCustomerRequestObject) (GetCustomerResponseObject, error)
+
+	// (PATCH /v1/customers/{customerId})
+	UpdateCustomer(ctx context.Context, request UpdateCustomerRequestObject) (UpdateCustomerResponseObject, error)
+	// SearchCustomers Find global customer records by exact normalized phone or email
+	// (GET /v1/customers:search)
+	SearchCustomers(ctx context.Context, request SearchCustomersRequestObject) (SearchCustomersResponseObject, error)
+
+	// (GET /v1/dealerships/{dealershipId}/operation-times)
+	ListDealershipOperationTimes(ctx context.Context, request ListDealershipOperationTimesRequestObject) (ListDealershipOperationTimesResponseObject, error)
+
+	// (POST /v1/dealerships/{dealershipId}/operation-times)
+	CreateDealershipOperationTime(ctx context.Context, request CreateDealershipOperationTimeRequestObject) (CreateDealershipOperationTimeResponseObject, error)
+
+	// (DELETE /v1/dealerships/{dealershipId}/operation-times/{operationTimeId})
+	DeleteDealershipOperationTime(ctx context.Context, request DeleteDealershipOperationTimeRequestObject) (DeleteDealershipOperationTimeResponseObject, error)
+
+	// (PATCH /v1/dealerships/{dealershipId}/operation-times/{operationTimeId})
+	UpdateDealershipOperationTime(ctx context.Context, request UpdateDealershipOperationTimeRequestObject) (UpdateDealershipOperationTimeResponseObject, error)
 
 	// (GET /v1/dealerships/{dealershipId}/service-bays)
 	ListServiceBays(ctx context.Context, request ListServiceBaysRequestObject) (ListServiceBaysResponseObject, error)
@@ -2659,6 +4893,18 @@ type StrictServerInterface interface {
 	// (PATCH /v1/dealerships/{dealershipId}/service-bays/{serviceBayId})
 	UpdateServiceBay(ctx context.Context, request UpdateServiceBayRequestObject) (UpdateServiceBayResponseObject, error)
 
+	// (GET /v1/dealerships/{dealershipId}/service-bays/{serviceBayId}/capabilities)
+	ListServiceBayCapabilities(ctx context.Context, request ListServiceBayCapabilitiesRequestObject) (ListServiceBayCapabilitiesResponseObject, error)
+
+	// (POST /v1/dealerships/{dealershipId}/service-bays/{serviceBayId}/capabilities)
+	CreateServiceBayCapability(ctx context.Context, request CreateServiceBayCapabilityRequestObject) (CreateServiceBayCapabilityResponseObject, error)
+
+	// (DELETE /v1/dealerships/{dealershipId}/service-bays/{serviceBayId}/capabilities/{serviceBayCapabilityId})
+	DeleteServiceBayCapability(ctx context.Context, request DeleteServiceBayCapabilityRequestObject) (DeleteServiceBayCapabilityResponseObject, error)
+
+	// (PATCH /v1/dealerships/{dealershipId}/service-bays/{serviceBayId}/capabilities/{serviceBayCapabilityId})
+	UpdateServiceBayCapability(ctx context.Context, request UpdateServiceBayCapabilityRequestObject) (UpdateServiceBayCapabilityResponseObject, error)
+
 	// (GET /v1/dealerships/{dealershipId}/service-types)
 	ListServiceTypes(ctx context.Context, request ListServiceTypesRequestObject) (ListServiceTypesResponseObject, error)
 
@@ -2673,6 +4919,18 @@ type StrictServerInterface interface {
 
 	// (PATCH /v1/dealerships/{dealershipId}/service-types/{serviceTypeId})
 	UpdateServiceType(ctx context.Context, request UpdateServiceTypeRequestObject) (UpdateServiceTypeResponseObject, error)
+
+	// (GET /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-bay-capabilities)
+	ListServiceTypeRequiredBayCapabilities(ctx context.Context, request ListServiceTypeRequiredBayCapabilitiesRequestObject) (ListServiceTypeRequiredBayCapabilitiesResponseObject, error)
+
+	// (POST /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-bay-capabilities)
+	CreateServiceTypeRequiredBayCapability(ctx context.Context, request CreateServiceTypeRequiredBayCapabilityRequestObject) (CreateServiceTypeRequiredBayCapabilityResponseObject, error)
+
+	// (DELETE /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-bay-capabilities/{requiredCapabilityId})
+	DeleteServiceTypeRequiredBayCapability(ctx context.Context, request DeleteServiceTypeRequiredBayCapabilityRequestObject) (DeleteServiceTypeRequiredBayCapabilityResponseObject, error)
+
+	// (PATCH /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-bay-capabilities/{requiredCapabilityId})
+	UpdateServiceTypeRequiredBayCapability(ctx context.Context, request UpdateServiceTypeRequiredBayCapabilityRequestObject) (UpdateServiceTypeRequiredBayCapabilityResponseObject, error)
 
 	// (GET /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-skills)
 	ListServiceTypeRequiredSkills(ctx context.Context, request ListServiceTypeRequiredSkillsRequestObject) (ListServiceTypeRequiredSkillsResponseObject, error)
@@ -2841,6 +5099,270 @@ func (sh *strictHandler) CreateDealership(ctx *echo.Context) error {
 	return nil
 }
 
+// CreateCustomer operation middleware
+func (sh *strictHandler) CreateCustomer(ctx *echo.Context) error {
+	var request CreateCustomerRequestObject
+
+	var body CreateCustomerJSONRequestBody
+	var err error
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+		// Bind only the request body, so that path and query parameters
+		// are not also bound into the body struct.
+		err = echo.BindBody(ctx, &body)
+	} else {
+		// A custom binder is installed on the Echo instance; defer to it
+		// entirely, since echo.Binder does not expose body-only binding.
+		err = ctx.Bind(&body)
+	}
+	if err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateCustomer(ctx.Request().Context(), request.(CreateCustomerRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateCustomer")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateCustomerResponseObject); ok {
+		return validResponse.VisitCreateCustomerResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetCustomer operation middleware
+func (sh *strictHandler) GetCustomer(ctx *echo.Context, customerId CustomerId) error {
+	var request GetCustomerRequestObject
+
+	request.CustomerId = customerId
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetCustomer(ctx.Request().Context(), request.(GetCustomerRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetCustomer")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetCustomerResponseObject); ok {
+		return validResponse.VisitGetCustomerResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateCustomer operation middleware
+func (sh *strictHandler) UpdateCustomer(ctx *echo.Context, customerId CustomerId) error {
+	var request UpdateCustomerRequestObject
+
+	request.CustomerId = customerId
+
+	var body UpdateCustomerJSONRequestBody
+	var err error
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+		// Bind only the request body, so that path and query parameters
+		// are not also bound into the body struct.
+		err = echo.BindBody(ctx, &body)
+	} else {
+		// A custom binder is installed on the Echo instance; defer to it
+		// entirely, since echo.Binder does not expose body-only binding.
+		err = ctx.Bind(&body)
+	}
+	if err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateCustomer(ctx.Request().Context(), request.(UpdateCustomerRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateCustomer")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateCustomerResponseObject); ok {
+		return validResponse.VisitUpdateCustomerResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// SearchCustomers operation middleware
+func (sh *strictHandler) SearchCustomers(ctx *echo.Context, params SearchCustomersParams) error {
+	var request SearchCustomersRequestObject
+
+	request.Params = params
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.SearchCustomers(ctx.Request().Context(), request.(SearchCustomersRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SearchCustomers")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(SearchCustomersResponseObject); ok {
+		return validResponse.VisitSearchCustomersResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListDealershipOperationTimes operation middleware
+func (sh *strictHandler) ListDealershipOperationTimes(ctx *echo.Context, dealershipId DealershipId) error {
+	var request ListDealershipOperationTimesRequestObject
+
+	request.DealershipId = dealershipId
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListDealershipOperationTimes(ctx.Request().Context(), request.(ListDealershipOperationTimesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListDealershipOperationTimes")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListDealershipOperationTimesResponseObject); ok {
+		return validResponse.VisitListDealershipOperationTimesResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateDealershipOperationTime operation middleware
+func (sh *strictHandler) CreateDealershipOperationTime(ctx *echo.Context, dealershipId DealershipId) error {
+	var request CreateDealershipOperationTimeRequestObject
+
+	request.DealershipId = dealershipId
+
+	var body CreateDealershipOperationTimeJSONRequestBody
+	var err error
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+		// Bind only the request body, so that path and query parameters
+		// are not also bound into the body struct.
+		err = echo.BindBody(ctx, &body)
+	} else {
+		// A custom binder is installed on the Echo instance; defer to it
+		// entirely, since echo.Binder does not expose body-only binding.
+		err = ctx.Bind(&body)
+	}
+	if err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateDealershipOperationTime(ctx.Request().Context(), request.(CreateDealershipOperationTimeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateDealershipOperationTime")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateDealershipOperationTimeResponseObject); ok {
+		return validResponse.VisitCreateDealershipOperationTimeResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DeleteDealershipOperationTime operation middleware
+func (sh *strictHandler) DeleteDealershipOperationTime(ctx *echo.Context, dealershipId DealershipId, operationTimeId OperationTimeId) error {
+	var request DeleteDealershipOperationTimeRequestObject
+
+	request.DealershipId = dealershipId
+	request.OperationTimeId = operationTimeId
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteDealershipOperationTime(ctx.Request().Context(), request.(DeleteDealershipOperationTimeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteDealershipOperationTime")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DeleteDealershipOperationTimeResponseObject); ok {
+		return validResponse.VisitDeleteDealershipOperationTimeResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateDealershipOperationTime operation middleware
+func (sh *strictHandler) UpdateDealershipOperationTime(ctx *echo.Context, dealershipId DealershipId, operationTimeId OperationTimeId) error {
+	var request UpdateDealershipOperationTimeRequestObject
+
+	request.DealershipId = dealershipId
+	request.OperationTimeId = operationTimeId
+
+	var body UpdateDealershipOperationTimeJSONRequestBody
+	var err error
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+		// Bind only the request body, so that path and query parameters
+		// are not also bound into the body struct.
+		err = echo.BindBody(ctx, &body)
+	} else {
+		// A custom binder is installed on the Echo instance; defer to it
+		// entirely, since echo.Binder does not expose body-only binding.
+		err = ctx.Bind(&body)
+	}
+	if err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateDealershipOperationTime(ctx.Request().Context(), request.(UpdateDealershipOperationTimeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateDealershipOperationTime")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateDealershipOperationTimeResponseObject); ok {
+		return validResponse.VisitUpdateDealershipOperationTimeResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
 // ListServiceBays operation middleware
 func (sh *strictHandler) ListServiceBays(ctx *echo.Context, dealershipId DealershipId, params ListServiceBaysParams) error {
 	var request ListServiceBaysRequestObject
@@ -3002,6 +5524,144 @@ func (sh *strictHandler) UpdateServiceBay(ctx *echo.Context, dealershipId Dealer
 	return nil
 }
 
+// ListServiceBayCapabilities operation middleware
+func (sh *strictHandler) ListServiceBayCapabilities(ctx *echo.Context, dealershipId DealershipId, serviceBayId ServiceBayId) error {
+	var request ListServiceBayCapabilitiesRequestObject
+
+	request.DealershipId = dealershipId
+	request.ServiceBayId = serviceBayId
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListServiceBayCapabilities(ctx.Request().Context(), request.(ListServiceBayCapabilitiesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListServiceBayCapabilities")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListServiceBayCapabilitiesResponseObject); ok {
+		return validResponse.VisitListServiceBayCapabilitiesResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateServiceBayCapability operation middleware
+func (sh *strictHandler) CreateServiceBayCapability(ctx *echo.Context, dealershipId DealershipId, serviceBayId ServiceBayId) error {
+	var request CreateServiceBayCapabilityRequestObject
+
+	request.DealershipId = dealershipId
+	request.ServiceBayId = serviceBayId
+
+	var body CreateServiceBayCapabilityJSONRequestBody
+	var err error
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+		// Bind only the request body, so that path and query parameters
+		// are not also bound into the body struct.
+		err = echo.BindBody(ctx, &body)
+	} else {
+		// A custom binder is installed on the Echo instance; defer to it
+		// entirely, since echo.Binder does not expose body-only binding.
+		err = ctx.Bind(&body)
+	}
+	if err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateServiceBayCapability(ctx.Request().Context(), request.(CreateServiceBayCapabilityRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateServiceBayCapability")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateServiceBayCapabilityResponseObject); ok {
+		return validResponse.VisitCreateServiceBayCapabilityResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DeleteServiceBayCapability operation middleware
+func (sh *strictHandler) DeleteServiceBayCapability(ctx *echo.Context, dealershipId DealershipId, serviceBayId ServiceBayId, serviceBayCapabilityId ServiceBayCapabilityId) error {
+	var request DeleteServiceBayCapabilityRequestObject
+
+	request.DealershipId = dealershipId
+	request.ServiceBayId = serviceBayId
+	request.ServiceBayCapabilityId = serviceBayCapabilityId
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteServiceBayCapability(ctx.Request().Context(), request.(DeleteServiceBayCapabilityRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteServiceBayCapability")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DeleteServiceBayCapabilityResponseObject); ok {
+		return validResponse.VisitDeleteServiceBayCapabilityResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateServiceBayCapability operation middleware
+func (sh *strictHandler) UpdateServiceBayCapability(ctx *echo.Context, dealershipId DealershipId, serviceBayId ServiceBayId, serviceBayCapabilityId ServiceBayCapabilityId) error {
+	var request UpdateServiceBayCapabilityRequestObject
+
+	request.DealershipId = dealershipId
+	request.ServiceBayId = serviceBayId
+	request.ServiceBayCapabilityId = serviceBayCapabilityId
+
+	var body UpdateServiceBayCapabilityJSONRequestBody
+	var err error
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+		// Bind only the request body, so that path and query parameters
+		// are not also bound into the body struct.
+		err = echo.BindBody(ctx, &body)
+	} else {
+		// A custom binder is installed on the Echo instance; defer to it
+		// entirely, since echo.Binder does not expose body-only binding.
+		err = ctx.Bind(&body)
+	}
+	if err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateServiceBayCapability(ctx.Request().Context(), request.(UpdateServiceBayCapabilityRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateServiceBayCapability")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateServiceBayCapabilityResponseObject); ok {
+		return validResponse.VisitUpdateServiceBayCapabilityResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
 // ListServiceTypes operation middleware
 func (sh *strictHandler) ListServiceTypes(ctx *echo.Context, dealershipId DealershipId) error {
 	var request ListServiceTypesRequestObject
@@ -3156,6 +5816,144 @@ func (sh *strictHandler) UpdateServiceType(ctx *echo.Context, dealershipId Deale
 		return err
 	} else if validResponse, ok := response.(UpdateServiceTypeResponseObject); ok {
 		return validResponse.VisitUpdateServiceTypeResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListServiceTypeRequiredBayCapabilities operation middleware
+func (sh *strictHandler) ListServiceTypeRequiredBayCapabilities(ctx *echo.Context, dealershipId DealershipId, serviceTypeId ServiceTypeId) error {
+	var request ListServiceTypeRequiredBayCapabilitiesRequestObject
+
+	request.DealershipId = dealershipId
+	request.ServiceTypeId = serviceTypeId
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListServiceTypeRequiredBayCapabilities(ctx.Request().Context(), request.(ListServiceTypeRequiredBayCapabilitiesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListServiceTypeRequiredBayCapabilities")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListServiceTypeRequiredBayCapabilitiesResponseObject); ok {
+		return validResponse.VisitListServiceTypeRequiredBayCapabilitiesResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateServiceTypeRequiredBayCapability operation middleware
+func (sh *strictHandler) CreateServiceTypeRequiredBayCapability(ctx *echo.Context, dealershipId DealershipId, serviceTypeId ServiceTypeId) error {
+	var request CreateServiceTypeRequiredBayCapabilityRequestObject
+
+	request.DealershipId = dealershipId
+	request.ServiceTypeId = serviceTypeId
+
+	var body CreateServiceTypeRequiredBayCapabilityJSONRequestBody
+	var err error
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+		// Bind only the request body, so that path and query parameters
+		// are not also bound into the body struct.
+		err = echo.BindBody(ctx, &body)
+	} else {
+		// A custom binder is installed on the Echo instance; defer to it
+		// entirely, since echo.Binder does not expose body-only binding.
+		err = ctx.Bind(&body)
+	}
+	if err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateServiceTypeRequiredBayCapability(ctx.Request().Context(), request.(CreateServiceTypeRequiredBayCapabilityRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateServiceTypeRequiredBayCapability")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateServiceTypeRequiredBayCapabilityResponseObject); ok {
+		return validResponse.VisitCreateServiceTypeRequiredBayCapabilityResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DeleteServiceTypeRequiredBayCapability operation middleware
+func (sh *strictHandler) DeleteServiceTypeRequiredBayCapability(ctx *echo.Context, dealershipId DealershipId, serviceTypeId ServiceTypeId, requiredCapabilityId RequiredCapabilityId) error {
+	var request DeleteServiceTypeRequiredBayCapabilityRequestObject
+
+	request.DealershipId = dealershipId
+	request.ServiceTypeId = serviceTypeId
+	request.RequiredCapabilityId = requiredCapabilityId
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteServiceTypeRequiredBayCapability(ctx.Request().Context(), request.(DeleteServiceTypeRequiredBayCapabilityRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteServiceTypeRequiredBayCapability")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DeleteServiceTypeRequiredBayCapabilityResponseObject); ok {
+		return validResponse.VisitDeleteServiceTypeRequiredBayCapabilityResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateServiceTypeRequiredBayCapability operation middleware
+func (sh *strictHandler) UpdateServiceTypeRequiredBayCapability(ctx *echo.Context, dealershipId DealershipId, serviceTypeId ServiceTypeId, requiredCapabilityId RequiredCapabilityId) error {
+	var request UpdateServiceTypeRequiredBayCapabilityRequestObject
+
+	request.DealershipId = dealershipId
+	request.ServiceTypeId = serviceTypeId
+	request.RequiredCapabilityId = requiredCapabilityId
+
+	var body UpdateServiceTypeRequiredBayCapabilityJSONRequestBody
+	var err error
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+		// Bind only the request body, so that path and query parameters
+		// are not also bound into the body struct.
+		err = echo.BindBody(ctx, &body)
+	} else {
+		// A custom binder is installed on the Echo instance; defer to it
+		// entirely, since echo.Binder does not expose body-only binding.
+		err = ctx.Bind(&body)
+	}
+	if err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateServiceTypeRequiredBayCapability(ctx.Request().Context(), request.(UpdateServiceTypeRequiredBayCapabilityRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateServiceTypeRequiredBayCapability")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateServiceTypeRequiredBayCapabilityResponseObject); ok {
+		return validResponse.VisitUpdateServiceTypeRequiredBayCapabilityResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

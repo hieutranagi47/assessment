@@ -53,13 +53,21 @@ type AppointmentSchedulerAppointmentIdempotency struct {
 	DeletedAt      pgtype.Timestamptz
 }
 
+type AppointmentSchedulerBayCapability struct {
+	BayCapabilityID pgtype.UUID
+	Code            string
+	Name            string
+	Description     *string
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+}
+
 type AppointmentSchedulerCustomer struct {
 	CustomerID pgtype.UUID
 	Name       string
 	Phone      string
 	Email      *string
 	CreatedAt  time.Time
-	DeletedAt  pgtype.Timestamptz
 	UpdatedAt  time.Time
 }
 
@@ -82,7 +90,6 @@ type AppointmentSchedulerDealershipOperationTime struct {
 	OpensAt                   pgtype.Time
 	ClosesAt                  pgtype.Time
 	CreatedAt                 time.Time
-	DeletedAt                 pgtype.Timestamptz
 	UpdatedAt                 time.Time
 }
 
@@ -110,9 +117,9 @@ type AppointmentSchedulerServiceBay struct {
 type AppointmentSchedulerServiceBayCapability struct {
 	ServiceBayCapabilityID pgtype.UUID
 	ServiceBayID           pgtype.UUID
-	CapabilityCode         string
+	BayCapabilityID        pgtype.UUID
 	CreatedAt              time.Time
-	DeletedAt              pgtype.Timestamptz
+	UpdatedAt              time.Time
 }
 
 type AppointmentSchedulerServiceType struct {
@@ -131,16 +138,16 @@ type AppointmentSchedulerServiceType struct {
 type AppointmentSchedulerServiceTypeRequiredBayCapability struct {
 	ServiceTypeRequiredBayCapabilityID pgtype.UUID
 	ServiceTypeID                      pgtype.UUID
-	CapabilityCode                     string
+	BayCapabilityID                    pgtype.UUID
 	CreatedAt                          time.Time
-	DeletedAt                          pgtype.Timestamptz
+	UpdatedAt                          time.Time
 }
 
 type AppointmentSchedulerServiceTypeRequiredSkill struct {
 	ServiceTypeRequiredSkillID pgtype.UUID
 	ServiceTypeID              pgtype.UUID
-	CreatedAt                  time.Time
 	SkillID                    pgtype.UUID
+	CreatedAt                  time.Time
 	UpdatedAt                  time.Time
 }
 

@@ -21,6 +21,88 @@ type requiredSkillRepositoryStub struct {
 	deleteErr   error
 }
 
+type requiredBayCapabilityRepositoryStub struct {
+	admin       bool
+	serviceType domain.ServiceType
+	required    domain.ServiceTypeRequiredBayCapability
+	createErr   error
+	deleteErr   error
+}
+
+func (r *requiredBayCapabilityRepositoryStub) Create(context.Context, domain.Dealership) error {
+	return nil
+}
+func (r *requiredBayCapabilityRepositoryStub) IsActiveSchedulerAdminForDealership(context.Context, uuid.UUID, uuid.UUID) (bool, error) {
+	return r.admin, nil
+}
+func (r *requiredBayCapabilityRepositoryStub) CreateServiceTypeRequiredBayCapability(_ context.Context, dealershipID uuid.UUID, required domain.ServiceTypeRequiredBayCapability) (domain.ServiceTypeRequiredBayCapability, error) {
+	if r.serviceType.DealershipID() != dealershipID || r.serviceType.ID() != required.ServiceTypeID() {
+		return domain.ServiceTypeRequiredBayCapability{}, ErrServiceTypeNotFound
+	}
+	if r.createErr != nil {
+		return domain.ServiceTypeRequiredBayCapability{}, r.createErr
+	}
+	r.required = required
+	return required, nil
+}
+func (r *requiredBayCapabilityRepositoryStub) GetServiceTypeRequiredBayCapability(_ context.Context, dealershipID, serviceTypeID, requiredID uuid.UUID) (domain.ServiceTypeRequiredBayCapability, error) {
+	if r.serviceType.DealershipID() != dealershipID || r.serviceType.ID() != serviceTypeID || r.required.ID() != requiredID {
+		return domain.ServiceTypeRequiredBayCapability{}, ErrServiceTypeRequiredBayCapabilityNotFound
+	}
+	return r.required, nil
+}
+func (r *requiredBayCapabilityRepositoryStub) ListServiceTypeRequiredBayCapabilities(_ context.Context, dealershipID, serviceTypeID uuid.UUID) ([]domain.ServiceTypeRequiredBayCapability, error) {
+	if r.serviceType.DealershipID() != dealershipID || r.serviceType.ID() != serviceTypeID {
+		return nil, ErrServiceTypeNotFound
+	}
+	return []domain.ServiceTypeRequiredBayCapability{r.required}, nil
+}
+func (r *requiredBayCapabilityRepositoryStub) UpdateServiceTypeRequiredBayCapability(_ context.Context, dealershipID uuid.UUID, required domain.ServiceTypeRequiredBayCapability) (domain.ServiceTypeRequiredBayCapability, error) {
+	if r.serviceType.DealershipID() != dealershipID || r.required.ID() != required.ID() {
+		return domain.ServiceTypeRequiredBayCapability{}, ErrServiceTypeRequiredBayCapabilityNotFound
+	}
+	if r.createErr != nil {
+		return domain.ServiceTypeRequiredBayCapability{}, r.createErr
+	}
+	r.required = required
+	return required, nil
+}
+func (r *requiredBayCapabilityRepositoryStub) DeleteServiceTypeRequiredBayCapability(_ context.Context, dealershipID, serviceTypeID, requiredID uuid.UUID) error {
+	if r.serviceType.DealershipID() != dealershipID || r.serviceType.ID() != serviceTypeID || r.required.ID() != requiredID {
+		return ErrServiceTypeRequiredBayCapabilityNotFound
+	}
+	return r.deleteErr
+}
+
+func TestServiceTypeRequiredBayCapabilityAuthorizationOwnershipDuplicateAndDeletion(t *testing.T) {
+	actor, dealershipID, otherDealershipID := uuid.New(), uuid.New(), uuid.New()
+	serviceType, err := domain.NewServiceType(uuid.New(), dealershipID, "Oil change", 60, 30, 90, true, time.Now())
+	require.NoError(t, err)
+	repository := &requiredBayCapabilityRepositoryStub{admin: true, serviceType: serviceType}
+	service := NewService(repository, userInfoStub{})
+	required, err := service.CreateServiceTypeRequiredBayCapability(context.Background(), actor, dealershipID, serviceType.ID(), CreateServiceTypeRequiredBayCapabilityInput{BayCapabilityID: uuid.New()})
+	require.NoError(t, err)
+	require.Equal(t, serviceType.ID(), required.ServiceTypeID())
+
+	_, err = service.ListServiceTypeRequiredBayCapabilities(context.Background(), actor, otherDealershipID, serviceType.ID())
+	require.ErrorContains(t, err, "service_type_not_found")
+
+	repository.createErr = ErrServiceTypeRequiredBayCapabilityTaken
+	otherCapabilityID := uuid.New()
+	_, err = service.UpdateServiceTypeRequiredBayCapability(context.Background(), actor, dealershipID, serviceType.ID(), required.ID(), UpdateServiceTypeRequiredBayCapabilityInput{BayCapabilityID: &otherCapabilityID})
+	require.ErrorContains(t, err, "service_type_required_bay_capability_taken")
+
+	repository.createErr = nil
+	require.NoError(t, service.DeleteServiceTypeRequiredBayCapability(context.Background(), actor, dealershipID, serviceType.ID(), required.ID()))
+
+	nonAdmin := NewService(&requiredBayCapabilityRepositoryStub{serviceType: serviceType}, userInfoStub{})
+	_, err = nonAdmin.CreateServiceTypeRequiredBayCapability(context.Background(), actor, dealershipID, serviceType.ID(), CreateServiceTypeRequiredBayCapabilityInput{BayCapabilityID: uuid.New()})
+	require.ErrorContains(t, err, "service_type_required_bay_capability_access_forbidden")
+
+	_, err = service.CreateServiceTypeRequiredBayCapability(context.Background(), uuid.Nil, dealershipID, serviceType.ID(), CreateServiceTypeRequiredBayCapabilityInput{BayCapabilityID: uuid.New()})
+	require.ErrorContains(t, err, "authentication_required")
+}
+
 func (r *requiredSkillRepositoryStub) Create(context.Context, domain.Dealership) error { return nil }
 func (r *requiredSkillRepositoryStub) IsActiveSchedulerAdminForDealership(context.Context, uuid.UUID, uuid.UUID) (bool, error) {
 	return r.admin, nil

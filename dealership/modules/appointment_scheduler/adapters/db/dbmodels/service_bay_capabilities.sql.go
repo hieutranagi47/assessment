@@ -12,84 +12,188 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const createServiceBayCapabilities = `-- name: CreateServiceBayCapabilities :exec
-INSERT INTO appointment_scheduler.service_bay_capabilities (service_bay_capability_id, service_bay_id, capability_code, created_at)
-VALUES ($1, $2, $3, $4)
+const createServiceBayCapability = `-- name: CreateServiceBayCapability :one
+
+INSERT INTO appointment_scheduler.service_bay_capabilities (service_bay_capability_id, service_bay_id, bay_capability_id, created_at, updated_at)
+SELECT $1, service_bays.service_bay_id, bay_capabilities.bay_capability_id, $2, $3
+FROM appointment_scheduler.service_bays
+JOIN appointment_scheduler.bay_capabilities ON bay_capabilities.bay_capability_id = $4
+WHERE service_bays.service_bay_id = $5 AND service_bays.dealership_id = $6 AND service_bays.deleted_at IS NULL
+RETURNING service_bay_capability_id, service_bay_id, bay_capability_id, created_at, updated_at
 `
 
-type CreateServiceBayCapabilitiesParams struct {
+type CreateServiceBayCapabilityParams struct {
 	ServiceBayCapabilityID pgtype.UUID
-	ServiceBayID           pgtype.UUID
-	CapabilityCode         string
 	CreatedAt              time.Time
+	UpdatedAt              time.Time
+	BayCapabilityID        pgtype.UUID
+	ServiceBayID           pgtype.UUID
+	DealershipID           pgtype.UUID
 }
 
-func (q *Queries) CreateServiceBayCapabilities(ctx context.Context, arg CreateServiceBayCapabilitiesParams) error {
-	_, err := q.db.Exec(ctx, createServiceBayCapabilities,
+// Service-bay assignments are always selected through their dealership-owned bay.
+func (q *Queries) CreateServiceBayCapability(ctx context.Context, arg CreateServiceBayCapabilityParams) (AppointmentSchedulerServiceBayCapability, error) {
+	row := q.db.QueryRow(ctx, createServiceBayCapability,
 		arg.ServiceBayCapabilityID,
-		arg.ServiceBayID,
-		arg.CapabilityCode,
 		arg.CreatedAt,
+		arg.UpdatedAt,
+		arg.BayCapabilityID,
+		arg.ServiceBayID,
+		arg.DealershipID,
 	)
-	return err
-}
-
-const deleteServiceBayCapabilities = `-- name: DeleteServiceBayCapabilities :execrows
-UPDATE appointment_scheduler.service_bay_capabilities
-SET deleted_at = $1::timestamptz
-WHERE service_bay_capability_id = $2 AND deleted_at IS NULL
-`
-
-type DeleteServiceBayCapabilitiesParams struct {
-	DeletedAt              time.Time
-	ServiceBayCapabilityID pgtype.UUID
-}
-
-func (q *Queries) DeleteServiceBayCapabilities(ctx context.Context, arg DeleteServiceBayCapabilitiesParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteServiceBayCapabilities, arg.DeletedAt, arg.ServiceBayCapabilityID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
-}
-
-const getServiceBayCapabilities = `-- name: GetServiceBayCapabilities :one
-
-SELECT service_bay_capability_id, service_bay_id, capability_code, created_at, deleted_at
-FROM appointment_scheduler.service_bay_capabilities
-WHERE service_bay_capability_id = $1 AND deleted_at IS NULL
-`
-
-// service bay capabilities CRUD queries.
-func (q *Queries) GetServiceBayCapabilities(ctx context.Context, serviceBayCapabilityID pgtype.UUID) (AppointmentSchedulerServiceBayCapability, error) {
-	row := q.db.QueryRow(ctx, getServiceBayCapabilities, serviceBayCapabilityID)
 	var i AppointmentSchedulerServiceBayCapability
 	err := row.Scan(
 		&i.ServiceBayCapabilityID,
 		&i.ServiceBayID,
-		&i.CapabilityCode,
+		&i.BayCapabilityID,
 		&i.CreatedAt,
-		&i.DeletedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
-const updateServiceBayCapabilities = `-- name: UpdateServiceBayCapabilities :execrows
-UPDATE appointment_scheduler.service_bay_capabilities
-SET service_bay_id = $1, capability_code = $2
-WHERE service_bay_capability_id = $3 AND deleted_at IS NULL
+const deleteServiceBayCapability = `-- name: DeleteServiceBayCapability :execrows
+DELETE FROM appointment_scheduler.service_bay_capabilities assigned_capability
+USING appointment_scheduler.service_bays service_bays
+WHERE assigned_capability.service_bay_capability_id = $1 AND assigned_capability.service_bay_id = $2 AND service_bays.service_bay_id = assigned_capability.service_bay_id AND service_bays.dealership_id = $3 AND service_bays.deleted_at IS NULL
 `
 
-type UpdateServiceBayCapabilitiesParams struct {
-	ServiceBayID           pgtype.UUID
-	CapabilityCode         string
+type DeleteServiceBayCapabilityParams struct {
 	ServiceBayCapabilityID pgtype.UUID
+	ServiceBayID           pgtype.UUID
+	DealershipID           pgtype.UUID
 }
 
-func (q *Queries) UpdateServiceBayCapabilities(ctx context.Context, arg UpdateServiceBayCapabilitiesParams) (int64, error) {
-	result, err := q.db.Exec(ctx, updateServiceBayCapabilities, arg.ServiceBayID, arg.CapabilityCode, arg.ServiceBayCapabilityID)
+func (q *Queries) DeleteServiceBayCapability(ctx context.Context, arg DeleteServiceBayCapabilityParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteServiceBayCapability, arg.ServiceBayCapabilityID, arg.ServiceBayID, arg.DealershipID)
 	if err != nil {
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const getServiceBayCapability = `-- name: GetServiceBayCapability :one
+SELECT assigned_capability.service_bay_capability_id, assigned_capability.service_bay_id, capabilities.bay_capability_id, capabilities.code, capabilities.name, assigned_capability.created_at, assigned_capability.updated_at
+FROM appointment_scheduler.service_bay_capabilities assigned_capability
+JOIN appointment_scheduler.service_bays service_bays ON service_bays.service_bay_id = assigned_capability.service_bay_id
+JOIN appointment_scheduler.bay_capabilities capabilities ON capabilities.bay_capability_id = assigned_capability.bay_capability_id
+WHERE assigned_capability.service_bay_capability_id = $1 AND assigned_capability.service_bay_id = $2 AND service_bays.dealership_id = $3 AND service_bays.deleted_at IS NULL
+`
+
+type GetServiceBayCapabilityParams struct {
+	ServiceBayCapabilityID pgtype.UUID
+	ServiceBayID           pgtype.UUID
+	DealershipID           pgtype.UUID
+}
+
+type GetServiceBayCapabilityRow struct {
+	ServiceBayCapabilityID pgtype.UUID
+	ServiceBayID           pgtype.UUID
+	BayCapabilityID        pgtype.UUID
+	Code                   string
+	Name                   string
+	CreatedAt              time.Time
+	UpdatedAt              time.Time
+}
+
+func (q *Queries) GetServiceBayCapability(ctx context.Context, arg GetServiceBayCapabilityParams) (GetServiceBayCapabilityRow, error) {
+	row := q.db.QueryRow(ctx, getServiceBayCapability, arg.ServiceBayCapabilityID, arg.ServiceBayID, arg.DealershipID)
+	var i GetServiceBayCapabilityRow
+	err := row.Scan(
+		&i.ServiceBayCapabilityID,
+		&i.ServiceBayID,
+		&i.BayCapabilityID,
+		&i.Code,
+		&i.Name,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const listServiceBayCapabilities = `-- name: ListServiceBayCapabilities :many
+SELECT assigned_capability.service_bay_capability_id, assigned_capability.service_bay_id, capabilities.bay_capability_id, capabilities.code, capabilities.name, assigned_capability.created_at, assigned_capability.updated_at
+FROM appointment_scheduler.service_bay_capabilities assigned_capability
+JOIN appointment_scheduler.service_bays service_bays ON service_bays.service_bay_id = assigned_capability.service_bay_id
+JOIN appointment_scheduler.bay_capabilities capabilities ON capabilities.bay_capability_id = assigned_capability.bay_capability_id
+WHERE assigned_capability.service_bay_id = $1 AND service_bays.dealership_id = $2 AND service_bays.deleted_at IS NULL
+ORDER BY capabilities.name, capabilities.bay_capability_id
+`
+
+type ListServiceBayCapabilitiesParams struct {
+	ServiceBayID pgtype.UUID
+	DealershipID pgtype.UUID
+}
+
+type ListServiceBayCapabilitiesRow struct {
+	ServiceBayCapabilityID pgtype.UUID
+	ServiceBayID           pgtype.UUID
+	BayCapabilityID        pgtype.UUID
+	Code                   string
+	Name                   string
+	CreatedAt              time.Time
+	UpdatedAt              time.Time
+}
+
+func (q *Queries) ListServiceBayCapabilities(ctx context.Context, arg ListServiceBayCapabilitiesParams) ([]ListServiceBayCapabilitiesRow, error) {
+	rows, err := q.db.Query(ctx, listServiceBayCapabilities, arg.ServiceBayID, arg.DealershipID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListServiceBayCapabilitiesRow{}
+	for rows.Next() {
+		var i ListServiceBayCapabilitiesRow
+		if err := rows.Scan(
+			&i.ServiceBayCapabilityID,
+			&i.ServiceBayID,
+			&i.BayCapabilityID,
+			&i.Code,
+			&i.Name,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateServiceBayCapability = `-- name: UpdateServiceBayCapability :one
+UPDATE appointment_scheduler.service_bay_capabilities assigned_capability
+SET bay_capability_id = $1, updated_at = $2
+FROM appointment_scheduler.service_bays service_bays
+WHERE assigned_capability.service_bay_capability_id = $3 AND assigned_capability.service_bay_id = $4 AND service_bays.service_bay_id = assigned_capability.service_bay_id AND service_bays.dealership_id = $5 AND service_bays.deleted_at IS NULL
+RETURNING assigned_capability.service_bay_capability_id, assigned_capability.service_bay_id, assigned_capability.bay_capability_id, assigned_capability.created_at, assigned_capability.updated_at
+`
+
+type UpdateServiceBayCapabilityParams struct {
+	BayCapabilityID        pgtype.UUID
+	UpdatedAt              time.Time
+	ServiceBayCapabilityID pgtype.UUID
+	ServiceBayID           pgtype.UUID
+	DealershipID           pgtype.UUID
+}
+
+func (q *Queries) UpdateServiceBayCapability(ctx context.Context, arg UpdateServiceBayCapabilityParams) (AppointmentSchedulerServiceBayCapability, error) {
+	row := q.db.QueryRow(ctx, updateServiceBayCapability,
+		arg.BayCapabilityID,
+		arg.UpdatedAt,
+		arg.ServiceBayCapabilityID,
+		arg.ServiceBayID,
+		arg.DealershipID,
+	)
+	var i AppointmentSchedulerServiceBayCapability
+	err := row.Scan(
+		&i.ServiceBayCapabilityID,
+		&i.ServiceBayID,
+		&i.BayCapabilityID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }

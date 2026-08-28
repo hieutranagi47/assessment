@@ -90,6 +90,83 @@ type serviceBayHTTPRepositoryStub struct {
 	deleteErr  error
 }
 
+type operationTimeHTTPRepositoryStub struct {
+	repositoryStub
+	active    bool
+	item      domain.DealershipOperationTime
+	createErr error
+}
+
+func (r operationTimeHTTPRepositoryStub) IsActiveSchedulerAdminForDealership(context.Context, uuid.UUID, uuid.UUID) (bool, error) {
+	return r.isActiveSchedulerAdmin, nil
+}
+func (r operationTimeHTTPRepositoryStub) IsActiveDealership(context.Context, uuid.UUID) (bool, error) {
+	return r.active, nil
+}
+func (r *operationTimeHTTPRepositoryStub) CreateDealershipOperationTime(_ context.Context, item domain.DealershipOperationTime) error {
+	if r.createErr != nil {
+		return r.createErr
+	}
+	r.item = item
+	return nil
+}
+func (r operationTimeHTTPRepositoryStub) GetDealershipOperationTime(_ context.Context, dealershipID, itemID uuid.UUID) (domain.DealershipOperationTime, error) {
+	if r.item.ID() == uuid.Nil || r.item.ID() != itemID || r.item.DealershipID() != dealershipID {
+		return domain.DealershipOperationTime{}, app.ErrDealershipOperationTimeNotFound
+	}
+	return r.item, nil
+}
+func (r operationTimeHTTPRepositoryStub) ListDealershipOperationTimes(_ context.Context, dealershipID uuid.UUID) ([]domain.DealershipOperationTime, error) {
+	if r.item.ID() == uuid.Nil || r.item.DealershipID() != dealershipID {
+		return []domain.DealershipOperationTime{}, nil
+	}
+	return []domain.DealershipOperationTime{r.item}, nil
+}
+func (r *operationTimeHTTPRepositoryStub) UpdateDealershipOperationTime(_ context.Context, item domain.DealershipOperationTime) error {
+	r.item = item
+	return nil
+}
+func (r *operationTimeHTTPRepositoryStub) DeleteDealershipOperationTime(_ context.Context, dealershipID, itemID uuid.UUID) error {
+	if r.item.ID() == uuid.Nil || r.item.ID() != itemID || r.item.DealershipID() != dealershipID {
+		return app.ErrDealershipOperationTimeNotFound
+	}
+	r.item = domain.DealershipOperationTime{}
+	return nil
+}
+
+func TestDealershipOperationTimeHTTPAuthorizationAndValidation(t *testing.T) {
+	actor, dealershipID := uuid.New(), uuid.New()
+	tests := []struct {
+		name, body string
+		auth       authStub
+		repository *operationTimeHTTPRepositoryStub
+		wantStatus int
+		wantSlug   string
+	}{
+		{"admin may create", `{"dayOfWeek":1,"opensAt":"08:00","closesAt":"12:00"}`, authStub{identity: client.Identity{UserID: actor}}, &operationTimeHTTPRepositoryStub{repositoryStub: repositoryStub{isActiveSchedulerAdmin: true}, active: true}, stdhttp.StatusCreated, ""},
+		{"staff is denied", `{"dayOfWeek":1,"opensAt":"08:00","closesAt":"12:00"}`, authStub{identity: client.Identity{UserID: actor}}, &operationTimeHTTPRepositoryStub{active: true}, stdhttp.StatusForbidden, "operation_time_access_forbidden"},
+		{"unauthenticated is denied", `{"dayOfWeek":1,"opensAt":"08:00","closesAt":"12:00"}`, authStub{authErr: errors.New("bad token")}, &operationTimeHTTPRepositoryStub{active: true}, stdhttp.StatusUnauthorized, "authentication_required"},
+		{"invalid clock is rejected", `{"dayOfWeek":1,"opensAt":"8:00","closesAt":"12:00"}`, authStub{identity: client.Identity{UserID: actor}}, &operationTimeHTTPRepositoryStub{repositoryStub: repositoryStub{isActiveSchedulerAdmin: true}, active: true}, stdhttp.StatusBadRequest, "invalid_operation_time"},
+		{"equal clock values are rejected", `{"dayOfWeek":1,"opensAt":"08:00","closesAt":"08:00"}`, authStub{identity: client.Identity{UserID: actor}}, &operationTimeHTTPRepositoryStub{repositoryStub: repositoryStub{isActiveSchedulerAdmin: true}, active: true}, 422, "invalid_operation_time"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			service := app.NewService(test.repository, test.auth)
+			router := common.NewEcho(common.EchoConfig{})
+			Register(context.Background(), router, NewHandler(service, test.auth))
+			request := httptest.NewRequest(stdhttp.MethodPost, "/v1/dealerships/"+dealershipID.String()+"/operation-times", bytes.NewBufferString(test.body))
+			request.Header.Set("Authorization", "Bearer access-token")
+			request.Header.Set("Content-Type", "application/json")
+			recorder := httptest.NewRecorder()
+			router.ServeHTTP(recorder, request)
+			require.Equal(t, test.wantStatus, recorder.Code, recorder.Body.String())
+			if test.wantSlug != "" {
+				require.Contains(t, recorder.Body.String(), `"slug":"`+test.wantSlug+`"`)
+			}
+		})
+	}
+}
+
 func (r serviceBayHTTPRepositoryStub) IsActiveSchedulerAdminForDealership(context.Context, uuid.UUID, uuid.UUID) (bool, error) {
 	return r.isActiveSchedulerAdmin, nil
 }

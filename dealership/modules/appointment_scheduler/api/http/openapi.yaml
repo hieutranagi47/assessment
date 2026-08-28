@@ -4,6 +4,69 @@ info:
   version: "1.0.0"
   description: Dealership administration endpoints.
 paths:
+  /v1/dealerships/{dealershipId}/operation-times:
+    parameters:
+      - $ref: "#/components/parameters/DealershipId"
+    get:
+      operationId: listDealershipOperationTimes
+      tags: [Operation times]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/OperationTimesListed" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    post:
+      operationId: createDealershipOperationTime
+      tags: [Operation times]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateDealershipOperationTimeRequest" }
+      responses:
+        "201": { $ref: "#/components/responses/OperationTimeCreated" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/UnprocessableEntity" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /v1/dealerships/{dealershipId}/operation-times/{operationTimeId}:
+    parameters:
+      - $ref: "#/components/parameters/DealershipId"
+      - $ref: "#/components/parameters/OperationTimeId"
+    patch:
+      operationId: updateDealershipOperationTime
+      tags: [Operation times]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateDealershipOperationTimeRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/OperationTimeUpdated" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/UnprocessableEntity" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    delete:
+      operationId: deleteDealershipOperationTime
+      tags: [Operation times]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "204": { description: Operation time deleted }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /v1/dealerships/{dealershipId}/service-bays:
     parameters:
       - $ref: "#/components/parameters/DealershipId"
@@ -84,6 +147,69 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
         "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /v1/dealerships/{dealershipId}/service-bays/{serviceBayId}/capabilities:
+    parameters:
+      - $ref: "#/components/parameters/DealershipId"
+      - $ref: "#/components/parameters/ServiceBayId"
+    post:
+      operationId: createServiceBayCapability
+      tags: [Service bay capabilities]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateServiceBayCapabilityRequest" }
+      responses:
+        "201": { $ref: "#/components/responses/ServiceBayCapabilityCreated" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    get:
+      operationId: listServiceBayCapabilities
+      tags: [Service bay capabilities]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/ServiceBayCapabilitiesListed" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /v1/dealerships/{dealershipId}/service-bays/{serviceBayId}/capabilities/{serviceBayCapabilityId}:
+    parameters:
+      - $ref: "#/components/parameters/DealershipId"
+      - $ref: "#/components/parameters/ServiceBayId"
+      - $ref: "#/components/parameters/ServiceBayCapabilityId"
+    patch:
+      operationId: updateServiceBayCapability
+      tags: [Service bay capabilities]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateServiceBayCapabilityRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/ServiceBayCapabilityUpdated" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    delete:
+      operationId: deleteServiceBayCapability
+      tags: [Service bay capabilities]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "204": { description: Service bay capability deleted }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
         "500": { $ref: "#/components/responses/InternalServerError" }
   /v1/dealerships/{dealershipId}/service-types:
     parameters:
@@ -218,6 +344,69 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
         "500": { $ref: "#/components/responses/InternalServerError" }
+  /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-bay-capabilities:
+    parameters:
+      - $ref: "#/components/parameters/DealershipId"
+      - $ref: "#/components/parameters/ServiceTypeId"
+    post:
+      operationId: createServiceTypeRequiredBayCapability
+      tags: [Service type required bay capabilities]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateServiceTypeRequiredBayCapabilityRequest" }
+      responses:
+        "201": { $ref: "#/components/responses/ServiceTypeRequiredBayCapabilityCreated" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    get:
+      operationId: listServiceTypeRequiredBayCapabilities
+      tags: [Service type required bay capabilities]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/ServiceTypeRequiredBayCapabilitiesListed" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-bay-capabilities/{requiredCapabilityId}:
+    parameters:
+      - $ref: "#/components/parameters/DealershipId"
+      - $ref: "#/components/parameters/ServiceTypeId"
+      - $ref: "#/components/parameters/RequiredCapabilityId"
+    patch:
+      operationId: updateServiceTypeRequiredBayCapability
+      tags: [Service type required bay capabilities]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateServiceTypeRequiredBayCapabilityRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/ServiceTypeRequiredBayCapabilityUpdated" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    delete:
+      operationId: deleteServiceTypeRequiredBayCapability
+      tags: [Service type required bay capabilities]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "204": { description: Required bay capability deleted }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /dealership-users:
     post:
       operationId: createDealershipUser
@@ -292,10 +481,111 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "409": { $ref: "#/components/responses/Conflict" }
         "500": { $ref: "#/components/responses/InternalServerError" }
+  /v1/customers:
+    post:
+      operationId: createCustomer
+      tags: [Customers]
+      summary: Create a global customer record
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateCustomerRequest" }
+      responses:
+        "201": { $ref: "#/components/responses/CustomerCreated" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /v1/customers/{customerId}:
+    parameters:
+      - $ref: "#/components/parameters/CustomerId"
+    get:
+      operationId: getCustomer
+      tags: [Customers]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/CustomerFound" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    patch:
+      operationId: updateCustomer
+      tags: [Customers]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateCustomerRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/CustomerUpdated" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /v1/customers:search:
+    get:
+      operationId: searchCustomers
+      tags: [Customers]
+      summary: Find global customer records by exact normalized phone or email
+      description: Customer records are global in the current schema, not dealership-scoped.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: phone
+          in: query
+          schema: { type: string }
+        - name: email
+          in: query
+          schema: { type: string, format: email }
+      responses:
+        "200": { $ref: "#/components/responses/CustomersListed" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
 components:
   securitySchemes:
     bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
   schemas:
+    CreateCustomerRequest:
+      type: object
+      required: [name, phone]
+      properties:
+        name: { type: string, minLength: 1 }
+        phone: { type: string, pattern: '^\\+[1-9][0-9]{7,14}$' }
+        email: { type: string, format: email, nullable: true }
+    UpdateCustomerRequest:
+      type: object
+      properties:
+        name: { type: string, minLength: 1 }
+        phone: { type: string, pattern: '^\\+[1-9][0-9]{7,14}$' }
+        email:
+          nullable: true
+          x-go-type: OptionalNullableString
+    Customer:
+      type: object
+      required: [customerId, name, phone, email, createdAt, updatedAt]
+      properties:
+        customerId: { type: string, format: uuid }
+        name: { type: string }
+        phone: { type: string, pattern: '^\\+[1-9][0-9]{7,14}$' }
+        email: { type: string, format: email, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    CustomerListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Customer" }
     CreateServiceBayRequest:
       type: object
       required: [code, name]
@@ -387,6 +677,51 @@ components:
         skill: { $ref: "#/components/schemas/Skill" }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+    CreateServiceTypeRequiredBayCapabilityRequest:
+      type: object
+      required: [bayCapabilityId]
+      properties:
+        bayCapabilityId: { type: string, format: uuid }
+    UpdateServiceTypeRequiredBayCapabilityRequest:
+      type: object
+      required: [bayCapabilityId]
+      properties:
+        bayCapabilityId: { type: string, format: uuid }
+    BayCapability:
+      type: object
+      required: [bayCapabilityId, code, name]
+      properties:
+        bayCapabilityId: { type: string, format: uuid }
+        code: { type: string }
+        name: { type: string }
+    ServiceTypeRequiredBayCapability:
+      type: object
+      required: [requiredCapabilityId, serviceTypeId, bayCapability, createdAt, updatedAt]
+      properties:
+        requiredCapabilityId: { type: string, format: uuid }
+        serviceTypeId: { type: string, format: uuid }
+        bayCapability: { $ref: "#/components/schemas/BayCapability" }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    CreateServiceBayCapabilityRequest:
+      type: object
+      required: [bayCapabilityId]
+      properties:
+        bayCapabilityId: { type: string, format: uuid }
+    UpdateServiceBayCapabilityRequest:
+      type: object
+      required: [bayCapabilityId]
+      properties:
+        bayCapabilityId: { type: string, format: uuid }
+    ServiceBayCapability:
+      type: object
+      required: [serviceBayCapabilityId, serviceBayId, bayCapability, createdAt, updatedAt]
+      properties:
+        serviceBayCapabilityId: { type: string, format: uuid }
+        serviceBayId: { type: string, format: uuid }
+        bayCapability: { $ref: "#/components/schemas/BayCapability" }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
     CreateDealershipUserRequest:
       type: object
       required: [dealershipId, email, role]
@@ -458,6 +793,37 @@ components:
         isActive: { type: boolean }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+    DealershipOperationTime:
+      type: object
+      required:
+        - operationTimeId
+        - dealershipId
+        - dayOfWeek
+        - opensAt
+        - closesAt
+        - createdAt
+        - updatedAt
+      properties:
+        operationTimeId: { type: string, format: uuid }
+        dealershipId: { type: string, format: uuid }
+        dayOfWeek: { type: integer, minimum: 1, maximum: 7 }
+        opensAt: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
+        closesAt: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    CreateDealershipOperationTimeRequest:
+      type: object
+      required: [dayOfWeek, opensAt, closesAt]
+      properties:
+        dayOfWeek: { type: integer, minimum: 1, maximum: 7 }
+        opensAt: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
+        closesAt: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
+    UpdateDealershipOperationTimeRequest:
+      type: object
+      properties:
+        dayOfWeek: { type: integer, minimum: 1, maximum: 7 }
+        opensAt: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
+        closesAt: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
     ErrorDetail:
       type: object
       required: [entityType, entityId, errorSlug, message]
@@ -476,6 +842,47 @@ components:
           type: array
           items: { $ref: "#/components/schemas/ErrorDetail" }
   responses:
+    OperationTimeCreated:
+      description: Operation time created
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/DealershipOperationTime" }
+    OperationTimeUpdated:
+      description: Operation time updated
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/DealershipOperationTime" }
+    OperationTimesListed:
+      description: Operation times ordered by weekday and opening time
+      content:
+        application/json:
+          schema:
+            type: array
+            items: { $ref: "#/components/schemas/DealershipOperationTime" }
+    CustomerCreated:
+      description: Customer created
+      headers:
+        Location:
+          required: true
+          schema: { type: string }
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Customer" }
+    CustomerFound:
+      description: Customer found
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Customer" }
+    CustomerUpdated:
+      description: Customer updated
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Customer" }
+    CustomersListed:
+      description: Matching global customers
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/CustomerListResponse" }
     ServiceBayCreated:
       description: Service bay created
       content:
@@ -535,6 +942,40 @@ components:
           schema:
             type: array
             items: { $ref: "#/components/schemas/ServiceTypeRequiredSkill" }
+    ServiceTypeRequiredBayCapabilityCreated:
+      description: Required bay capability created
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ServiceTypeRequiredBayCapability" }
+    ServiceTypeRequiredBayCapabilityUpdated:
+      description: Required bay capability updated
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ServiceTypeRequiredBayCapability" }
+    ServiceTypeRequiredBayCapabilitiesListed:
+      description: Required bay capabilities for the service type
+      content:
+        application/json:
+          schema:
+            type: array
+            items: { $ref: "#/components/schemas/ServiceTypeRequiredBayCapability" }
+    ServiceBayCapabilityCreated:
+      description: Service bay capability assigned
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ServiceBayCapability" }
+    ServiceBayCapabilityUpdated:
+      description: Service bay capability updated
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ServiceBayCapability" }
+    ServiceBayCapabilitiesListed:
+      description: Capabilities assigned to the service bay
+      content:
+        application/json:
+          schema:
+            type: array
+            items: { $ref: "#/components/schemas/ServiceBayCapability" }
     DealershipUserCreated:
       description: Dealership scheduler user created
       content:
@@ -570,6 +1011,11 @@ components:
       content:
         application/json:
           schema: { $ref: "#/components/schemas/ErrorResponse" }
+    UnprocessableEntity:
+      description: Business validation rejected the request
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
     DealershipAdminCreated:
       description: Dealership scheduler admin created
       content:
@@ -586,6 +1032,11 @@ components:
         application/json:
           schema: { $ref: "#/components/schemas/ErrorResponse" }
   parameters:
+    CustomerId:
+      name: customerId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
     DealershipId:
       name: dealershipId
       in: path
@@ -596,13 +1047,28 @@ components:
       in: path
       required: true
       schema: { type: string, format: uuid }
+    OperationTimeId:
+      name: operationTimeId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
     ServiceBayId:
       name: serviceBayId
       in: path
       required: true
       schema: { type: string, format: uuid }
+    ServiceBayCapabilityId:
+      name: serviceBayCapabilityId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
     RequiredSkillId:
       name: requiredSkillId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    RequiredCapabilityId:
+      name: requiredCapabilityId
       in: path
       required: true
       schema: { type: string, format: uuid }

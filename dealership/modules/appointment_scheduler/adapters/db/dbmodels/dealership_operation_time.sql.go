@@ -41,18 +41,18 @@ func (q *Queries) CreateDealershipOperationTime(ctx context.Context, arg CreateD
 }
 
 const deleteDealershipOperationTime = `-- name: DeleteDealershipOperationTime :execrows
-UPDATE appointment_scheduler.dealership_operation_time
-SET deleted_at = $1::timestamptz
-WHERE dealership_operation_time_id = $2 AND deleted_at IS NULL
+DELETE FROM appointment_scheduler.dealership_operation_time
+WHERE dealership_id = $1
+  AND dealership_operation_time_id = $2
 `
 
 type DeleteDealershipOperationTimeParams struct {
-	DeletedAt                 time.Time
+	DealershipID              pgtype.UUID
 	DealershipOperationTimeID pgtype.UUID
 }
 
 func (q *Queries) DeleteDealershipOperationTime(ctx context.Context, arg DeleteDealershipOperationTimeParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteDealershipOperationTime, arg.DeletedAt, arg.DealershipOperationTimeID)
+	result, err := q.db.Exec(ctx, deleteDealershipOperationTime, arg.DealershipID, arg.DealershipOperationTimeID)
 	if err != nil {
 		return 0, err
 	}
@@ -61,26 +61,21 @@ func (q *Queries) DeleteDealershipOperationTime(ctx context.Context, arg DeleteD
 
 const getDealershipOperationTime = `-- name: GetDealershipOperationTime :one
 
-SELECT dealership_operation_time_id, dealership_id, day_of_week, opens_at, closes_at, created_at, updated_at, deleted_at
+SELECT dealership_operation_time_id, dealership_id, day_of_week, opens_at, closes_at, created_at, updated_at
 FROM appointment_scheduler.dealership_operation_time
-WHERE dealership_operation_time_id = $1 AND deleted_at IS NULL
+WHERE dealership_id = $1
+  AND dealership_operation_time_id = $2
 `
 
-type GetDealershipOperationTimeRow struct {
-	DealershipOperationTimeID pgtype.UUID
+type GetDealershipOperationTimeParams struct {
 	DealershipID              pgtype.UUID
-	DayOfWeek                 int16
-	OpensAt                   pgtype.Time
-	ClosesAt                  pgtype.Time
-	CreatedAt                 time.Time
-	UpdatedAt                 time.Time
-	DeletedAt                 pgtype.Timestamptz
+	DealershipOperationTimeID pgtype.UUID
 }
 
 // dealership operation time CRUD queries.
-func (q *Queries) GetDealershipOperationTime(ctx context.Context, dealershipOperationTimeID pgtype.UUID) (GetDealershipOperationTimeRow, error) {
-	row := q.db.QueryRow(ctx, getDealershipOperationTime, dealershipOperationTimeID)
-	var i GetDealershipOperationTimeRow
+func (q *Queries) GetDealershipOperationTime(ctx context.Context, arg GetDealershipOperationTimeParams) (AppointmentSchedulerDealershipOperationTime, error) {
+	row := q.db.QueryRow(ctx, getDealershipOperationTime, arg.DealershipID, arg.DealershipOperationTimeID)
+	var i AppointmentSchedulerDealershipOperationTime
 	err := row.Scan(
 		&i.DealershipOperationTimeID,
 		&i.DealershipID,
@@ -89,15 +84,50 @@ func (q *Queries) GetDealershipOperationTime(ctx context.Context, dealershipOper
 		&i.ClosesAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.DeletedAt,
 	)
 	return i, err
+}
+
+const listDealershipOperationTimes = `-- name: ListDealershipOperationTimes :many
+SELECT dealership_operation_time_id, dealership_id, day_of_week, opens_at, closes_at, created_at, updated_at
+FROM appointment_scheduler.dealership_operation_time
+WHERE dealership_id = $1
+ORDER BY day_of_week, opens_at
+`
+
+func (q *Queries) ListDealershipOperationTimes(ctx context.Context, dealershipID pgtype.UUID) ([]AppointmentSchedulerDealershipOperationTime, error) {
+	rows, err := q.db.Query(ctx, listDealershipOperationTimes, dealershipID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AppointmentSchedulerDealershipOperationTime{}
+	for rows.Next() {
+		var i AppointmentSchedulerDealershipOperationTime
+		if err := rows.Scan(
+			&i.DealershipOperationTimeID,
+			&i.DealershipID,
+			&i.DayOfWeek,
+			&i.OpensAt,
+			&i.ClosesAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const updateDealershipOperationTime = `-- name: UpdateDealershipOperationTime :execrows
 UPDATE appointment_scheduler.dealership_operation_time
 SET dealership_id = $1, day_of_week = $2, opens_at = $3, closes_at = $4, updated_at = $5
-WHERE dealership_operation_time_id = $6 AND deleted_at IS NULL
+WHERE dealership_id = $1
+  AND dealership_operation_time_id = $6
 `
 
 type UpdateDealershipOperationTimeParams struct {

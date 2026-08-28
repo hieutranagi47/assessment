@@ -18,6 +18,65 @@ type serviceBayRepositoryStub struct {
 	serviceBay domain.ServiceBay
 }
 
+type serviceBayCapabilityRepositoryStub struct {
+	admin      bool
+	serviceBay domain.ServiceBay
+	capability domain.ServiceBayCapability
+	createErr  error
+	deleteErr  error
+}
+
+func (r *serviceBayCapabilityRepositoryStub) Create(context.Context, domain.Dealership) error {
+	return nil
+}
+
+func (r *serviceBayCapabilityRepositoryStub) IsActiveSchedulerAdminForDealership(context.Context, uuid.UUID, uuid.UUID) (bool, error) {
+	return r.admin, nil
+}
+
+func (r *serviceBayCapabilityRepositoryStub) CreateServiceBayCapability(_ context.Context, dealershipID uuid.UUID, capability domain.ServiceBayCapability) (domain.ServiceBayCapability, error) {
+	if r.serviceBay.DealershipID() != dealershipID || r.serviceBay.ID() != capability.ServiceBayID() {
+		return domain.ServiceBayCapability{}, ErrServiceBayNotFound
+	}
+	if r.createErr != nil {
+		return domain.ServiceBayCapability{}, r.createErr
+	}
+	r.capability = capability
+	return capability, nil
+}
+
+func (r *serviceBayCapabilityRepositoryStub) GetServiceBayCapability(_ context.Context, dealershipID, serviceBayID, capabilityID uuid.UUID) (domain.ServiceBayCapability, error) {
+	if r.serviceBay.DealershipID() != dealershipID || r.serviceBay.ID() != serviceBayID || r.capability.ID() != capabilityID {
+		return domain.ServiceBayCapability{}, ErrServiceBayCapabilityNotFound
+	}
+	return r.capability, nil
+}
+
+func (r *serviceBayCapabilityRepositoryStub) ListServiceBayCapabilities(_ context.Context, dealershipID, serviceBayID uuid.UUID) ([]domain.ServiceBayCapability, error) {
+	if r.serviceBay.DealershipID() != dealershipID || r.serviceBay.ID() != serviceBayID {
+		return nil, ErrServiceBayNotFound
+	}
+	return []domain.ServiceBayCapability{r.capability}, nil
+}
+
+func (r *serviceBayCapabilityRepositoryStub) UpdateServiceBayCapability(_ context.Context, dealershipID uuid.UUID, capability domain.ServiceBayCapability) (domain.ServiceBayCapability, error) {
+	if r.serviceBay.DealershipID() != dealershipID || r.serviceBay.ID() != capability.ServiceBayID() {
+		return domain.ServiceBayCapability{}, ErrServiceBayCapabilityNotFound
+	}
+	if r.createErr != nil {
+		return domain.ServiceBayCapability{}, r.createErr
+	}
+	r.capability = capability
+	return capability, nil
+}
+
+func (r *serviceBayCapabilityRepositoryStub) DeleteServiceBayCapability(_ context.Context, dealershipID, serviceBayID, capabilityID uuid.UUID) error {
+	if r.serviceBay.DealershipID() != dealershipID || r.serviceBay.ID() != serviceBayID || r.capability.ID() != capabilityID {
+		return ErrServiceBayCapabilityNotFound
+	}
+	return r.deleteErr
+}
+
 func (r *serviceBayRepositoryStub) Create(context.Context, domain.Dealership) error { return nil }
 
 func (r *serviceBayRepositoryStub) IsActiveSchedulerAdminForDealership(context.Context, uuid.UUID, uuid.UUID) (bool, error) {
@@ -91,4 +150,39 @@ func TestServiceBayPaginationIsValidated(t *testing.T) {
 	service := NewService(&serviceBayRepositoryStub{admin: true}, userInfoStub{})
 	_, err := service.ListServiceBays(context.Background(), uuid.New(), uuid.New(), nil, 101, 0)
 	require.ErrorContains(t, err, "invalid_pagination")
+}
+
+func TestServiceBayCapabilityAuthorizationOwnershipDuplicateAndDeletion(t *testing.T) {
+	actor := uuid.New()
+	dealershipID := uuid.New()
+	serviceBay, err := domain.NewServiceBay(uuid.New(), dealershipID, "B-1", "Main bay", true, time.Now())
+	require.NoError(t, err)
+	capabilityID := uuid.New()
+
+	t.Run("only active dealership admins may assign", func(t *testing.T) {
+		service := NewService(&serviceBayCapabilityRepositoryStub{serviceBay: serviceBay}, userInfoStub{})
+		_, err := service.CreateServiceBayCapability(context.Background(), actor, dealershipID, serviceBay.ID(), CreateServiceBayCapabilityInput{BayCapabilityID: capabilityID})
+		require.ErrorContains(t, err, "service_bay_capability_access_forbidden")
+	})
+
+	t.Run("an association is scoped to its owning dealership and bay", func(t *testing.T) {
+		service := NewService(&serviceBayCapabilityRepositoryStub{admin: true, serviceBay: serviceBay}, userInfoStub{})
+		_, err := service.CreateServiceBayCapability(context.Background(), actor, uuid.New(), serviceBay.ID(), CreateServiceBayCapabilityInput{BayCapabilityID: capabilityID})
+		require.ErrorContains(t, err, "service_bay_not_found")
+	})
+
+	t.Run("duplicate assignments are conflicts", func(t *testing.T) {
+		service := NewService(&serviceBayCapabilityRepositoryStub{admin: true, serviceBay: serviceBay, createErr: ErrServiceBayCapabilityTaken}, userInfoStub{})
+		_, err := service.CreateServiceBayCapability(context.Background(), actor, dealershipID, serviceBay.ID(), CreateServiceBayCapabilityInput{BayCapabilityID: capabilityID})
+		require.ErrorContains(t, err, "service_bay_capability_taken")
+	})
+
+	t.Run("deletion removes only an association belonging to the selected bay", func(t *testing.T) {
+		association, err := domain.NewServiceBayCapability(uuid.New(), serviceBay.ID(), capabilityID, time.Now())
+		require.NoError(t, err)
+		service := NewService(&serviceBayCapabilityRepositoryStub{admin: true, serviceBay: serviceBay, capability: association}, userInfoStub{})
+		require.NoError(t, service.DeleteServiceBayCapability(context.Background(), actor, dealershipID, serviceBay.ID(), association.ID()))
+		err = service.DeleteServiceBayCapability(context.Background(), actor, dealershipID, uuid.New(), association.ID())
+		require.ErrorContains(t, err, "service_bay_capability_not_found")
+	})
 }
