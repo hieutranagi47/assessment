@@ -13,7 +13,7 @@ var (
 	ErrUserNameRequired  = errors.New("dealership user name is required")
 	ErrUserEmailRequired = errors.New("dealership user email is required")
 	ErrInvalidUserEmail  = errors.New("email must be a valid email address")
-	ErrInvalidUserRole   = errors.New("role must be admin, dealer, or staff")
+	ErrInvalidUserRole   = errors.New("role must be admin, dealer, staff, or technician")
 )
 
 // DealershipUser is a login-capable appointment scheduler membership.
@@ -46,7 +46,7 @@ func NewDealershipUser(id, authUserID, dealershipID uuid.UUID, name, email, role
 	if err != nil || address.Address != email {
 		return DealershipUser{}, ErrInvalidUserEmail
 	}
-	if role != "admin" && role != "dealer" && role != "staff" {
+	if role != "admin" && role != "dealer" && role != "staff" && role != "technician" {
 		return DealershipUser{}, ErrInvalidUserRole
 	}
 	now = now.UTC()

@@ -89,7 +89,7 @@ WHERE users.auth_user_id = $1
   AND users.deleted_at IS NULL
   AND user_roles.deleted_at IS NULL
   AND roles.deleted_at IS NULL
-  AND roles.code IN ('admin', 'dealer', 'staff')
+  AND roles.code IN ('admin', 'dealer', 'staff', 'technician')
 `
 
 func (q *Queries) GetActiveVehicleManagerDealership(ctx context.Context, authUserID pgtype.UUID) (pgtype.UUID, error) {

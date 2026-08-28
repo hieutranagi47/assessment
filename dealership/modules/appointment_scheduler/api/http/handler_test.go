@@ -391,6 +391,7 @@ func TestCreateDealershipUserHTTPErrorMapping(t *testing.T) {
 		wantSlug   string
 	}{
 		{name: "created", auth: dealershipUserAuthStub{actor: actor, target: target}, body: body, wantStatus: stdhttp.StatusCreated},
+		{name: "technician role is created", auth: dealershipUserAuthStub{actor: actor, target: target}, body: `{"dealershipId":"` + dealershipID.String() + `","email":"target@example.com","role":"technician"}`, wantStatus: stdhttp.StatusCreated},
 		{name: "invalid role", auth: dealershipUserAuthStub{actor: actor, target: target}, body: `{"dealershipId":"` + dealershipID.String() + `","email":"target@example.com","role":"owner"}`, wantStatus: stdhttp.StatusBadRequest, wantSlug: "invalid_dealership_user"},
 		{name: "forbidden", auth: dealershipUserAuthStub{actor: actor, target: target, role: "user"}, body: body, wantStatus: stdhttp.StatusForbidden, wantSlug: "dealership_user_create_forbidden"},
 		{name: "not found", auth: dealershipUserAuthStub{actor: actor, target: target}, repository: dealershipUserHTTPRepositoryStub{err: app.ErrDealershipNotFound}, body: body, wantStatus: stdhttp.StatusNotFound, wantSlug: "dealership_not_found"},

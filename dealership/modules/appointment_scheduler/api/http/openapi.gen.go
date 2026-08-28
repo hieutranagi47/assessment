@@ -45,9 +45,10 @@ func (e AppointmentStatus) Valid() bool {
 
 // Defines values for CreateDealershipUserRequestRole.
 const (
-	CreateDealershipUserRequestRoleAdmin  CreateDealershipUserRequestRole = "admin"
-	CreateDealershipUserRequestRoleDealer CreateDealershipUserRequestRole = "dealer"
-	CreateDealershipUserRequestRoleStaff  CreateDealershipUserRequestRole = "staff"
+	CreateDealershipUserRequestRoleAdmin      CreateDealershipUserRequestRole = "admin"
+	CreateDealershipUserRequestRoleDealer     CreateDealershipUserRequestRole = "dealer"
+	CreateDealershipUserRequestRoleStaff      CreateDealershipUserRequestRole = "staff"
+	CreateDealershipUserRequestRoleTechnician CreateDealershipUserRequestRole = "technician"
 )
 
 // Valid indicates whether the value is a known member of the CreateDealershipUserRequestRole enum.
@@ -58,6 +59,8 @@ func (e CreateDealershipUserRequestRole) Valid() bool {
 	case CreateDealershipUserRequestRoleDealer:
 		return true
 	case CreateDealershipUserRequestRoleStaff:
+		return true
+	case CreateDealershipUserRequestRoleTechnician:
 		return true
 	default:
 		return false
@@ -81,9 +84,10 @@ func (e DealershipAdminRole) Valid() bool {
 
 // Defines values for DealershipUserRole.
 const (
-	DealershipUserRoleAdmin  DealershipUserRole = "admin"
-	DealershipUserRoleDealer DealershipUserRole = "dealer"
-	DealershipUserRoleStaff  DealershipUserRole = "staff"
+	DealershipUserRoleAdmin      DealershipUserRole = "admin"
+	DealershipUserRoleDealer     DealershipUserRole = "dealer"
+	DealershipUserRoleStaff      DealershipUserRole = "staff"
+	DealershipUserRoleTechnician DealershipUserRole = "technician"
 )
 
 // Valid indicates whether the value is a known member of the DealershipUserRole enum.
@@ -94,6 +98,8 @@ func (e DealershipUserRole) Valid() bool {
 	case DealershipUserRoleDealer:
 		return true
 	case DealershipUserRoleStaff:
+		return true
+	case DealershipUserRoleTechnician:
 		return true
 	default:
 		return false
@@ -937,7 +943,7 @@ type UpdateVehicleJSONRequestBody = UpdateVehicleRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
-	// CreateDealershipUser Grant dealership staff access to an existing auth user
+	// CreateDealershipUser Grant dealership access to an existing auth user
 	// (POST /dealership-users)
 	CreateDealershipUser(ctx *echo.Context) error
 	// CreateDealershipAdmin Create a dealership scheduler admin
@@ -8601,7 +8607,7 @@ func (response UpdateVehicle500JSONResponse) VisitUpdateVehicleResponse(w http.R
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
-	// CreateDealershipUser Grant dealership staff access to an existing auth user
+	// CreateDealershipUser Grant dealership access to an existing auth user
 	// (POST /dealership-users)
 	CreateDealershipUser(ctx context.Context, request CreateDealershipUserRequestObject) (CreateDealershipUserResponseObject, error)
 	// CreateDealershipAdmin Create a dealership scheduler admin

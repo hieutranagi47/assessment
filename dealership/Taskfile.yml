@@ -8,3 +8,6 @@ tasks:
     cmds: [go generate ./..., gofmt -w .]
   test:
     cmds: [go test ./...]
+  seed:
+    desc: Load deterministic development fixtures into an already migrated database
+    cmds: [docker compose run --rm --no-deps dealership /app/dealership-seed]

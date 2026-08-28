@@ -290,6 +290,7 @@ func TestCreateDealershipUser(t *testing.T) {
 	}{
 		{name: "superadmin", actor: client.UserInfo{UserID: actor.String(), Status: "active", Role: "superadmin"}, target: client.UserInfo{UserID: target.String(), Email: "target@example.com", FullName: "Target User", Status: "active"}, repository: &dealershipUserRepositoryStub{}, input: input},
 		{name: "auth admin", actor: client.UserInfo{UserID: actor.String(), Status: "active", Role: "admin"}, target: client.UserInfo{UserID: target.String(), Email: "target@example.com", FullName: "Target User", Status: "active"}, repository: &dealershipUserRepositoryStub{}, input: input},
+		{name: "technician role", actor: client.UserInfo{UserID: actor.String(), Status: "active", Role: "admin"}, target: client.UserInfo{UserID: target.String(), Email: "target@example.com", FullName: "Target User", Status: "active"}, repository: &dealershipUserRepositoryStub{}, input: CreateDealershipUserInput{DealershipID: dealershipID, Email: "target@example.com", Role: "technician"}},
 		{name: "same dealership scheduler admin", actor: client.UserInfo{UserID: actor.String(), Status: "active", Role: "user"}, target: client.UserInfo{UserID: target.String(), Email: "target@example.com", FullName: "Target User", Status: "active"}, repository: &dealershipUserRepositoryStub{isActiveAdminForRequestedDealership: true}, input: input},
 		{name: "wrong dealership scheduler admin", actor: client.UserInfo{UserID: actor.String(), Status: "active", Role: "user"}, target: client.UserInfo{UserID: target.String(), Email: "target@example.com", FullName: "Target User", Status: "active"}, repository: &dealershipUserRepositoryStub{}, input: input, wantSlug: "dealership_user_create_forbidden"},
 		{name: "inactive caller", actor: client.UserInfo{UserID: actor.String(), Status: "disabled", Role: "admin"}, target: client.UserInfo{UserID: target.String(), Email: "target@example.com", FullName: "Target User", Status: "active"}, repository: &dealershipUserRepositoryStub{}, input: input, wantSlug: "dealership_user_create_forbidden"},
@@ -312,7 +313,7 @@ func TestCreateDealershipUser(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, "Target User", user.Name())
 			require.Equal(t, "target@example.com", user.Email())
-			require.Equal(t, "staff", user.Role())
+			require.Equal(t, test.input.Role, user.Role())
 		})
 	}
 }

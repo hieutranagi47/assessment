@@ -3,8 +3,10 @@ info:
   title: Dealership API
   version: "1.0.0"
   description: Dealership administration endpoints.
+servers:
+  - url: /appointment-scheduler/v1
 paths:
-  /v1/appointments:
+  /appointments:
     post:
       operationId: scheduleAppointment
       tags: [Appointments]
@@ -23,35 +25,35 @@ paths:
         "409": { $ref: "#/components/responses/Conflict" }
         "422": { $ref: "#/components/responses/UnprocessableEntity" }
         "500": { $ref: "#/components/responses/InternalServerError" }
-  /v1/appointments/{appointmentId}/check-in:
+  /appointments/{appointmentId}/check-in:
     parameters: [{ $ref: "#/components/parameters/AppointmentId" }]
     post:
       operationId: checkInAppointment
       security: [{ bearerAuth: [] }]
       requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/AppointmentNoteRequest" } } } }
       responses: { "204": { description: Appointment checked in }, "400": { $ref: "#/components/responses/BadRequest" }, "403": { $ref: "#/components/responses/Forbidden" }, "404": { $ref: "#/components/responses/NotFound" }, "409": { $ref: "#/components/responses/Conflict" }, "500": { $ref: "#/components/responses/InternalServerError" } }
-  /v1/appointments/{appointmentId}/start:
+  /appointments/{appointmentId}/start:
     parameters: [{ $ref: "#/components/parameters/AppointmentId" }]
     post:
       operationId: startAppointment
       security: [{ bearerAuth: [] }]
       requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/AppointmentNoteRequest" } } } }
       responses: { "204": { description: Appointment started }, "400": { $ref: "#/components/responses/BadRequest" }, "403": { $ref: "#/components/responses/Forbidden" }, "404": { $ref: "#/components/responses/NotFound" }, "409": { $ref: "#/components/responses/Conflict" }, "500": { $ref: "#/components/responses/InternalServerError" } }
-  /v1/appointments/{appointmentId}/complete:
+  /appointments/{appointmentId}/complete:
     parameters: [{ $ref: "#/components/parameters/AppointmentId" }]
     post:
       operationId: completeAppointment
       security: [{ bearerAuth: [] }]
       requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/CompleteAppointmentRequest" } } } }
       responses: { "204": { description: Appointment completed }, "400": { $ref: "#/components/responses/BadRequest" }, "403": { $ref: "#/components/responses/Forbidden" }, "404": { $ref: "#/components/responses/NotFound" }, "409": { $ref: "#/components/responses/Conflict" }, "500": { $ref: "#/components/responses/InternalServerError" } }
-  /v1/appointments/{appointmentId}/cancel:
+  /appointments/{appointmentId}/cancel:
     parameters: [{ $ref: "#/components/parameters/AppointmentId" }]
     post:
       operationId: cancelAppointment
       security: [{ bearerAuth: [] }]
       requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/CancelAppointmentRequest" } } } }
       responses: { "204": { description: Appointment cancelled }, "400": { $ref: "#/components/responses/BadRequest" }, "403": { $ref: "#/components/responses/Forbidden" }, "404": { $ref: "#/components/responses/NotFound" }, "409": { $ref: "#/components/responses/Conflict" }, "500": { $ref: "#/components/responses/InternalServerError" } }
-  /v1/dealerships/{dealershipId}/operation-times:
+  /dealerships/{dealershipId}/operation-times:
     parameters:
       - $ref: "#/components/parameters/DealershipId"
     get:
@@ -82,7 +84,7 @@ paths:
         "409": { $ref: "#/components/responses/Conflict" }
         "422": { $ref: "#/components/responses/UnprocessableEntity" }
         "500": { $ref: "#/components/responses/InternalServerError" }
-  /v1/dealerships/{dealershipId}/operation-times/{operationTimeId}:
+  /dealerships/{dealershipId}/operation-times/{operationTimeId}:
     parameters:
       - $ref: "#/components/parameters/DealershipId"
       - $ref: "#/components/parameters/OperationTimeId"
@@ -114,7 +116,7 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
         "500": { $ref: "#/components/responses/InternalServerError" }
-  /v1/dealerships/{dealershipId}/service-bays:
+  /dealerships/{dealershipId}/service-bays:
     parameters:
       - $ref: "#/components/parameters/DealershipId"
     post:
@@ -153,7 +155,7 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "500": { $ref: "#/components/responses/InternalServerError" }
-  /v1/dealerships/{dealershipId}/service-bays/{serviceBayId}:
+  /dealerships/{dealershipId}/service-bays/{serviceBayId}:
     parameters:
       - $ref: "#/components/parameters/DealershipId"
       - $ref: "#/components/parameters/ServiceBayId"
@@ -195,7 +197,7 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "409": { $ref: "#/components/responses/Conflict" }
         "500": { $ref: "#/components/responses/InternalServerError" }
-  /v1/dealerships/{dealershipId}/service-bays/{serviceBayId}/capabilities:
+  /dealerships/{dealershipId}/service-bays/{serviceBayId}/capabilities:
     parameters:
       - $ref: "#/components/parameters/DealershipId"
       - $ref: "#/components/parameters/ServiceBayId"
@@ -226,7 +228,7 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
         "500": { $ref: "#/components/responses/InternalServerError" }
-  /v1/dealerships/{dealershipId}/service-bays/{serviceBayId}/capabilities/{serviceBayCapabilityId}:
+  /dealerships/{dealershipId}/service-bays/{serviceBayId}/capabilities/{serviceBayCapabilityId}:
     parameters:
       - $ref: "#/components/parameters/DealershipId"
       - $ref: "#/components/parameters/ServiceBayId"
@@ -258,7 +260,7 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
         "500": { $ref: "#/components/responses/InternalServerError" }
-  /v1/dealerships/{dealershipId}/service-types:
+  /dealerships/{dealershipId}/service-types:
     parameters:
       - $ref: "#/components/parameters/DealershipId"
     post:
@@ -286,7 +288,7 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "500": { $ref: "#/components/responses/InternalServerError" }
-  /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}:
+  /dealerships/{dealershipId}/service-types/{serviceTypeId}:
     parameters:
       - $ref: "#/components/parameters/DealershipId"
       - $ref: "#/components/parameters/ServiceTypeId"
@@ -328,7 +330,7 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "409": { $ref: "#/components/responses/Conflict" }
         "500": { $ref: "#/components/responses/InternalServerError" }
-  /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-skills:
+  /dealerships/{dealershipId}/service-types/{serviceTypeId}/required-skills:
     parameters:
       - $ref: "#/components/parameters/DealershipId"
       - $ref: "#/components/parameters/ServiceTypeId"
@@ -359,7 +361,7 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
         "500": { $ref: "#/components/responses/InternalServerError" }
-  /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-skills/{requiredSkillId}:
+  /dealerships/{dealershipId}/service-types/{serviceTypeId}/required-skills/{requiredSkillId}:
     parameters:
       - $ref: "#/components/parameters/DealershipId"
       - $ref: "#/components/parameters/ServiceTypeId"
@@ -391,7 +393,7 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
         "500": { $ref: "#/components/responses/InternalServerError" }
-  /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-bay-capabilities:
+  /dealerships/{dealershipId}/service-types/{serviceTypeId}/required-bay-capabilities:
     parameters:
       - $ref: "#/components/parameters/DealershipId"
       - $ref: "#/components/parameters/ServiceTypeId"
@@ -422,7 +424,7 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
         "500": { $ref: "#/components/responses/InternalServerError" }
-  /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-bay-capabilities/{requiredCapabilityId}:
+  /dealerships/{dealershipId}/service-types/{serviceTypeId}/required-bay-capabilities/{requiredCapabilityId}:
     parameters:
       - $ref: "#/components/parameters/DealershipId"
       - $ref: "#/components/parameters/ServiceTypeId"
@@ -458,7 +460,7 @@ paths:
     post:
       operationId: createDealershipUser
       tags: [Dealership users]
-      summary: Grant dealership staff access to an existing auth user
+      summary: Grant dealership access to an existing auth user
       security: [{ bearerAuth: [] }]
       requestBody:
         required: true
@@ -528,7 +530,7 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "409": { $ref: "#/components/responses/Conflict" }
         "500": { $ref: "#/components/responses/InternalServerError" }
-  /v1/customers:
+  /customers:
     post:
       operationId: createCustomer
       tags: [Customers]
@@ -546,7 +548,7 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "409": { $ref: "#/components/responses/Conflict" }
         "500": { $ref: "#/components/responses/InternalServerError" }
-  /v1/customers/{customerId}:
+  /customers/{customerId}:
     parameters:
       - $ref: "#/components/parameters/CustomerId"
     get:
@@ -577,7 +579,7 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "409": { $ref: "#/components/responses/Conflict" }
         "500": { $ref: "#/components/responses/InternalServerError" }
-  /v1/customers:search:
+  /customers:search:
     get:
       operationId: searchCustomers
       tags: [Customers]
@@ -597,7 +599,7 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "500": { $ref: "#/components/responses/InternalServerError" }
-  /v1/customers/{customerId}/vehicles:
+  /customers/{customerId}/vehicles:
     parameters:
       - $ref: "#/components/parameters/CustomerId"
     post:
@@ -628,7 +630,7 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
         "500": { $ref: "#/components/responses/InternalServerError" }
-  /v1/technicians:
+  /technicians:
     post:
       operationId: createTechnician
       tags: [Technicians]
@@ -666,7 +668,7 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "500": { $ref: "#/components/responses/InternalServerError" }
-  /v1/technicians/{technicianId}:
+  /technicians/{technicianId}:
     parameters:
       - $ref: "#/components/parameters/TechnicianId"
     get:
@@ -708,7 +710,7 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "409": { $ref: "#/components/responses/Conflict" }
         "500": { $ref: "#/components/responses/InternalServerError" }
-  /v1/technicians/{technicianId}/skills:
+  /technicians/{technicianId}/skills:
     parameters:
       - $ref: "#/components/parameters/TechnicianId"
     get:
@@ -739,7 +741,7 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "409": { $ref: "#/components/responses/Conflict" }
         "500": { $ref: "#/components/responses/InternalServerError" }
-  /v1/technicians/{technicianId}/skills/{technicianSkillId}:
+  /technicians/{technicianId}/skills/{technicianSkillId}:
     parameters:
       - $ref: "#/components/parameters/TechnicianId"
       - $ref: "#/components/parameters/TechnicianSkillId"
@@ -770,7 +772,7 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
         "500": { $ref: "#/components/responses/InternalServerError" }
-  /v1/technicians/{technicianId}/shifts:
+  /technicians/{technicianId}/shifts:
     parameters:
       - $ref: "#/components/parameters/TechnicianId"
     get:
@@ -800,7 +802,7 @@ paths:
         "409": { $ref: "#/components/responses/Conflict" }
         "422": { $ref: "#/components/responses/UnprocessableEntity" }
         "500": { $ref: "#/components/responses/InternalServerError" }
-  /v1/technicians/{technicianId}/shifts/{shiftId}:
+  /technicians/{technicianId}/shifts/{shiftId}:
     parameters:
       - $ref: "#/components/parameters/TechnicianId"
       - $ref: "#/components/parameters/ShiftId"
@@ -832,7 +834,7 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "409": { $ref: "#/components/responses/Conflict" }
         "500": { $ref: "#/components/responses/InternalServerError" }
-  /v1/technicians/{technicianId}/time-off:
+  /technicians/{technicianId}/time-off:
     parameters:
       - $ref: "#/components/parameters/TechnicianId"
     get:
@@ -866,7 +868,7 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "409": { $ref: "#/components/responses/Conflict" }
         "500": { $ref: "#/components/responses/InternalServerError" }
-  /v1/technicians/{technicianId}/time-off/{timeOffId}:
+  /technicians/{technicianId}/time-off/{timeOffId}:
     parameters:
       - $ref: "#/components/parameters/TechnicianId"
       - { name: timeOffId, in: path, required: true, schema: { type: string, format: uuid } }
@@ -905,7 +907,7 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
         "500": { $ref: "#/components/responses/InternalServerError" }
-  /v1/vehicles/{vehicleId}:
+  /vehicles/{vehicleId}:
     parameters:
       - $ref: "#/components/parameters/VehicleId"
     get:
@@ -1331,7 +1333,7 @@ components:
       properties:
         dealershipId: { type: string, format: uuid }
         email: { type: string, format: email, example: user@example.com }
-        role: { type: string, enum: [admin, dealer, staff] }
+        role: { type: string, enum: [admin, dealer, staff, technician] }
     DealershipUser:
       type: object
       required: [userId, authUserId, dealershipId, name, email, isActive, role, createdAt, updatedAt]
@@ -1342,7 +1344,7 @@ components:
         name: { type: string }
         email: { type: string, format: email }
         isActive: { type: boolean }
-        role: { type: string, enum: [admin, dealer, staff] }
+        role: { type: string, enum: [admin, dealer, staff, technician] }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
     CreateDealershipAdminRequest:

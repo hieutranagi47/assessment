@@ -282,7 +282,7 @@ SELECT EXISTS (
     AND users.deleted_at IS NULL
     AND user_roles.deleted_at IS NULL
     AND roles.deleted_at IS NULL
-    AND roles.code IN ('admin', 'dealer', 'staff')
+    AND roles.code IN ('admin', 'dealer', 'staff', 'technician')
 )
 `
 

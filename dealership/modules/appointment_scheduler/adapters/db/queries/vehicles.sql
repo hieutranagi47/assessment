@@ -33,7 +33,7 @@ WHERE users.auth_user_id = sqlc.arg('auth_user_id')
   AND users.deleted_at IS NULL
   AND user_roles.deleted_at IS NULL
   AND roles.deleted_at IS NULL
-  AND roles.code IN ('admin', 'dealer', 'staff');
+  AND roles.code IN ('admin', 'dealer', 'staff', 'technician');
 
 -- name: GetCustomerDealership :one
 SELECT dealership_id

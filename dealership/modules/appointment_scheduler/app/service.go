@@ -487,8 +487,8 @@ func (s *Service) CreateDealershipUser(ctx context.Context, actorID uuid.UUID, i
 	if !validEmail(input.Email) {
 		return domain.DealershipUser{}, invalidDealershipUserInput("email", "email must be a valid email address")
 	}
-	if input.Role != "admin" && input.Role != "dealer" && input.Role != "staff" {
-		return domain.DealershipUser{}, invalidDealershipUserInput("role", "role must be admin, dealer, or staff")
+	if input.Role != "admin" && input.Role != "dealer" && input.Role != "staff" && input.Role != "technician" {
+		return domain.DealershipUser{}, invalidDealershipUserInput("role", "role must be admin, dealer, staff, or technician")
 	}
 	if err := s.authorizeCreateDealershipUser(ctx, actorID, input.DealershipID); err != nil {
 		return domain.DealershipUser{}, err

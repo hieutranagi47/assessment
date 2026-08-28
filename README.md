@@ -39,6 +39,27 @@ docker compose ps
 docker compose logs -f dealership
 ```
 
+## Load deterministic development fixtures
+
+After PostgreSQL is healthy and the service has applied its migrations, load
+the fixtures from the Go module directory. The command runs the seed executable
+in the Compose service environment, so it uses the same PostgreSQL and email
+configuration without printing either:
+
+```sh
+cd dealership
+task seed
+```
+
+The command uses the same environment configuration as the service and is
+manual-only; it never runs at startup, during migrations, or in tests. It is
+transactional and can be run repeatedly without changing fixture identities or
+duplicating rows. It creates 80 auth accounts, from `abc1@email.com` through
+`abc80@email.com`; their default development password is `Abc@6789`. Set
+`SEED_PASSWORD` to use a different password before the
+first seed run. The scheduler login-capable employees use auth accounts
+`abc6@email.com` through `abc30@email.com`.
+
 `/health` returns `204 No Content`. Interactive auth API documentation is
 available at [http://localhost:9999/auth/docs/](http://localhost:9999/auth/docs/).
 The HTTPS listener uses a development self-signed certificate, so use `-k`
