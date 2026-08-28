@@ -168,6 +168,15 @@ type CreateServiceTypeRequiredSkillRequest struct {
 	SkillId openapi_types.UUID `json:"skillId"`
 }
 
+// CreateVehicleRequest defines model for CreateVehicleRequest.
+type CreateVehicleRequest struct {
+	Make              string  `json:"make"`
+	Model             string  `json:"model"`
+	ModelYear         *int    `json:"modelYear,omitempty"`
+	RegistrationPlate *string `json:"registrationPlate,omitempty"`
+	Vin               *string `json:"vin,omitempty"`
+}
+
 // Customer defines model for Customer.
 type Customer struct {
 	CreatedAt  time.Time            `json:"createdAt"`
@@ -364,6 +373,33 @@ type UpdateServiceTypeRequiredSkillRequest struct {
 	SkillId openapi_types.UUID `json:"skillId"`
 }
 
+// UpdateVehicleRequest defines model for UpdateVehicleRequest.
+type UpdateVehicleRequest struct {
+	Make              *string                 `json:"make,omitempty"`
+	Model             *string                 `json:"model,omitempty"`
+	ModelYear         *OptionalNullableInt    `json:"modelYear,omitempty"`
+	RegistrationPlate *OptionalNullableString `json:"registrationPlate,omitempty"`
+	Vin               *OptionalNullableString `json:"vin,omitempty"`
+}
+
+// Vehicle defines model for Vehicle.
+type Vehicle struct {
+	CreatedAt         time.Time          `json:"createdAt"`
+	CustomerId        openapi_types.UUID `json:"customerId"`
+	Make              string             `json:"make"`
+	Model             string             `json:"model"`
+	ModelYear         *int               `json:"modelYear,omitempty"`
+	RegistrationPlate *string            `json:"registrationPlate,omitempty"`
+	UpdatedAt         time.Time          `json:"updatedAt"`
+	VehicleId         openapi_types.UUID `json:"vehicleId"`
+	Vin               *string            `json:"vin,omitempty"`
+}
+
+// VehicleListResponse defines model for VehicleListResponse.
+type VehicleListResponse struct {
+	Items []Vehicle `json:"items"`
+}
+
 // CustomerId defines model for CustomerId.
 type CustomerId = openapi_types.UUID
 
@@ -387,6 +423,9 @@ type ServiceBayId = openapi_types.UUID
 
 // ServiceTypeId defines model for ServiceTypeId.
 type ServiceTypeId = openapi_types.UUID
+
+// VehicleId defines model for VehicleId.
+type VehicleId = openapi_types.UUID
 
 // AuthUserFound defines model for AuthUserFound.
 type AuthUserFound = AuthUser
@@ -493,6 +532,18 @@ type Unauthorized = ErrorResponse
 // UnprocessableEntity defines model for UnprocessableEntity.
 type UnprocessableEntity = ErrorResponse
 
+// VehicleCreated defines model for VehicleCreated.
+type VehicleCreated = Vehicle
+
+// VehicleFound defines model for VehicleFound.
+type VehicleFound = Vehicle
+
+// VehicleUpdated defines model for VehicleUpdated.
+type VehicleUpdated = Vehicle
+
+// VehiclesListed defines model for VehiclesListed.
+type VehiclesListed = VehicleListResponse
+
 // SearchAuthUserByEmailParams defines parameters for SearchAuthUserByEmail.
 type SearchAuthUserByEmailParams struct {
 	Email openapi_types.Email `form:"email" json:"email"`
@@ -525,6 +576,9 @@ type CreateCustomerJSONRequestBody = CreateCustomerRequest
 
 // UpdateCustomerJSONRequestBody defines body for UpdateCustomer for application/json ContentType.
 type UpdateCustomerJSONRequestBody = UpdateCustomerRequest
+
+// CreateVehicleJSONRequestBody defines body for CreateVehicle for application/json ContentType.
+type CreateVehicleJSONRequestBody = CreateVehicleRequest
 
 // CreateDealershipOperationTimeJSONRequestBody defines body for CreateDealershipOperationTime for application/json ContentType.
 type CreateDealershipOperationTimeJSONRequestBody = CreateDealershipOperationTimeRequest
@@ -562,6 +616,9 @@ type CreateServiceTypeRequiredSkillJSONRequestBody = CreateServiceTypeRequiredSk
 // UpdateServiceTypeRequiredSkillJSONRequestBody defines body for UpdateServiceTypeRequiredSkill for application/json ContentType.
 type UpdateServiceTypeRequiredSkillJSONRequestBody = UpdateServiceTypeRequiredSkillRequest
 
+// UpdateVehicleJSONRequestBody defines body for UpdateVehicle for application/json ContentType.
+type UpdateVehicleJSONRequestBody = UpdateVehicleRequest
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// CreateDealershipUser Grant dealership staff access to an existing auth user
@@ -585,6 +642,12 @@ type ServerInterface interface {
 
 	// (PATCH /v1/customers/{customerId})
 	UpdateCustomer(ctx *echo.Context, customerId CustomerId) error
+
+	// (GET /v1/customers/{customerId}/vehicles)
+	ListCustomerVehicles(ctx *echo.Context, customerId CustomerId) error
+	// CreateVehicle Create a vehicle for an existing customer
+	// (POST /v1/customers/{customerId}/vehicles)
+	CreateVehicle(ctx *echo.Context, customerId CustomerId) error
 	// SearchCustomers Find global customer records by exact normalized phone or email
 	// (GET /v1/customers:search)
 	SearchCustomers(ctx *echo.Context, params SearchCustomersParams) error
@@ -666,6 +729,15 @@ type ServerInterface interface {
 
 	// (PATCH /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-skills/{requiredSkillId})
 	UpdateServiceTypeRequiredSkill(ctx *echo.Context, dealershipId DealershipId, serviceTypeId ServiceTypeId, requiredSkillId RequiredSkillId) error
+
+	// (DELETE /v1/vehicles/{vehicleId})
+	DeleteVehicle(ctx *echo.Context, vehicleId VehicleId) error
+
+	// (GET /v1/vehicles/{vehicleId})
+	GetVehicle(ctx *echo.Context, vehicleId VehicleId) error
+
+	// (PATCH /v1/vehicles/{vehicleId})
+	UpdateVehicle(ctx *echo.Context, vehicleId VehicleId) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
@@ -756,6 +828,38 @@ func (w *ServerInterfaceWrapper) UpdateCustomer(ctx *echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.UpdateCustomer(ctx, customerId)
+	return err
+}
+
+// ListCustomerVehicles converts echo context to params.
+func (w *ServerInterfaceWrapper) ListCustomerVehicles(ctx *echo.Context) error {
+	var err error
+	// ------------- Path parameter "customerId" -------------
+	var customerId CustomerId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "customerId", ctx.Param("customerId"), &customerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter customerId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListCustomerVehicles(ctx, customerId)
+	return err
+}
+
+// CreateVehicle converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateVehicle(ctx *echo.Context) error {
+	var err error
+	// ------------- Path parameter "customerId" -------------
+	var customerId CustomerId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "customerId", ctx.Param("customerId"), &customerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter customerId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateVehicle(ctx, customerId)
 	return err
 }
 
@@ -1431,6 +1535,54 @@ func (w *ServerInterfaceWrapper) UpdateServiceTypeRequiredSkill(ctx *echo.Contex
 	return err
 }
 
+// DeleteVehicle converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteVehicle(ctx *echo.Context) error {
+	var err error
+	// ------------- Path parameter "vehicleId" -------------
+	var vehicleId VehicleId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "vehicleId", ctx.Param("vehicleId"), &vehicleId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter vehicleId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteVehicle(ctx, vehicleId)
+	return err
+}
+
+// GetVehicle converts echo context to params.
+func (w *ServerInterfaceWrapper) GetVehicle(ctx *echo.Context) error {
+	var err error
+	// ------------- Path parameter "vehicleId" -------------
+	var vehicleId VehicleId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "vehicleId", ctx.Param("vehicleId"), &vehicleId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter vehicleId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetVehicle(ctx, vehicleId)
+	return err
+}
+
+// UpdateVehicle converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateVehicle(ctx *echo.Context) error {
+	var err error
+	// ------------- Path parameter "vehicleId" -------------
+	var vehicleId VehicleId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "vehicleId", ctx.Param("vehicleId"), &vehicleId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter vehicleId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateVehicle(ctx, vehicleId)
+	return err
+}
+
 // This is a simple interface which specifies echo.Route addition functions which
 // are present on both echo.Echo and echo.Group, since we want to allow using
 // either of them for path registration
@@ -1512,6 +1664,11 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.GET(options.BaseURL+"/v1/customers/:customerId", wrapper.GetCustomer, options.OperationMiddlewares["getCustomer"]...)
 	router.PATCH(options.BaseURL+"/v1/customers/:customerId", wrapper.UpdateCustomer, options.OperationMiddlewares["updateCustomer"]...)
 	router.GET(options.BaseURL+"/v1/customers\\:search", wrapper.SearchCustomers, options.OperationMiddlewares["searchCustomers"]...)
+	router.GET(options.BaseURL+"/v1/customers/:customerId/vehicles", wrapper.ListCustomerVehicles, options.OperationMiddlewares["listCustomerVehicles"]...)
+	router.POST(options.BaseURL+"/v1/customers/:customerId/vehicles", wrapper.CreateVehicle, options.OperationMiddlewares["createVehicle"]...)
+	router.DELETE(options.BaseURL+"/v1/vehicles/:vehicleId", wrapper.DeleteVehicle, options.OperationMiddlewares["deleteVehicle"]...)
+	router.GET(options.BaseURL+"/v1/vehicles/:vehicleId", wrapper.GetVehicle, options.OperationMiddlewares["getVehicle"]...)
+	router.PATCH(options.BaseURL+"/v1/vehicles/:vehicleId", wrapper.UpdateVehicle, options.OperationMiddlewares["updateVehicle"]...)
 
 }
 
@@ -1591,6 +1748,14 @@ type ServiceTypesListedJSONResponse []ServiceType
 type UnauthorizedJSONResponse ErrorResponse
 
 type UnprocessableEntityJSONResponse ErrorResponse
+
+type VehicleCreatedJSONResponse Vehicle
+
+type VehicleFoundJSONResponse Vehicle
+
+type VehicleUpdatedJSONResponse Vehicle
+
+type VehiclesListedJSONResponse VehicleListResponse
 
 type CreateDealershipUserRequestObject struct {
 	Body *CreateDealershipUserJSONRequestBody
@@ -2287,6 +2452,195 @@ type UpdateCustomer500JSONResponse struct {
 }
 
 func (response UpdateCustomer500JSONResponse) VisitUpdateCustomerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCustomerVehiclesRequestObject struct {
+	CustomerId CustomerId `json:"customerId"`
+}
+
+type ListCustomerVehiclesResponseObject interface {
+	VisitListCustomerVehiclesResponse(w http.ResponseWriter) error
+}
+
+type ListCustomerVehicles200JSONResponse struct{ VehiclesListedJSONResponse }
+
+func (response ListCustomerVehicles200JSONResponse) VisitListCustomerVehiclesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCustomerVehicles401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListCustomerVehicles401JSONResponse) VisitListCustomerVehiclesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCustomerVehicles403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListCustomerVehicles403JSONResponse) VisitListCustomerVehiclesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCustomerVehicles404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ListCustomerVehicles404JSONResponse) VisitListCustomerVehiclesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCustomerVehicles500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ListCustomerVehicles500JSONResponse) VisitListCustomerVehiclesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateVehicleRequestObject struct {
+	CustomerId CustomerId `json:"customerId"`
+	Body       *CreateVehicleJSONRequestBody
+}
+
+type CreateVehicleResponseObject interface {
+	VisitCreateVehicleResponse(w http.ResponseWriter) error
+}
+
+type CreateVehicle201JSONResponse struct{ VehicleCreatedJSONResponse }
+
+func (response CreateVehicle201JSONResponse) VisitCreateVehicleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateVehicle400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreateVehicle400JSONResponse) VisitCreateVehicleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateVehicle401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response CreateVehicle401JSONResponse) VisitCreateVehicleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateVehicle403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response CreateVehicle403JSONResponse) VisitCreateVehicleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateVehicle404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response CreateVehicle404JSONResponse) VisitCreateVehicleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateVehicle409JSONResponse struct{ ConflictJSONResponse }
+
+func (response CreateVehicle409JSONResponse) VisitCreateVehicleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateVehicle500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response CreateVehicle500JSONResponse) VisitCreateVehicleResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -4839,6 +5193,283 @@ func (response UpdateServiceTypeRequiredSkill500JSONResponse) VisitUpdateService
 	return err
 }
 
+type DeleteVehicleRequestObject struct {
+	VehicleId VehicleId `json:"vehicleId"`
+}
+
+type DeleteVehicleResponseObject interface {
+	VisitDeleteVehicleResponse(w http.ResponseWriter) error
+}
+
+type DeleteVehicle204Response struct {
+}
+
+func (response DeleteVehicle204Response) VisitDeleteVehicleResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteVehicle401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response DeleteVehicle401JSONResponse) VisitDeleteVehicleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteVehicle403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response DeleteVehicle403JSONResponse) VisitDeleteVehicleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteVehicle404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response DeleteVehicle404JSONResponse) VisitDeleteVehicleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteVehicle409JSONResponse struct{ ConflictJSONResponse }
+
+func (response DeleteVehicle409JSONResponse) VisitDeleteVehicleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteVehicle500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response DeleteVehicle500JSONResponse) VisitDeleteVehicleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetVehicleRequestObject struct {
+	VehicleId VehicleId `json:"vehicleId"`
+}
+
+type GetVehicleResponseObject interface {
+	VisitGetVehicleResponse(w http.ResponseWriter) error
+}
+
+type GetVehicle200JSONResponse struct{ VehicleFoundJSONResponse }
+
+func (response GetVehicle200JSONResponse) VisitGetVehicleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetVehicle401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response GetVehicle401JSONResponse) VisitGetVehicleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetVehicle403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response GetVehicle403JSONResponse) VisitGetVehicleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetVehicle404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetVehicle404JSONResponse) VisitGetVehicleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetVehicle500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response GetVehicle500JSONResponse) VisitGetVehicleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateVehicleRequestObject struct {
+	VehicleId VehicleId `json:"vehicleId"`
+	Body      *UpdateVehicleJSONRequestBody
+}
+
+type UpdateVehicleResponseObject interface {
+	VisitUpdateVehicleResponse(w http.ResponseWriter) error
+}
+
+type UpdateVehicle200JSONResponse struct{ VehicleUpdatedJSONResponse }
+
+func (response UpdateVehicle200JSONResponse) VisitUpdateVehicleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateVehicle400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response UpdateVehicle400JSONResponse) VisitUpdateVehicleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateVehicle401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response UpdateVehicle401JSONResponse) VisitUpdateVehicleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateVehicle403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response UpdateVehicle403JSONResponse) VisitUpdateVehicleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateVehicle404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response UpdateVehicle404JSONResponse) VisitUpdateVehicleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateVehicle409JSONResponse struct{ ConflictJSONResponse }
+
+func (response UpdateVehicle409JSONResponse) VisitUpdateVehicleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateVehicle500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response UpdateVehicle500JSONResponse) VisitUpdateVehicleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// CreateDealershipUser Grant dealership staff access to an existing auth user
@@ -4862,6 +5493,12 @@ type StrictServerInterface interface {
 
 	// (PATCH /v1/customers/{customerId})
 	UpdateCustomer(ctx context.Context, request UpdateCustomerRequestObject) (UpdateCustomerResponseObject, error)
+
+	// (GET /v1/customers/{customerId}/vehicles)
+	ListCustomerVehicles(ctx context.Context, request ListCustomerVehiclesRequestObject) (ListCustomerVehiclesResponseObject, error)
+	// CreateVehicle Create a vehicle for an existing customer
+	// (POST /v1/customers/{customerId}/vehicles)
+	CreateVehicle(ctx context.Context, request CreateVehicleRequestObject) (CreateVehicleResponseObject, error)
 	// SearchCustomers Find global customer records by exact normalized phone or email
 	// (GET /v1/customers:search)
 	SearchCustomers(ctx context.Context, request SearchCustomersRequestObject) (SearchCustomersResponseObject, error)
@@ -4943,6 +5580,15 @@ type StrictServerInterface interface {
 
 	// (PATCH /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-skills/{requiredSkillId})
 	UpdateServiceTypeRequiredSkill(ctx context.Context, request UpdateServiceTypeRequiredSkillRequestObject) (UpdateServiceTypeRequiredSkillResponseObject, error)
+
+	// (DELETE /v1/vehicles/{vehicleId})
+	DeleteVehicle(ctx context.Context, request DeleteVehicleRequestObject) (DeleteVehicleResponseObject, error)
+
+	// (GET /v1/vehicles/{vehicleId})
+	GetVehicle(ctx context.Context, request GetVehicleRequestObject) (GetVehicleResponseObject, error)
+
+	// (PATCH /v1/vehicles/{vehicleId})
+	UpdateVehicle(ctx context.Context, request UpdateVehicleRequestObject) (UpdateVehicleResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx *echo.Context, request any) (any, error)
@@ -5198,6 +5844,72 @@ func (sh *strictHandler) UpdateCustomer(ctx *echo.Context, customerId CustomerId
 		return err
 	} else if validResponse, ok := response.(UpdateCustomerResponseObject); ok {
 		return validResponse.VisitUpdateCustomerResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListCustomerVehicles operation middleware
+func (sh *strictHandler) ListCustomerVehicles(ctx *echo.Context, customerId CustomerId) error {
+	var request ListCustomerVehiclesRequestObject
+
+	request.CustomerId = customerId
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListCustomerVehicles(ctx.Request().Context(), request.(ListCustomerVehiclesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListCustomerVehicles")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListCustomerVehiclesResponseObject); ok {
+		return validResponse.VisitListCustomerVehiclesResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateVehicle operation middleware
+func (sh *strictHandler) CreateVehicle(ctx *echo.Context, customerId CustomerId) error {
+	var request CreateVehicleRequestObject
+
+	request.CustomerId = customerId
+
+	var body CreateVehicleJSONRequestBody
+	var err error
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+		// Bind only the request body, so that path and query parameters
+		// are not also bound into the body struct.
+		err = echo.BindBody(ctx, &body)
+	} else {
+		// A custom binder is installed on the Echo instance; defer to it
+		// entirely, since echo.Binder does not expose body-only binding.
+		err = ctx.Bind(&body)
+	}
+	if err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateVehicle(ctx.Request().Context(), request.(CreateVehicleRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateVehicle")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateVehicleResponseObject); ok {
+		return validResponse.VisitCreateVehicleResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}
@@ -6092,6 +6804,97 @@ func (sh *strictHandler) UpdateServiceTypeRequiredSkill(ctx *echo.Context, deale
 		return err
 	} else if validResponse, ok := response.(UpdateServiceTypeRequiredSkillResponseObject); ok {
 		return validResponse.VisitUpdateServiceTypeRequiredSkillResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DeleteVehicle operation middleware
+func (sh *strictHandler) DeleteVehicle(ctx *echo.Context, vehicleId VehicleId) error {
+	var request DeleteVehicleRequestObject
+
+	request.VehicleId = vehicleId
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteVehicle(ctx.Request().Context(), request.(DeleteVehicleRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteVehicle")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DeleteVehicleResponseObject); ok {
+		return validResponse.VisitDeleteVehicleResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetVehicle operation middleware
+func (sh *strictHandler) GetVehicle(ctx *echo.Context, vehicleId VehicleId) error {
+	var request GetVehicleRequestObject
+
+	request.VehicleId = vehicleId
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetVehicle(ctx.Request().Context(), request.(GetVehicleRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetVehicle")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetVehicleResponseObject); ok {
+		return validResponse.VisitGetVehicleResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateVehicle operation middleware
+func (sh *strictHandler) UpdateVehicle(ctx *echo.Context, vehicleId VehicleId) error {
+	var request UpdateVehicleRequestObject
+
+	request.VehicleId = vehicleId
+
+	var body UpdateVehicleJSONRequestBody
+	var err error
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+		// Bind only the request body, so that path and query parameters
+		// are not also bound into the body struct.
+		err = echo.BindBody(ctx, &body)
+	} else {
+		// A custom binder is installed on the Echo instance; defer to it
+		// entirely, since echo.Binder does not expose body-only binding.
+		err = ctx.Bind(&body)
+	}
+	if err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateVehicle(ctx.Request().Context(), request.(UpdateVehicleRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateVehicle")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateVehicleResponseObject); ok {
+		return validResponse.VisitUpdateVehicleResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

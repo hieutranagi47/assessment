@@ -97,6 +97,86 @@ type operationTimeHTTPRepositoryStub struct {
 	createErr error
 }
 
+type vehicleHTTPRepositoryStub struct {
+	repositoryStub
+	dealershipID uuid.UUID
+	customerID   uuid.UUID
+	vehicle      domain.Vehicle
+}
+
+func (r vehicleHTTPRepositoryStub) GetActiveVehicleManagerDealership(context.Context, uuid.UUID) (uuid.UUID, error) {
+	if r.dealershipID == uuid.Nil {
+		return uuid.Nil, app.ErrVehicleCustomerForbidden
+	}
+	return r.dealershipID, nil
+}
+
+func (r vehicleHTTPRepositoryStub) GetCustomer(_ context.Context, customerID uuid.UUID) (domain.Customer, error) {
+	if customerID != r.customerID {
+		return domain.Customer{}, app.ErrCustomerNotFound
+	}
+	return domain.RestoreCustomer(customerID, "Jane Doe", "+84901234567", nil, time.Now(), time.Now()), nil
+}
+
+func (r *vehicleHTTPRepositoryStub) CreateVehicle(_ context.Context, _ uuid.UUID, vehicle domain.Vehicle) error {
+	r.vehicle = vehicle
+	return nil
+}
+
+func (r vehicleHTTPRepositoryStub) GetVehicle(context.Context, uuid.UUID) (domain.Vehicle, error) {
+	if r.vehicle.ID() == uuid.Nil {
+		return domain.Vehicle{}, app.ErrVehicleNotFound
+	}
+	return r.vehicle, nil
+}
+
+func (r vehicleHTTPRepositoryStub) ListCustomerVehicles(context.Context, uuid.UUID) ([]domain.Vehicle, error) {
+	return nil, nil
+}
+
+func (r vehicleHTTPRepositoryStub) CustomerBelongsToDealership(_ context.Context, customerID, dealershipID uuid.UUID) (bool, error) {
+	return customerID == r.customerID && dealershipID == r.dealershipID, nil
+}
+
+func (r *vehicleHTTPRepositoryStub) UpdateVehicle(context.Context, domain.Vehicle) error { return nil }
+func (r *vehicleHTTPRepositoryStub) DeleteVehicle(context.Context, uuid.UUID, time.Time) error {
+	return nil
+}
+
+func TestVehicleCreateHTTPAuthorizationAndNormalization(t *testing.T) {
+	actorID := uuid.New()
+	customerID := uuid.New()
+	tests := []struct {
+		name       string
+		repository *vehicleHTTPRepositoryStub
+		wantStatus int
+		wantSlug   string
+	}{
+		{name: "authorized employee", repository: &vehicleHTTPRepositoryStub{dealershipID: uuid.New(), customerID: customerID}, wantStatus: stdhttp.StatusCreated},
+		{name: "role forbidden", repository: &vehicleHTTPRepositoryStub{customerID: customerID}, wantStatus: stdhttp.StatusForbidden, wantSlug: "vehicle_access_forbidden"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			auth := authStub{identity: client.Identity{UserID: actorID}}
+			service := app.NewService(test.repository, auth)
+			router := common.NewEcho(common.EchoConfig{})
+			Register(context.Background(), router, NewHandler(service, auth))
+			request := httptest.NewRequest(stdhttp.MethodPost, "/v1/customers/"+customerID.String()+"/vehicles", bytes.NewBufferString(`{"vin":" 1hgcm82633a004352 ","make":"Toyota","model":"Camry"}`))
+			request.Header.Set("Authorization", "Bearer access-token")
+			request.Header.Set("Content-Type", "application/json")
+			recorder := httptest.NewRecorder()
+			router.ServeHTTP(recorder, request)
+			require.Equal(t, test.wantStatus, recorder.Code, recorder.Body.String())
+			if test.wantSlug != "" {
+				require.Contains(t, recorder.Body.String(), `"slug":"`+test.wantSlug+`"`)
+			}
+			if test.wantStatus == stdhttp.StatusCreated {
+				require.Equal(t, "1HGCM82633A004352", *test.repository.vehicle.VIN())
+			}
+		})
+	}
+}
+
 func (r operationTimeHTTPRepositoryStub) IsActiveSchedulerAdminForDealership(context.Context, uuid.UUID, uuid.UUID) (bool, error) {
 	return r.isActiveSchedulerAdmin, nil
 }

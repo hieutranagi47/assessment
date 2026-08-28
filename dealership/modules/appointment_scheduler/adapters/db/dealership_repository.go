@@ -214,6 +214,125 @@ func customerFromRow(row dbmodels.AppointmentSchedulerCustomer) domain.Customer 
 	)
 }
 
+func (r *DealershipRepository) GetActiveVehicleManagerDealership(ctx context.Context, authUserID uuid.UUID) (uuid.UUID, error) {
+	dealershipID, err := r.queries.GetActiveVehicleManagerDealership(ctx, toPGUUID(authUserID))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return uuid.Nil, app.ErrVehicleCustomerForbidden
+	}
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return fromPGUUID(dealershipID), nil
+}
+
+func (r *DealershipRepository) CreateVehicle(ctx context.Context, dealershipID uuid.UUID, vehicle domain.Vehicle) error {
+	err := common.UpdateInTx(ctx, r.database, func(ctx context.Context, tx pgx.Tx) error {
+		queries := r.queries.WithTx(tx)
+		if _, err := queries.GetCustomerByID(ctx, toPGUUID(vehicle.CustomerID())); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return app.ErrCustomerNotFound
+			}
+			return err
+		}
+		if err := queries.ClaimCustomerDealership(ctx, dbmodels.ClaimCustomerDealershipParams{CustomerID: toPGUUID(vehicle.CustomerID()), DealershipID: toPGUUID(dealershipID)}); err != nil {
+			return err
+		}
+		ownerDealershipID, err := queries.GetCustomerDealership(ctx, toPGUUID(vehicle.CustomerID()))
+		if err != nil {
+			return err
+		}
+		if fromPGUUID(ownerDealershipID) != dealershipID {
+			return app.ErrVehicleCustomerForbidden
+		}
+		return queries.CreateVehicle(ctx, dbmodels.CreateVehicleParams{
+			VehicleID:         toPGUUID(vehicle.ID()),
+			CustomerID:        toPGUUID(vehicle.CustomerID()),
+			Vin:               vehicle.VIN(),
+			RegistrationPlate: vehicle.RegistrationPlate(),
+			Make:              vehicle.Make(),
+			Model:             vehicle.Model(),
+			ModelYear:         toPGInt16(vehicle.ModelYear()),
+			CreatedAt:         vehicle.CreatedAt(),
+			UpdatedAt:         vehicle.UpdatedAt(),
+		})
+	})
+	if common.IsUniqueViolationError(err, "vehicles_vin_unique_when_present") {
+		return app.ErrVehicleVINTaken
+	}
+	return err
+}
+
+func (r *DealershipRepository) GetVehicle(ctx context.Context, vehicleID uuid.UUID) (domain.Vehicle, error) {
+	row, err := r.queries.GetVehicle(ctx, toPGUUID(vehicleID))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.Vehicle{}, app.ErrVehicleNotFound
+	}
+	if err != nil {
+		return domain.Vehicle{}, err
+	}
+	return vehicleFromRow(row.VehicleID, row.CustomerID, row.Vin, row.RegistrationPlate, row.Make, row.Model, row.ModelYear, row.CreatedAt, row.UpdatedAt), nil
+}
+
+func (r *DealershipRepository) ListCustomerVehicles(ctx context.Context, customerID uuid.UUID) ([]domain.Vehicle, error) {
+	rows, err := r.queries.ListCustomerVehicles(ctx, toPGUUID(customerID))
+	if err != nil {
+		return nil, err
+	}
+	vehicles := make([]domain.Vehicle, 0, len(rows))
+	for _, row := range rows {
+		vehicles = append(vehicles, vehicleFromRow(row.VehicleID, row.CustomerID, row.Vin, row.RegistrationPlate, row.Make, row.Model, row.ModelYear, row.CreatedAt, row.UpdatedAt))
+	}
+	return vehicles, nil
+}
+
+func (r *DealershipRepository) CustomerBelongsToDealership(ctx context.Context, customerID, dealershipID uuid.UUID) (bool, error) {
+	ownerDealershipID, err := r.queries.GetCustomerDealership(ctx, toPGUUID(customerID))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return fromPGUUID(ownerDealershipID) == dealershipID, nil
+}
+
+func (r *DealershipRepository) UpdateVehicle(ctx context.Context, vehicle domain.Vehicle) error {
+	rows, err := r.queries.UpdateVehicle(ctx, dbmodels.UpdateVehicleParams{
+		Vin:               vehicle.VIN(),
+		RegistrationPlate: vehicle.RegistrationPlate(),
+		Make:              vehicle.Make(),
+		Model:             vehicle.Model(),
+		ModelYear:         toPGInt16(vehicle.ModelYear()),
+		UpdatedAt:         vehicle.UpdatedAt(),
+		VehicleID:         toPGUUID(vehicle.ID()),
+	})
+	if common.IsUniqueViolationError(err, "vehicles_vin_unique_when_present") {
+		return app.ErrVehicleVINTaken
+	}
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return app.ErrVehicleNotFound
+	}
+	return nil
+}
+
+func (r *DealershipRepository) DeleteVehicle(ctx context.Context, vehicleID uuid.UUID, deletedAt time.Time) error {
+	rows, err := r.queries.DeleteVehicle(ctx, dbmodels.DeleteVehicleParams{VehicleID: toPGUUID(vehicleID), DeletedAt: deletedAt})
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return app.ErrVehicleNotFound
+	}
+	return nil
+}
+
+func vehicleFromRow(vehicleID, customerID pgtype.UUID, vin, registrationPlate *string, make, model string, modelYear *int16, createdAt, updatedAt time.Time) domain.Vehicle {
+	return domain.RestoreVehicle(fromPGUUID(vehicleID), fromPGUUID(customerID), vin, registrationPlate, make, model, fromPGInt16(modelYear), createdAt, updatedAt)
+}
+
 // CreateDealershipUser creates a scheduler user and exactly one role in one transaction.
 func (r *DealershipRepository) CreateDealershipUser(ctx context.Context, user domain.DealershipUser) error {
 	err := common.UpdateInTx(ctx, r.database, func(ctx context.Context, tx pgx.Tx) error {
@@ -840,6 +959,22 @@ func fromPGUUID(value pgtype.UUID) uuid.UUID {
 		return uuid.Nil
 	}
 	return uuid.UUID(value.Bytes)
+}
+
+func toPGInt16(value *int) *int16 {
+	if value == nil {
+		return nil
+	}
+	converted := int16(*value)
+	return &converted
+}
+
+func fromPGInt16(value *int16) *int {
+	if value == nil {
+		return nil
+	}
+	converted := int(*value)
+	return &converted
 }
 
 func toPGTime(value time.Duration) pgtype.Time {

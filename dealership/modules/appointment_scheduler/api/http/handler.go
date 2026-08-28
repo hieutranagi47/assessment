@@ -69,6 +69,11 @@ func Register(_ context.Context, router common.EchoRouter, handler *Handler) err
 			"getCustomer":                            {handler.requireIdentity},
 			"updateCustomer":                         {handler.requireIdentity},
 			"searchCustomers":                        {handler.requireIdentity},
+			"createVehicle":                          {handler.requireIdentity},
+			"getVehicle":                             {handler.requireIdentity},
+			"listCustomerVehicles":                   {handler.requireIdentity},
+			"updateVehicle":                          {handler.requireIdentity},
+			"deleteVehicle":                          {handler.requireIdentity},
 		},
 	})
 	return nil
@@ -661,6 +666,72 @@ func customerResponse(customer domain.Customer) Customer {
 	}
 }
 
+func (h *Handler) CreateVehicle(ctx context.Context, request CreateVehicleRequestObject) (CreateVehicleResponseObject, error) {
+	if request.Body == nil {
+		return CreateVehicle400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(errorResponse(common.NewInvalidInputError("invalid_request", "request body is required")))}, nil
+	}
+	vehicle, err := h.service.CreateVehicle(ctx, identityFrom(ctx), uuid.UUID(request.CustomerId), app.CreateVehicleInput{VIN: request.Body.Vin, RegistrationPlate: request.Body.RegistrationPlate, Make: request.Body.Make, Model: request.Body.Model, ModelYear: request.Body.ModelYear})
+	if err != nil {
+		return createVehicleErrorResponse(err)
+	}
+	return CreateVehicle201JSONResponse{VehicleCreatedJSONResponse: VehicleCreatedJSONResponse(vehicleResponse(vehicle))}, nil
+}
+
+func (h *Handler) GetVehicle(ctx context.Context, request GetVehicleRequestObject) (GetVehicleResponseObject, error) {
+	vehicle, err := h.service.GetVehicle(ctx, identityFrom(ctx), uuid.UUID(request.VehicleId))
+	if err != nil {
+		return getVehicleErrorResponse(err)
+	}
+	return GetVehicle200JSONResponse{VehicleFoundJSONResponse: VehicleFoundJSONResponse(vehicleResponse(vehicle))}, nil
+}
+
+func (h *Handler) ListCustomerVehicles(ctx context.Context, request ListCustomerVehiclesRequestObject) (ListCustomerVehiclesResponseObject, error) {
+	vehicles, err := h.service.ListCustomerVehicles(ctx, identityFrom(ctx), uuid.UUID(request.CustomerId))
+	if err != nil {
+		return listVehiclesErrorResponse(err)
+	}
+	items := make([]Vehicle, 0, len(vehicles))
+	for _, vehicle := range vehicles {
+		items = append(items, vehicleResponse(vehicle))
+	}
+	return ListCustomerVehicles200JSONResponse{VehiclesListedJSONResponse: VehiclesListedJSONResponse(VehicleListResponse{Items: items})}, nil
+}
+
+func (h *Handler) UpdateVehicle(ctx context.Context, request UpdateVehicleRequestObject) (UpdateVehicleResponseObject, error) {
+	if request.Body == nil || (request.Body.Vin == nil && request.Body.RegistrationPlate == nil && request.Body.Make == nil && request.Body.Model == nil && request.Body.ModelYear == nil) {
+		return UpdateVehicle400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(errorResponse(common.NewInvalidInputError("invalid_request", "at least one field is required")))}, nil
+	}
+	input := app.UpdateVehicleInput{Make: request.Body.Make, Model: request.Body.Model}
+	if request.Body.Vin != nil {
+		input.VINPresent = request.Body.Vin.Present
+		input.VIN = request.Body.Vin.Value
+	}
+	if request.Body.RegistrationPlate != nil {
+		input.RegistrationPlatePresent = request.Body.RegistrationPlate.Present
+		input.RegistrationPlate = request.Body.RegistrationPlate.Value
+	}
+	if request.Body.ModelYear != nil {
+		input.ModelYearPresent = request.Body.ModelYear.Present
+		input.ModelYear = request.Body.ModelYear.Value
+	}
+	vehicle, err := h.service.UpdateVehicle(ctx, identityFrom(ctx), uuid.UUID(request.VehicleId), input)
+	if err != nil {
+		return updateVehicleErrorResponse(err)
+	}
+	return UpdateVehicle200JSONResponse{VehicleUpdatedJSONResponse: VehicleUpdatedJSONResponse(vehicleResponse(vehicle))}, nil
+}
+
+func (h *Handler) DeleteVehicle(ctx context.Context, request DeleteVehicleRequestObject) (DeleteVehicleResponseObject, error) {
+	if err := h.service.DeleteVehicle(ctx, identityFrom(ctx), uuid.UUID(request.VehicleId)); err != nil {
+		return deleteVehicleErrorResponse(err)
+	}
+	return DeleteVehicle204Response{}, nil
+}
+
+func vehicleResponse(vehicle domain.Vehicle) Vehicle {
+	return Vehicle{VehicleId: vehicle.ID(), CustomerId: vehicle.CustomerID(), Vin: vehicle.VIN(), RegistrationPlate: vehicle.RegistrationPlate(), Make: vehicle.Make(), Model: vehicle.Model(), ModelYear: vehicle.ModelYear(), CreatedAt: vehicle.CreatedAt(), UpdatedAt: vehicle.UpdatedAt()}
+}
+
 func (h *Handler) CreateDealership(ctx context.Context, request CreateDealershipRequestObject) (CreateDealershipResponseObject, error) {
 	if request.Body == nil {
 		response := errorResponse(common.NewInvalidInputError("request_body_required", "request body is required"))
@@ -786,6 +857,99 @@ func searchCustomersErrorResponse(err error) (SearchCustomersResponseObject, err
 		return SearchCustomers403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
 	default:
 		return SearchCustomers500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
+}
+
+func vehicleProblem(err error) common.Error {
+	var structured common.Error
+	if errors.As(err, &structured) {
+		return structured
+	}
+	return common.Error{PublicError: "internal server error", ErrorSlug: "internal_error"}
+}
+
+func createVehicleErrorResponse(err error) (CreateVehicleResponseObject, error) {
+	structured := vehicleProblem(err)
+	response := errorResponse(structured)
+	switch structured.HttpErrorCode {
+	case stdhttp.StatusBadRequest:
+		return CreateVehicle400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(response)}, nil
+	case stdhttp.StatusUnauthorized:
+		return CreateVehicle401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case stdhttp.StatusForbidden:
+		return CreateVehicle403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case stdhttp.StatusNotFound:
+		return CreateVehicle404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	case stdhttp.StatusConflict:
+		return CreateVehicle409JSONResponse{ConflictJSONResponse: ConflictJSONResponse(response)}, nil
+	default:
+		return CreateVehicle500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
+}
+
+func getVehicleErrorResponse(err error) (GetVehicleResponseObject, error) {
+	structured := vehicleProblem(err)
+	response := errorResponse(structured)
+	switch structured.HttpErrorCode {
+	case stdhttp.StatusUnauthorized:
+		return GetVehicle401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case stdhttp.StatusForbidden:
+		return GetVehicle403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case stdhttp.StatusNotFound:
+		return GetVehicle404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	default:
+		return GetVehicle500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
+}
+
+func listVehiclesErrorResponse(err error) (ListCustomerVehiclesResponseObject, error) {
+	structured := vehicleProblem(err)
+	response := errorResponse(structured)
+	switch structured.HttpErrorCode {
+	case stdhttp.StatusUnauthorized:
+		return ListCustomerVehicles401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case stdhttp.StatusForbidden:
+		return ListCustomerVehicles403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case stdhttp.StatusNotFound:
+		return ListCustomerVehicles404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	default:
+		return ListCustomerVehicles500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
+}
+
+func updateVehicleErrorResponse(err error) (UpdateVehicleResponseObject, error) {
+	structured := vehicleProblem(err)
+	response := errorResponse(structured)
+	switch structured.HttpErrorCode {
+	case stdhttp.StatusBadRequest:
+		return UpdateVehicle400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(response)}, nil
+	case stdhttp.StatusUnauthorized:
+		return UpdateVehicle401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case stdhttp.StatusForbidden:
+		return UpdateVehicle403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case stdhttp.StatusNotFound:
+		return UpdateVehicle404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	case stdhttp.StatusConflict:
+		return UpdateVehicle409JSONResponse{ConflictJSONResponse: ConflictJSONResponse(response)}, nil
+	default:
+		return UpdateVehicle500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
+}
+
+func deleteVehicleErrorResponse(err error) (DeleteVehicleResponseObject, error) {
+	structured := vehicleProblem(err)
+	response := errorResponse(structured)
+	switch structured.HttpErrorCode {
+	case stdhttp.StatusUnauthorized:
+		return DeleteVehicle401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case stdhttp.StatusForbidden:
+		return DeleteVehicle403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case stdhttp.StatusNotFound:
+		return DeleteVehicle404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	case stdhttp.StatusConflict:
+		return DeleteVehicle409JSONResponse{ConflictJSONResponse: ConflictJSONResponse(response)}, nil
+	default:
+		return DeleteVehicle500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
 	}
 }
 

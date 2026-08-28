@@ -71,6 +71,12 @@ type AppointmentSchedulerCustomer struct {
 	UpdatedAt  time.Time
 }
 
+type AppointmentSchedulerCustomerDealership struct {
+	CustomerID   pgtype.UUID
+	DealershipID pgtype.UUID
+	CreatedAt    time.Time
+}
+
 type AppointmentSchedulerDealership struct {
 	DealershipID pgtype.UUID
 	Name         string

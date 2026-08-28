@@ -12,12 +12,28 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const createVehicles = `-- name: CreateVehicles :exec
+const claimCustomerDealership = `-- name: ClaimCustomerDealership :exec
+INSERT INTO appointment_scheduler.customer_dealerships (customer_id, dealership_id)
+VALUES ($1, $2)
+ON CONFLICT (customer_id) DO NOTHING
+`
+
+type ClaimCustomerDealershipParams struct {
+	CustomerID   pgtype.UUID
+	DealershipID pgtype.UUID
+}
+
+func (q *Queries) ClaimCustomerDealership(ctx context.Context, arg ClaimCustomerDealershipParams) error {
+	_, err := q.db.Exec(ctx, claimCustomerDealership, arg.CustomerID, arg.DealershipID)
+	return err
+}
+
+const createVehicle = `-- name: CreateVehicle :exec
 INSERT INTO appointment_scheduler.vehicles (vehicle_id, customer_id, vin, registration_plate, make, model, model_year, created_at, updated_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 `
 
-type CreateVehiclesParams struct {
+type CreateVehicleParams struct {
 	VehicleID         pgtype.UUID
 	CustomerID        pgtype.UUID
 	Vin               *string
@@ -29,8 +45,8 @@ type CreateVehiclesParams struct {
 	UpdatedAt         time.Time
 }
 
-func (q *Queries) CreateVehicles(ctx context.Context, arg CreateVehiclesParams) error {
-	_, err := q.db.Exec(ctx, createVehicles,
+func (q *Queries) CreateVehicle(ctx context.Context, arg CreateVehicleParams) error {
+	_, err := q.db.Exec(ctx, createVehicle,
 		arg.VehicleID,
 		arg.CustomerID,
 		arg.Vin,
@@ -44,33 +60,65 @@ func (q *Queries) CreateVehicles(ctx context.Context, arg CreateVehiclesParams) 
 	return err
 }
 
-const deleteVehicles = `-- name: DeleteVehicles :execrows
+const deleteVehicle = `-- name: DeleteVehicle :execrows
 UPDATE appointment_scheduler.vehicles
 SET deleted_at = $1::timestamptz
 WHERE vehicle_id = $2 AND deleted_at IS NULL
 `
 
-type DeleteVehiclesParams struct {
+type DeleteVehicleParams struct {
 	DeletedAt time.Time
 	VehicleID pgtype.UUID
 }
 
-func (q *Queries) DeleteVehicles(ctx context.Context, arg DeleteVehiclesParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteVehicles, arg.DeletedAt, arg.VehicleID)
+func (q *Queries) DeleteVehicle(ctx context.Context, arg DeleteVehicleParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteVehicle, arg.DeletedAt, arg.VehicleID)
 	if err != nil {
 		return 0, err
 	}
 	return result.RowsAffected(), nil
 }
 
-const getVehicles = `-- name: GetVehicles :one
+const getActiveVehicleManagerDealership = `-- name: GetActiveVehicleManagerDealership :one
+SELECT users.dealership_id
+FROM appointment_scheduler.users AS users
+JOIN appointment_scheduler.user_roles AS user_roles ON user_roles.user_id = users.user_id
+JOIN appointment_scheduler.roles AS roles ON roles.role_id = user_roles.role_id
+WHERE users.auth_user_id = $1
+  AND users.is_active
+  AND users.deleted_at IS NULL
+  AND user_roles.deleted_at IS NULL
+  AND roles.deleted_at IS NULL
+  AND roles.code IN ('admin', 'dealer', 'staff')
+`
 
+func (q *Queries) GetActiveVehicleManagerDealership(ctx context.Context, authUserID pgtype.UUID) (pgtype.UUID, error) {
+	row := q.db.QueryRow(ctx, getActiveVehicleManagerDealership, authUserID)
+	var dealership_id pgtype.UUID
+	err := row.Scan(&dealership_id)
+	return dealership_id, err
+}
+
+const getCustomerDealership = `-- name: GetCustomerDealership :one
+SELECT dealership_id
+FROM appointment_scheduler.customer_dealerships
+WHERE customer_id = $1
+`
+
+func (q *Queries) GetCustomerDealership(ctx context.Context, customerID pgtype.UUID) (pgtype.UUID, error) {
+	row := q.db.QueryRow(ctx, getCustomerDealership, customerID)
+	var dealership_id pgtype.UUID
+	err := row.Scan(&dealership_id)
+	return dealership_id, err
+}
+
+const getVehicle = `-- name: GetVehicle :one
 SELECT vehicle_id, customer_id, vin, registration_plate, make, model, model_year, created_at, updated_at, deleted_at
 FROM appointment_scheduler.vehicles
 WHERE vehicle_id = $1 AND deleted_at IS NULL
 `
 
-type GetVehiclesRow struct {
+type GetVehicleRow struct {
 	VehicleID         pgtype.UUID
 	CustomerID        pgtype.UUID
 	Vin               *string
@@ -83,10 +131,9 @@ type GetVehiclesRow struct {
 	DeletedAt         pgtype.Timestamptz
 }
 
-// vehicles CRUD queries.
-func (q *Queries) GetVehicles(ctx context.Context, vehicleID pgtype.UUID) (GetVehiclesRow, error) {
-	row := q.db.QueryRow(ctx, getVehicles, vehicleID)
-	var i GetVehiclesRow
+func (q *Queries) GetVehicle(ctx context.Context, vehicleID pgtype.UUID) (GetVehicleRow, error) {
+	row := q.db.QueryRow(ctx, getVehicle, vehicleID)
+	var i GetVehicleRow
 	err := row.Scan(
 		&i.VehicleID,
 		&i.CustomerID,
@@ -102,14 +149,62 @@ func (q *Queries) GetVehicles(ctx context.Context, vehicleID pgtype.UUID) (GetVe
 	return i, err
 }
 
-const updateVehicles = `-- name: UpdateVehicles :execrows
-UPDATE appointment_scheduler.vehicles
-SET customer_id = $1, vin = $2, registration_plate = $3, make = $4, model = $5, model_year = $6, updated_at = $7
-WHERE vehicle_id = $8 AND deleted_at IS NULL
+const listCustomerVehicles = `-- name: ListCustomerVehicles :many
+SELECT vehicle_id, customer_id, vin, registration_plate, make, model, model_year, created_at, updated_at
+FROM appointment_scheduler.vehicles
+WHERE customer_id = $1 AND deleted_at IS NULL
+ORDER BY created_at, vehicle_id
 `
 
-type UpdateVehiclesParams struct {
+type ListCustomerVehiclesRow struct {
+	VehicleID         pgtype.UUID
 	CustomerID        pgtype.UUID
+	Vin               *string
+	RegistrationPlate *string
+	Make              string
+	Model             string
+	ModelYear         *int16
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+}
+
+func (q *Queries) ListCustomerVehicles(ctx context.Context, customerID pgtype.UUID) ([]ListCustomerVehiclesRow, error) {
+	rows, err := q.db.Query(ctx, listCustomerVehicles, customerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListCustomerVehiclesRow{}
+	for rows.Next() {
+		var i ListCustomerVehiclesRow
+		if err := rows.Scan(
+			&i.VehicleID,
+			&i.CustomerID,
+			&i.Vin,
+			&i.RegistrationPlate,
+			&i.Make,
+			&i.Model,
+			&i.ModelYear,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateVehicle = `-- name: UpdateVehicle :execrows
+UPDATE appointment_scheduler.vehicles
+SET vin = $1, registration_plate = $2, make = $3, model = $4, model_year = $5, updated_at = $6
+WHERE vehicle_id = $7 AND deleted_at IS NULL
+`
+
+type UpdateVehicleParams struct {
 	Vin               *string
 	RegistrationPlate *string
 	Make              string
@@ -119,9 +214,8 @@ type UpdateVehiclesParams struct {
 	VehicleID         pgtype.UUID
 }
 
-func (q *Queries) UpdateVehicles(ctx context.Context, arg UpdateVehiclesParams) (int64, error) {
-	result, err := q.db.Exec(ctx, updateVehicles,
-		arg.CustomerID,
+func (q *Queries) UpdateVehicle(ctx context.Context, arg UpdateVehicleParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateVehicle,
 		arg.Vin,
 		arg.RegistrationPlate,
 		arg.Make,

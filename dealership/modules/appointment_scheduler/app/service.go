@@ -36,6 +36,9 @@ var (
 	ErrCustomerNotFound                         = errors.New("customer not found")
 	ErrCustomerPhoneTaken                       = errors.New("customer phone already exists")
 	ErrCustomerEmailTaken                       = errors.New("customer email already exists")
+	ErrVehicleNotFound                          = errors.New("vehicle not found")
+	ErrVehicleVINTaken                          = errors.New("vehicle VIN already exists")
+	ErrVehicleCustomerForbidden                 = errors.New("vehicle customer belongs to another dealership")
 	ErrDealershipOperationTimeNotFound          = errors.New("dealership operation time not found")
 	ErrDealershipOperationTimeOverlaps          = errors.New("dealership operation time overlaps an existing interval")
 )
@@ -66,6 +69,19 @@ type CustomerRepository interface {
 	UpdateCustomer(context.Context, domain.Customer) (domain.Customer, error)
 	GetCustomerByPhone(context.Context, string) (domain.Customer, error)
 	GetCustomerByEmail(context.Context, string) (domain.Customer, error)
+}
+
+// VehicleRepository owns vehicle persistence and the dealership boundary for
+// the global-customer model.
+type VehicleRepository interface {
+	GetActiveVehicleManagerDealership(context.Context, uuid.UUID) (uuid.UUID, error)
+	CreateVehicle(context.Context, uuid.UUID, domain.Vehicle) error
+	GetCustomer(context.Context, uuid.UUID) (domain.Customer, error)
+	GetVehicle(context.Context, uuid.UUID) (domain.Vehicle, error)
+	ListCustomerVehicles(context.Context, uuid.UUID) ([]domain.Vehicle, error)
+	CustomerBelongsToDealership(context.Context, uuid.UUID, uuid.UUID) (bool, error)
+	UpdateVehicle(context.Context, domain.Vehicle) error
+	DeleteVehicle(context.Context, uuid.UUID, time.Time) error
 }
 
 // SchedulerAdminAuthorizer verifies scheduler-side admin access without
@@ -232,6 +248,25 @@ type UpdateCustomerInput struct {
 	Phone        *string
 	Email        *string
 	EmailPresent bool
+}
+
+type CreateVehicleInput struct {
+	VIN               *string
+	RegistrationPlate *string
+	Make              string
+	Model             string
+	ModelYear         *int
+}
+
+type UpdateVehicleInput struct {
+	VINPresent               bool
+	VIN                      *string
+	RegistrationPlatePresent bool
+	RegistrationPlate        *string
+	Make                     *string
+	Model                    *string
+	ModelYearPresent         bool
+	ModelYear                *int
 }
 
 type CreateServiceTypeRequiredSkillInput struct{ SkillID uuid.UUID }
@@ -1161,6 +1196,159 @@ func customerError(err error) error {
 		return common.NewConflictError("customer_phone_already_exists", "a customer with this phone already exists")
 	case errors.Is(err, ErrCustomerEmailTaken):
 		return common.NewConflictError("customer_email_already_exists", "a customer with this email already exists")
+	default:
+		return err
+	}
+}
+
+func (s *Service) CreateVehicle(ctx context.Context, actorID, customerID uuid.UUID, input CreateVehicleInput) (domain.Vehicle, error) {
+	repository, dealershipID, err := s.authorizeVehicleManager(ctx, actorID)
+	if err != nil {
+		return domain.Vehicle{}, err
+	}
+	vehicle, err := domain.NewVehicle(s.newID(), customerID, input.VIN, input.RegistrationPlate, input.Make, input.Model, input.ModelYear, s.now())
+	if err != nil {
+		return domain.Vehicle{}, vehicleInputError(err)
+	}
+	if err := repository.CreateVehicle(ctx, dealershipID, vehicle); err != nil {
+		return domain.Vehicle{}, vehicleError(err)
+	}
+	return vehicle, nil
+}
+
+func (s *Service) GetVehicle(ctx context.Context, actorID, vehicleID uuid.UUID) (domain.Vehicle, error) {
+	repository, dealershipID, err := s.authorizeVehicleManager(ctx, actorID)
+	if err != nil {
+		return domain.Vehicle{}, err
+	}
+	vehicle, err := repository.GetVehicle(ctx, vehicleID)
+	if err != nil {
+		return domain.Vehicle{}, vehicleError(err)
+	}
+	if err := s.authorizeVehicleCustomer(ctx, repository, dealershipID, vehicle.CustomerID()); err != nil {
+		return domain.Vehicle{}, err
+	}
+	return vehicle, nil
+}
+
+func (s *Service) ListCustomerVehicles(ctx context.Context, actorID, customerID uuid.UUID) ([]domain.Vehicle, error) {
+	repository, dealershipID, err := s.authorizeVehicleManager(ctx, actorID)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := repository.GetCustomer(ctx, customerID); err != nil {
+		return nil, vehicleError(err)
+	}
+	if err := s.authorizeVehicleCustomer(ctx, repository, dealershipID, customerID); err != nil {
+		return nil, err
+	}
+	vehicles, err := repository.ListCustomerVehicles(ctx, customerID)
+	if err != nil {
+		return nil, vehicleError(err)
+	}
+	return vehicles, nil
+}
+
+func (s *Service) UpdateVehicle(ctx context.Context, actorID, vehicleID uuid.UUID, input UpdateVehicleInput) (domain.Vehicle, error) {
+	repository, dealershipID, err := s.authorizeVehicleManager(ctx, actorID)
+	if err != nil {
+		return domain.Vehicle{}, err
+	}
+	vehicle, err := repository.GetVehicle(ctx, vehicleID)
+	if err != nil {
+		return domain.Vehicle{}, vehicleError(err)
+	}
+	if err := s.authorizeVehicleCustomer(ctx, repository, dealershipID, vehicle.CustomerID()); err != nil {
+		return domain.Vehicle{}, err
+	}
+	vin := vehicle.VIN()
+	if input.VINPresent {
+		vin = input.VIN
+	}
+	registrationPlate := vehicle.RegistrationPlate()
+	if input.RegistrationPlatePresent {
+		registrationPlate = input.RegistrationPlate
+	}
+	make := valueOr(input.Make, vehicle.Make())
+	model := valueOr(input.Model, vehicle.Model())
+	modelYear := vehicle.ModelYear()
+	if input.ModelYearPresent {
+		modelYear = input.ModelYear
+	}
+	updated, err := vehicle.Update(vin, registrationPlate, make, model, modelYear, s.now())
+	if err != nil {
+		return domain.Vehicle{}, vehicleInputError(err)
+	}
+	if err := repository.UpdateVehicle(ctx, updated); err != nil {
+		return domain.Vehicle{}, vehicleError(err)
+	}
+	return updated, nil
+}
+
+func (s *Service) DeleteVehicle(ctx context.Context, actorID, vehicleID uuid.UUID) error {
+	repository, dealershipID, err := s.authorizeVehicleManager(ctx, actorID)
+	if err != nil {
+		return err
+	}
+	vehicle, err := repository.GetVehicle(ctx, vehicleID)
+	if err != nil {
+		return vehicleError(err)
+	}
+	if err := s.authorizeVehicleCustomer(ctx, repository, dealershipID, vehicle.CustomerID()); err != nil {
+		return err
+	}
+	// TODO: once preparation-history records exist, reject affected vehicles
+	// with common.NewConflictError("vehicle_has_preparation_history", ...).
+	return vehicleError(repository.DeleteVehicle(ctx, vehicleID, s.now()))
+}
+
+func (s *Service) authorizeVehicleManager(ctx context.Context, actorID uuid.UUID) (VehicleRepository, uuid.UUID, error) {
+	if actorID == uuid.Nil {
+		return nil, uuid.Nil, common.NewUnauthorizedError("authentication_required", "authentication required")
+	}
+	repository, ok := s.repository.(VehicleRepository)
+	if !ok {
+		return nil, uuid.Nil, errors.New("vehicle repository is not configured")
+	}
+	dealershipID, err := repository.GetActiveVehicleManagerDealership(ctx, actorID)
+	if err != nil {
+		return nil, uuid.Nil, common.NewForbiddenError("vehicle_access_forbidden", "you are not allowed to manage vehicles")
+	}
+	return repository, dealershipID, nil
+}
+
+func (s *Service) authorizeVehicleCustomer(ctx context.Context, repository VehicleRepository, dealershipID, customerID uuid.UUID) error {
+	belongs, err := repository.CustomerBelongsToDealership(ctx, customerID, dealershipID)
+	if err != nil {
+		return vehicleError(err)
+	}
+	if !belongs {
+		return common.NewForbiddenError("vehicle_access_forbidden", "you are not allowed to manage vehicles for this customer")
+	}
+	return nil
+}
+
+func vehicleInputError(err error) error {
+	switch {
+	case errors.Is(err, domain.ErrVehicleMakeRequired), errors.Is(err, domain.ErrVehicleModelRequired), errors.Is(err, domain.ErrVehicleIdentity), errors.Is(err, domain.ErrVehicleModelYear):
+		return common.NewInvalidInputError("invalid_vehicle", "%s", err.Error())
+	default:
+		return err
+	}
+}
+
+func vehicleError(err error) error {
+	switch {
+	case err == nil:
+		return nil
+	case errors.Is(err, ErrVehicleNotFound):
+		return common.NewNotFoundError("vehicle_not_found", "vehicle was not found")
+	case errors.Is(err, ErrCustomerNotFound):
+		return common.NewNotFoundError("customer_not_found", "customer was not found")
+	case errors.Is(err, ErrVehicleVINTaken):
+		return common.NewConflictError("vehicle_vin_already_exists", "a vehicle with this VIN already exists")
+	case errors.Is(err, ErrVehicleCustomerForbidden):
+		return common.NewForbiddenError("vehicle_access_forbidden", "you are not allowed to manage vehicles for this customer")
 	default:
 		return err
 	}

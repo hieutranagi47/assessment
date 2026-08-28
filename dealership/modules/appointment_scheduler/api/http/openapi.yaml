@@ -550,6 +550,79 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "500": { $ref: "#/components/responses/InternalServerError" }
+  /v1/customers/{customerId}/vehicles:
+    parameters:
+      - $ref: "#/components/parameters/CustomerId"
+    post:
+      operationId: createVehicle
+      tags: [Vehicles]
+      summary: Create a vehicle for an existing customer
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateVehicleRequest" }
+      responses:
+        "201": { $ref: "#/components/responses/VehicleCreated" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    get:
+      operationId: listCustomerVehicles
+      tags: [Vehicles]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/VehiclesListed" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /v1/vehicles/{vehicleId}:
+    parameters:
+      - $ref: "#/components/parameters/VehicleId"
+    get:
+      operationId: getVehicle
+      tags: [Vehicles]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/VehicleFound" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    patch:
+      operationId: updateVehicle
+      tags: [Vehicles]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateVehicleRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/VehicleUpdated" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    delete:
+      operationId: deleteVehicle
+      tags: [Vehicles]
+      description: "TODO: return 409 `vehicle_has_preparation_history` once preparation-history records exist."
+      security: [{ bearerAuth: [] }]
+      responses:
+        "204": { description: Vehicle deleted }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
 components:
   securitySchemes:
     bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
@@ -586,6 +659,50 @@ components:
         items:
           type: array
           items: { $ref: "#/components/schemas/Customer" }
+    CreateVehicleRequest:
+      type: object
+      required: [make, model]
+      properties:
+        vin: { type: string, minLength: 1, maxLength: 17 }
+        registrationPlate: { type: string, minLength: 1, maxLength: 32 }
+        make: { type: string, minLength: 1, maxLength: 100 }
+        model: { type: string, minLength: 1, maxLength: 100 }
+        modelYear: { type: integer, minimum: 1886, maximum: 2100 }
+    UpdateVehicleRequest:
+      type: object
+      minProperties: 1
+      properties:
+        vin:
+          nullable: true
+          x-go-type: OptionalNullableString
+        registrationPlate:
+          nullable: true
+          x-go-type: OptionalNullableString
+        make: { type: string, minLength: 1, maxLength: 100 }
+        model: { type: string, minLength: 1, maxLength: 100 }
+        modelYear:
+          nullable: true
+          x-go-type: OptionalNullableInt
+    Vehicle:
+      type: object
+      required: [vehicleId, customerId, make, model, createdAt, updatedAt]
+      properties:
+        vehicleId: { type: string, format: uuid }
+        customerId: { type: string, format: uuid }
+        vin: { type: string, nullable: true }
+        registrationPlate: { type: string, nullable: true }
+        make: { type: string }
+        model: { type: string }
+        modelYear: { type: integer, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    VehicleListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Vehicle" }
     CreateServiceBayRequest:
       type: object
       required: [code, name]
@@ -883,6 +1000,26 @@ components:
       content:
         application/json:
           schema: { $ref: "#/components/schemas/CustomerListResponse" }
+    VehicleCreated:
+      description: Vehicle created
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Vehicle" }
+    VehicleFound:
+      description: Vehicle found
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Vehicle" }
+    VehicleUpdated:
+      description: Vehicle updated
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Vehicle" }
+    VehiclesListed:
+      description: Vehicles belonging to the customer
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/VehicleListResponse" }
     ServiceBayCreated:
       description: Service bay created
       content:
@@ -1034,6 +1171,11 @@ components:
   parameters:
     CustomerId:
       name: customerId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    VehicleId:
+      name: vehicleId
       in: path
       required: true
       schema: { type: string, format: uuid }
