@@ -79,6 +79,10 @@ func Register(_ context.Context, router common.EchoRouter, handler *Handler) err
 			"getTechnician":                          {handler.requireIdentity},
 			"updateTechnician":                       {handler.requireIdentity},
 			"deleteTechnician":                       {handler.requireIdentity},
+			"createTechnicianSkill":                  {handler.requireIdentity},
+			"listTechnicianSkills":                   {handler.requireIdentity},
+			"updateTechnicianSkill":                  {handler.requireIdentity},
+			"deleteTechnicianSkill":                  {handler.requireIdentity},
 		},
 	})
 	return nil
@@ -669,6 +673,55 @@ func technicianResponse(technician domain.Technician) Technician {
 	return Technician{TechnicianId: technician.ID(), UserId: technician.UserID(), Name: technician.Name(), Phone: technician.Phone(), Email: email, IsActive: technician.IsActive(), CreatedAt: technician.CreatedAt(), UpdatedAt: technician.UpdatedAt()}
 }
 
+func (h *Handler) CreateTechnicianSkill(ctx context.Context, request CreateTechnicianSkillRequestObject) (CreateTechnicianSkillResponseObject, error) {
+	if request.Body == nil {
+		response := errorResponse(common.NewInvalidInputError("request_body_required", "request body is required"))
+		return CreateTechnicianSkill400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(response)}, nil
+	}
+	skill, err := h.service.CreateTechnicianSkill(ctx, identityFrom(ctx), uuid.UUID(request.TechnicianId), app.CreateTechnicianSkillInput{SkillID: uuid.UUID(request.Body.SkillId)})
+	if err != nil {
+		return createTechnicianSkillErrorResponse(err)
+	}
+	return CreateTechnicianSkill201JSONResponse{TechnicianSkillCreatedJSONResponse: TechnicianSkillCreatedJSONResponse(technicianSkillResponse(skill))}, nil
+}
+
+func (h *Handler) ListTechnicianSkills(ctx context.Context, request ListTechnicianSkillsRequestObject) (ListTechnicianSkillsResponseObject, error) {
+	skills, err := h.service.ListTechnicianSkills(ctx, identityFrom(ctx), uuid.UUID(request.TechnicianId))
+	if err != nil {
+		return listTechnicianSkillsErrorResponse(err)
+	}
+	response := make(TechnicianSkillsListedJSONResponse, 0, len(skills))
+	for _, skill := range skills {
+		response = append(response, technicianSkillResponse(skill))
+	}
+	return ListTechnicianSkills200JSONResponse{TechnicianSkillsListedJSONResponse: response}, nil
+}
+
+func (h *Handler) UpdateTechnicianSkill(ctx context.Context, request UpdateTechnicianSkillRequestObject) (UpdateTechnicianSkillResponseObject, error) {
+	if request.Body == nil {
+		response := errorResponse(common.NewInvalidInputError("request_body_required", "request body is required"))
+		return UpdateTechnicianSkill400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(response)}, nil
+	}
+	skillID := uuid.UUID(request.Body.SkillId)
+	skill, err := h.service.UpdateTechnicianSkill(ctx, identityFrom(ctx), uuid.UUID(request.TechnicianId), uuid.UUID(request.TechnicianSkillId), app.UpdateTechnicianSkillInput{SkillID: &skillID})
+	if err != nil {
+		return updateTechnicianSkillErrorResponse(err)
+	}
+	return UpdateTechnicianSkill200JSONResponse{TechnicianSkillUpdatedJSONResponse: TechnicianSkillUpdatedJSONResponse(technicianSkillResponse(skill))}, nil
+}
+
+func (h *Handler) DeleteTechnicianSkill(ctx context.Context, request DeleteTechnicianSkillRequestObject) (DeleteTechnicianSkillResponseObject, error) {
+	err := h.service.DeleteTechnicianSkill(ctx, identityFrom(ctx), uuid.UUID(request.TechnicianId), uuid.UUID(request.TechnicianSkillId))
+	if err != nil {
+		return deleteTechnicianSkillErrorResponse(err)
+	}
+	return DeleteTechnicianSkill204Response{}, nil
+}
+
+func technicianSkillResponse(skill domain.TechnicianSkill) TechnicianSkill {
+	return TechnicianSkill{TechnicianSkillId: skill.ID(), TechnicianId: skill.TechnicianID(), SkillId: skill.SkillID(), CreatedAt: skill.CreatedAt(), UpdatedAt: skill.UpdatedAt()}
+}
+
 func (h *Handler) CreateCustomer(ctx context.Context, request CreateCustomerRequestObject) (CreateCustomerResponseObject, error) {
 	if request.Body == nil {
 		return CreateCustomer400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(errorResponse(common.NewInvalidInputError("invalid_request", "request body is required")))}, nil
@@ -962,6 +1015,72 @@ func deleteTechnicianErrorResponse(err error) (DeleteTechnicianResponseObject, e
 		return DeleteTechnician409JSONResponse{ConflictJSONResponse: ConflictJSONResponse(response)}, nil
 	default:
 		return DeleteTechnician500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
+}
+
+func createTechnicianSkillErrorResponse(err error) (CreateTechnicianSkillResponseObject, error) {
+	structured, response := technicianProblem(err), errorResponse(technicianProblem(err))
+	switch structured.HttpErrorCode {
+	case 400:
+		return CreateTechnicianSkill400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(response)}, nil
+	case 401:
+		return CreateTechnicianSkill401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case 403:
+		return CreateTechnicianSkill403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case 404:
+		return CreateTechnicianSkill404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	case 409:
+		return CreateTechnicianSkill409JSONResponse{ConflictJSONResponse: ConflictJSONResponse(response)}, nil
+	default:
+		return CreateTechnicianSkill500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
+}
+
+func listTechnicianSkillsErrorResponse(err error) (ListTechnicianSkillsResponseObject, error) {
+	structured, response := technicianProblem(err), errorResponse(technicianProblem(err))
+	switch structured.HttpErrorCode {
+	case 400:
+		return ListTechnicianSkills400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(response)}, nil
+	case 401:
+		return ListTechnicianSkills401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case 403:
+		return ListTechnicianSkills403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case 404:
+		return ListTechnicianSkills404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	default:
+		return ListTechnicianSkills500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
+}
+
+func updateTechnicianSkillErrorResponse(err error) (UpdateTechnicianSkillResponseObject, error) {
+	structured, response := technicianProblem(err), errorResponse(technicianProblem(err))
+	switch structured.HttpErrorCode {
+	case 400:
+		return UpdateTechnicianSkill400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(response)}, nil
+	case 401:
+		return UpdateTechnicianSkill401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case 403:
+		return UpdateTechnicianSkill403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case 404:
+		return UpdateTechnicianSkill404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	case 409:
+		return UpdateTechnicianSkill409JSONResponse{ConflictJSONResponse: ConflictJSONResponse(response)}, nil
+	default:
+		return UpdateTechnicianSkill500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
+}
+
+func deleteTechnicianSkillErrorResponse(err error) (DeleteTechnicianSkillResponseObject, error) {
+	structured, response := technicianProblem(err), errorResponse(technicianProblem(err))
+	switch structured.HttpErrorCode {
+	case 401:
+		return DeleteTechnicianSkill401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case 403:
+		return DeleteTechnicianSkill403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case 404:
+		return DeleteTechnicianSkill404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	default:
+		return DeleteTechnicianSkill500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
 	}
 }
 

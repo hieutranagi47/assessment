@@ -12,93 +12,229 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const createTechnicianSkills = `-- name: CreateTechnicianSkills :exec
-INSERT INTO appointment_scheduler.technician_skills (technician_skill_id, technician_id, skill_code, expires_at, created_at)
-VALUES ($1, $2, $3, $4, $5)
+const activeSkillExists = `-- name: ActiveSkillExists :one
+SELECT EXISTS(
+  SELECT 1
+  FROM appointment_scheduler.skills
+  WHERE skill_id = $1
+    AND is_active = TRUE
+)
 `
 
-type CreateTechnicianSkillsParams struct {
+func (q *Queries) ActiveSkillExists(ctx context.Context, skillID pgtype.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, activeSkillExists, skillID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const createTechnicianSkill = `-- name: CreateTechnicianSkill :one
+INSERT INTO appointment_scheduler.technician_skills (technician_skill_id, technician_id, skill_id, created_at, updated_at)
+SELECT $1, technicians.technician_id, skills.skill_id,
+  $2, $3
+FROM appointment_scheduler.technicians
+JOIN appointment_scheduler.skills ON skills.skill_id = $4
+WHERE technicians.technician_id = $5
+  AND technicians.is_active = TRUE
+  AND technicians.deleted_at IS NULL
+  AND skills.is_active = TRUE
+RETURNING technician_skill_id, technician_id, skill_id, created_at, updated_at
+`
+
+type CreateTechnicianSkillParams struct {
+	TechnicianSkillID pgtype.UUID
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+	SkillID           pgtype.UUID
+	TechnicianID      pgtype.UUID
+}
+
+type CreateTechnicianSkillRow struct {
 	TechnicianSkillID pgtype.UUID
 	TechnicianID      pgtype.UUID
-	SkillCode         string
-	ExpiresAt         pgtype.Timestamptz
+	SkillID           pgtype.UUID
 	CreatedAt         time.Time
+	UpdatedAt         time.Time
 }
 
-func (q *Queries) CreateTechnicianSkills(ctx context.Context, arg CreateTechnicianSkillsParams) error {
-	_, err := q.db.Exec(ctx, createTechnicianSkills,
+func (q *Queries) CreateTechnicianSkill(ctx context.Context, arg CreateTechnicianSkillParams) (CreateTechnicianSkillRow, error) {
+	row := q.db.QueryRow(ctx, createTechnicianSkill,
 		arg.TechnicianSkillID,
-		arg.TechnicianID,
-		arg.SkillCode,
-		arg.ExpiresAt,
 		arg.CreatedAt,
+		arg.UpdatedAt,
+		arg.SkillID,
+		arg.TechnicianID,
 	)
-	return err
-}
-
-const deleteTechnicianSkills = `-- name: DeleteTechnicianSkills :execrows
-UPDATE appointment_scheduler.technician_skills
-SET deleted_at = $1::timestamptz
-WHERE technician_skill_id = $2 AND deleted_at IS NULL
-`
-
-type DeleteTechnicianSkillsParams struct {
-	DeletedAt         time.Time
-	TechnicianSkillID pgtype.UUID
-}
-
-func (q *Queries) DeleteTechnicianSkills(ctx context.Context, arg DeleteTechnicianSkillsParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteTechnicianSkills, arg.DeletedAt, arg.TechnicianSkillID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
-}
-
-const getTechnicianSkills = `-- name: GetTechnicianSkills :one
-
-SELECT technician_skill_id, technician_id, skill_code, expires_at, created_at, deleted_at
-FROM appointment_scheduler.technician_skills
-WHERE technician_skill_id = $1 AND deleted_at IS NULL
-`
-
-// technician skills CRUD queries.
-func (q *Queries) GetTechnicianSkills(ctx context.Context, technicianSkillID pgtype.UUID) (AppointmentSchedulerTechnicianSkill, error) {
-	row := q.db.QueryRow(ctx, getTechnicianSkills, technicianSkillID)
-	var i AppointmentSchedulerTechnicianSkill
+	var i CreateTechnicianSkillRow
 	err := row.Scan(
 		&i.TechnicianSkillID,
 		&i.TechnicianID,
-		&i.SkillCode,
-		&i.ExpiresAt,
+		&i.SkillID,
 		&i.CreatedAt,
-		&i.DeletedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
-const updateTechnicianSkills = `-- name: UpdateTechnicianSkills :execrows
-UPDATE appointment_scheduler.technician_skills
-SET technician_id = $1, skill_code = $2, expires_at = $3
-WHERE technician_skill_id = $4 AND deleted_at IS NULL
+const deleteTechnicianSkill = `-- name: DeleteTechnicianSkill :execrows
+DELETE FROM appointment_scheduler.technician_skills
+WHERE technician_skill_id = $1
+  AND technician_id = $2
 `
 
-type UpdateTechnicianSkillsParams struct {
-	TechnicianID      pgtype.UUID
-	SkillCode         string
-	ExpiresAt         pgtype.Timestamptz
+type DeleteTechnicianSkillParams struct {
 	TechnicianSkillID pgtype.UUID
+	TechnicianID      pgtype.UUID
 }
 
-func (q *Queries) UpdateTechnicianSkills(ctx context.Context, arg UpdateTechnicianSkillsParams) (int64, error) {
-	result, err := q.db.Exec(ctx, updateTechnicianSkills,
-		arg.TechnicianID,
-		arg.SkillCode,
-		arg.ExpiresAt,
-		arg.TechnicianSkillID,
-	)
+func (q *Queries) DeleteTechnicianSkill(ctx context.Context, arg DeleteTechnicianSkillParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteTechnicianSkill, arg.TechnicianSkillID, arg.TechnicianID)
 	if err != nil {
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const getActiveTechnician = `-- name: GetActiveTechnician :one
+
+SELECT technician_id
+FROM appointment_scheduler.technicians
+WHERE technician_id = $1
+  AND is_active = TRUE
+  AND deleted_at IS NULL
+`
+
+// Technician skills are scoped by technician ID so nested resources cannot
+// cross technician boundaries.
+func (q *Queries) GetActiveTechnician(ctx context.Context, technicianID pgtype.UUID) (pgtype.UUID, error) {
+	row := q.db.QueryRow(ctx, getActiveTechnician, technicianID)
+	var technician_id pgtype.UUID
+	err := row.Scan(&technician_id)
+	return technician_id, err
+}
+
+const getTechnicianSkill = `-- name: GetTechnicianSkill :one
+SELECT technician_skill.technician_skill_id, technician_skill.technician_id,
+  technician_skill.skill_id, technician_skill.created_at, technician_skill.updated_at
+FROM appointment_scheduler.technician_skills technician_skill
+JOIN appointment_scheduler.technicians ON technicians.technician_id = technician_skill.technician_id
+WHERE technician_skill.technician_skill_id = $1
+  AND technician_skill.technician_id = $2
+  AND technicians.is_active = TRUE
+  AND technicians.deleted_at IS NULL
+`
+
+type GetTechnicianSkillParams struct {
+	TechnicianSkillID pgtype.UUID
+	TechnicianID      pgtype.UUID
+}
+
+type GetTechnicianSkillRow struct {
+	TechnicianSkillID pgtype.UUID
+	TechnicianID      pgtype.UUID
+	SkillID           pgtype.UUID
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+}
+
+func (q *Queries) GetTechnicianSkill(ctx context.Context, arg GetTechnicianSkillParams) (GetTechnicianSkillRow, error) {
+	row := q.db.QueryRow(ctx, getTechnicianSkill, arg.TechnicianSkillID, arg.TechnicianID)
+	var i GetTechnicianSkillRow
+	err := row.Scan(
+		&i.TechnicianSkillID,
+		&i.TechnicianID,
+		&i.SkillID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const listTechnicianSkills = `-- name: ListTechnicianSkills :many
+SELECT technician_skill_id, technician_id, skill_id, created_at, updated_at
+FROM appointment_scheduler.technician_skills
+WHERE technician_id = $1
+ORDER BY created_at, technician_skill_id
+`
+
+type ListTechnicianSkillsRow struct {
+	TechnicianSkillID pgtype.UUID
+	TechnicianID      pgtype.UUID
+	SkillID           pgtype.UUID
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+}
+
+func (q *Queries) ListTechnicianSkills(ctx context.Context, technicianID pgtype.UUID) ([]ListTechnicianSkillsRow, error) {
+	rows, err := q.db.Query(ctx, listTechnicianSkills, technicianID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListTechnicianSkillsRow{}
+	for rows.Next() {
+		var i ListTechnicianSkillsRow
+		if err := rows.Scan(
+			&i.TechnicianSkillID,
+			&i.TechnicianID,
+			&i.SkillID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateTechnicianSkill = `-- name: UpdateTechnicianSkill :one
+UPDATE appointment_scheduler.technician_skills technician_skill
+SET skill_id = skills.skill_id, updated_at = $1
+FROM appointment_scheduler.technicians
+JOIN appointment_scheduler.skills ON skills.skill_id = $4
+WHERE technician_skill.technician_skill_id = $2
+  AND technician_skill.technician_id = $3
+  AND technicians.technician_id = technician_skill.technician_id
+  AND technicians.is_active = TRUE
+  AND technicians.deleted_at IS NULL
+  AND skills.is_active = TRUE
+RETURNING technician_skill.technician_skill_id, technician_skill.technician_id,
+  technician_skill.skill_id, technician_skill.created_at, technician_skill.updated_at
+`
+
+type UpdateTechnicianSkillParams struct {
+	UpdatedAt         time.Time
+	TechnicianSkillID pgtype.UUID
+	TechnicianID      pgtype.UUID
+	SkillID           pgtype.UUID
+}
+
+type UpdateTechnicianSkillRow struct {
+	TechnicianSkillID pgtype.UUID
+	TechnicianID      pgtype.UUID
+	SkillID           pgtype.UUID
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+}
+
+func (q *Queries) UpdateTechnicianSkill(ctx context.Context, arg UpdateTechnicianSkillParams) (UpdateTechnicianSkillRow, error) {
+	row := q.db.QueryRow(ctx, updateTechnicianSkill,
+		arg.UpdatedAt,
+		arg.TechnicianSkillID,
+		arg.TechnicianID,
+		arg.SkillID,
+	)
+	var i UpdateTechnicianSkillRow
+	err := row.Scan(
+		&i.TechnicianSkillID,
+		&i.TechnicianID,
+		&i.SkillID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }

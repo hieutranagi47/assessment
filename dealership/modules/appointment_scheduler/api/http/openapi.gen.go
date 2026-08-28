@@ -176,6 +176,11 @@ type CreateTechnicianRequest struct {
 	Phone    string               `json:"phone"`
 }
 
+// CreateTechnicianSkillRequest defines model for CreateTechnicianSkillRequest.
+type CreateTechnicianSkillRequest struct {
+	SkillId openapi_types.UUID `json:"skill_id"`
+}
+
 // CreateVehicleRequest defines model for CreateVehicleRequest.
 type CreateVehicleRequest struct {
 	Make              string  `json:"make"`
@@ -355,6 +360,15 @@ type TechnicianPage struct {
 	Offset int          `json:"offset"`
 }
 
+// TechnicianSkill defines model for TechnicianSkill.
+type TechnicianSkill struct {
+	CreatedAt         time.Time          `json:"createdAt"`
+	SkillId           openapi_types.UUID `json:"skillId"`
+	TechnicianId      openapi_types.UUID `json:"technicianId"`
+	TechnicianSkillId openapi_types.UUID `json:"technicianSkillId"`
+	UpdatedAt         time.Time          `json:"updatedAt"`
+}
+
 // UpdateCustomerRequest defines model for UpdateCustomerRequest.
 type UpdateCustomerRequest struct {
 	Email *OptionalNullableString `json:"email,omitempty"`
@@ -406,6 +420,11 @@ type UpdateTechnicianRequest struct {
 	IsActive *bool                   `json:"isActive,omitempty"`
 	Name     *string                 `json:"name,omitempty"`
 	Phone    *string                 `json:"phone,omitempty"`
+}
+
+// UpdateTechnicianSkillRequest defines model for UpdateTechnicianSkillRequest.
+type UpdateTechnicianSkillRequest struct {
+	SkillId openapi_types.UUID `json:"skill_id"`
 }
 
 // UpdateVehicleRequest defines model for UpdateVehicleRequest.
@@ -461,6 +480,9 @@ type ServiceTypeId = openapi_types.UUID
 
 // TechnicianId defines model for TechnicianId.
 type TechnicianId = openapi_types.UUID
+
+// TechnicianSkillId defines model for TechnicianSkillId.
+type TechnicianSkillId = openapi_types.UUID
 
 // VehicleId defines model for VehicleId.
 type VehicleId = openapi_types.UUID
@@ -570,6 +592,15 @@ type TechnicianCreated = Technician
 // TechnicianFound defines model for TechnicianFound.
 type TechnicianFound = Technician
 
+// TechnicianSkillCreated defines model for TechnicianSkillCreated.
+type TechnicianSkillCreated = TechnicianSkill
+
+// TechnicianSkillUpdated defines model for TechnicianSkillUpdated.
+type TechnicianSkillUpdated = TechnicianSkill
+
+// TechnicianSkillsListed defines model for TechnicianSkillsListed.
+type TechnicianSkillsListed = []TechnicianSkill
+
 // TechnicianUpdated defines model for TechnicianUpdated.
 type TechnicianUpdated = Technician
 
@@ -678,6 +709,12 @@ type CreateTechnicianJSONRequestBody = CreateTechnicianRequest
 
 // UpdateTechnicianJSONRequestBody defines body for UpdateTechnician for application/json ContentType.
 type UpdateTechnicianJSONRequestBody = UpdateTechnicianRequest
+
+// CreateTechnicianSkillJSONRequestBody defines body for CreateTechnicianSkill for application/json ContentType.
+type CreateTechnicianSkillJSONRequestBody = CreateTechnicianSkillRequest
+
+// UpdateTechnicianSkillJSONRequestBody defines body for UpdateTechnicianSkill for application/json ContentType.
+type UpdateTechnicianSkillJSONRequestBody = UpdateTechnicianSkillRequest
 
 // UpdateVehicleJSONRequestBody defines body for UpdateVehicle for application/json ContentType.
 type UpdateVehicleJSONRequestBody = UpdateVehicleRequest
@@ -807,6 +844,18 @@ type ServerInterface interface {
 
 	// (PATCH /v1/technicians/{technicianId})
 	UpdateTechnician(ctx *echo.Context, technicianId TechnicianId) error
+
+	// (GET /v1/technicians/{technicianId}/skills)
+	ListTechnicianSkills(ctx *echo.Context, technicianId TechnicianId) error
+
+	// (POST /v1/technicians/{technicianId}/skills)
+	CreateTechnicianSkill(ctx *echo.Context, technicianId TechnicianId) error
+
+	// (DELETE /v1/technicians/{technicianId}/skills/{technicianSkillId})
+	DeleteTechnicianSkill(ctx *echo.Context, technicianId TechnicianId, technicianSkillId TechnicianSkillId) error
+
+	// (PATCH /v1/technicians/{technicianId}/skills/{technicianSkillId})
+	UpdateTechnicianSkill(ctx *echo.Context, technicianId TechnicianId, technicianSkillId TechnicianSkillId) error
 
 	// (DELETE /v1/vehicles/{vehicleId})
 	DeleteVehicle(ctx *echo.Context, vehicleId VehicleId) error
@@ -1702,6 +1751,86 @@ func (w *ServerInterfaceWrapper) UpdateTechnician(ctx *echo.Context) error {
 	return err
 }
 
+// ListTechnicianSkills converts echo context to params.
+func (w *ServerInterfaceWrapper) ListTechnicianSkills(ctx *echo.Context) error {
+	var err error
+	// ------------- Path parameter "technicianId" -------------
+	var technicianId TechnicianId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "technicianId", ctx.Param("technicianId"), &technicianId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter technicianId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListTechnicianSkills(ctx, technicianId)
+	return err
+}
+
+// CreateTechnicianSkill converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateTechnicianSkill(ctx *echo.Context) error {
+	var err error
+	// ------------- Path parameter "technicianId" -------------
+	var technicianId TechnicianId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "technicianId", ctx.Param("technicianId"), &technicianId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter technicianId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateTechnicianSkill(ctx, technicianId)
+	return err
+}
+
+// DeleteTechnicianSkill converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteTechnicianSkill(ctx *echo.Context) error {
+	var err error
+	// ------------- Path parameter "technicianId" -------------
+	var technicianId TechnicianId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "technicianId", ctx.Param("technicianId"), &technicianId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter technicianId: %s", err))
+	}
+
+	// ------------- Path parameter "technicianSkillId" -------------
+	var technicianSkillId TechnicianSkillId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "technicianSkillId", ctx.Param("technicianSkillId"), &technicianSkillId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter technicianSkillId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteTechnicianSkill(ctx, technicianId, technicianSkillId)
+	return err
+}
+
+// UpdateTechnicianSkill converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateTechnicianSkill(ctx *echo.Context) error {
+	var err error
+	// ------------- Path parameter "technicianId" -------------
+	var technicianId TechnicianId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "technicianId", ctx.Param("technicianId"), &technicianId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter technicianId: %s", err))
+	}
+
+	// ------------- Path parameter "technicianSkillId" -------------
+	var technicianSkillId TechnicianSkillId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "technicianSkillId", ctx.Param("technicianSkillId"), &technicianSkillId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter technicianSkillId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateTechnicianSkill(ctx, technicianId, technicianSkillId)
+	return err
+}
+
 // DeleteVehicle converts echo context to params.
 func (w *ServerInterfaceWrapper) DeleteVehicle(ctx *echo.Context) error {
 	var err error
@@ -1838,6 +1967,10 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.DELETE(options.BaseURL+"/v1/technicians/:technicianId", wrapper.DeleteTechnician, options.OperationMiddlewares["deleteTechnician"]...)
 	router.GET(options.BaseURL+"/v1/technicians/:technicianId", wrapper.GetTechnician, options.OperationMiddlewares["getTechnician"]...)
 	router.PATCH(options.BaseURL+"/v1/technicians/:technicianId", wrapper.UpdateTechnician, options.OperationMiddlewares["updateTechnician"]...)
+	router.GET(options.BaseURL+"/v1/technicians/:technicianId/skills", wrapper.ListTechnicianSkills, options.OperationMiddlewares["listTechnicianSkills"]...)
+	router.POST(options.BaseURL+"/v1/technicians/:technicianId/skills", wrapper.CreateTechnicianSkill, options.OperationMiddlewares["createTechnicianSkill"]...)
+	router.DELETE(options.BaseURL+"/v1/technicians/:technicianId/skills/:technicianSkillId", wrapper.DeleteTechnicianSkill, options.OperationMiddlewares["deleteTechnicianSkill"]...)
+	router.PATCH(options.BaseURL+"/v1/technicians/:technicianId/skills/:technicianSkillId", wrapper.UpdateTechnicianSkill, options.OperationMiddlewares["updateTechnicianSkill"]...)
 	router.DELETE(options.BaseURL+"/v1/vehicles/:vehicleId", wrapper.DeleteVehicle, options.OperationMiddlewares["deleteVehicle"]...)
 	router.GET(options.BaseURL+"/v1/vehicles/:vehicleId", wrapper.GetVehicle, options.OperationMiddlewares["getVehicle"]...)
 	router.PATCH(options.BaseURL+"/v1/vehicles/:vehicleId", wrapper.UpdateVehicle, options.OperationMiddlewares["updateVehicle"]...)
@@ -1920,6 +2053,12 @@ type ServiceTypesListedJSONResponse []ServiceType
 type TechnicianCreatedJSONResponse Technician
 
 type TechnicianFoundJSONResponse Technician
+
+type TechnicianSkillCreatedJSONResponse TechnicianSkill
+
+type TechnicianSkillUpdatedJSONResponse TechnicianSkill
+
+type TechnicianSkillsListedJSONResponse []TechnicianSkill
 
 type TechnicianUpdatedJSONResponse Technician
 
@@ -5856,6 +5995,400 @@ func (response UpdateTechnician500JSONResponse) VisitUpdateTechnicianResponse(w 
 	return err
 }
 
+type ListTechnicianSkillsRequestObject struct {
+	TechnicianId TechnicianId `json:"technicianId"`
+}
+
+type ListTechnicianSkillsResponseObject interface {
+	VisitListTechnicianSkillsResponse(w http.ResponseWriter) error
+}
+
+type ListTechnicianSkills200JSONResponse struct {
+	TechnicianSkillsListedJSONResponse
+}
+
+func (response ListTechnicianSkills200JSONResponse) VisitListTechnicianSkillsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTechnicianSkills400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ListTechnicianSkills400JSONResponse) VisitListTechnicianSkillsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTechnicianSkills401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListTechnicianSkills401JSONResponse) VisitListTechnicianSkillsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTechnicianSkills403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListTechnicianSkills403JSONResponse) VisitListTechnicianSkillsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTechnicianSkills404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ListTechnicianSkills404JSONResponse) VisitListTechnicianSkillsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTechnicianSkills500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ListTechnicianSkills500JSONResponse) VisitListTechnicianSkillsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTechnicianSkillRequestObject struct {
+	TechnicianId TechnicianId `json:"technicianId"`
+	Body         *CreateTechnicianSkillJSONRequestBody
+}
+
+type CreateTechnicianSkillResponseObject interface {
+	VisitCreateTechnicianSkillResponse(w http.ResponseWriter) error
+}
+
+type CreateTechnicianSkill201JSONResponse struct {
+	TechnicianSkillCreatedJSONResponse
+}
+
+func (response CreateTechnicianSkill201JSONResponse) VisitCreateTechnicianSkillResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTechnicianSkill400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreateTechnicianSkill400JSONResponse) VisitCreateTechnicianSkillResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTechnicianSkill401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response CreateTechnicianSkill401JSONResponse) VisitCreateTechnicianSkillResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTechnicianSkill403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response CreateTechnicianSkill403JSONResponse) VisitCreateTechnicianSkillResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTechnicianSkill404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response CreateTechnicianSkill404JSONResponse) VisitCreateTechnicianSkillResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTechnicianSkill409JSONResponse struct{ ConflictJSONResponse }
+
+func (response CreateTechnicianSkill409JSONResponse) VisitCreateTechnicianSkillResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTechnicianSkill500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response CreateTechnicianSkill500JSONResponse) VisitCreateTechnicianSkillResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteTechnicianSkillRequestObject struct {
+	TechnicianId      TechnicianId      `json:"technicianId"`
+	TechnicianSkillId TechnicianSkillId `json:"technicianSkillId"`
+}
+
+type DeleteTechnicianSkillResponseObject interface {
+	VisitDeleteTechnicianSkillResponse(w http.ResponseWriter) error
+}
+
+type DeleteTechnicianSkill204Response struct {
+}
+
+func (response DeleteTechnicianSkill204Response) VisitDeleteTechnicianSkillResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteTechnicianSkill401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response DeleteTechnicianSkill401JSONResponse) VisitDeleteTechnicianSkillResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteTechnicianSkill403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response DeleteTechnicianSkill403JSONResponse) VisitDeleteTechnicianSkillResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteTechnicianSkill404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response DeleteTechnicianSkill404JSONResponse) VisitDeleteTechnicianSkillResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteTechnicianSkill500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response DeleteTechnicianSkill500JSONResponse) VisitDeleteTechnicianSkillResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateTechnicianSkillRequestObject struct {
+	TechnicianId      TechnicianId      `json:"technicianId"`
+	TechnicianSkillId TechnicianSkillId `json:"technicianSkillId"`
+	Body              *UpdateTechnicianSkillJSONRequestBody
+}
+
+type UpdateTechnicianSkillResponseObject interface {
+	VisitUpdateTechnicianSkillResponse(w http.ResponseWriter) error
+}
+
+type UpdateTechnicianSkill200JSONResponse struct {
+	TechnicianSkillUpdatedJSONResponse
+}
+
+func (response UpdateTechnicianSkill200JSONResponse) VisitUpdateTechnicianSkillResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateTechnicianSkill400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response UpdateTechnicianSkill400JSONResponse) VisitUpdateTechnicianSkillResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateTechnicianSkill401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response UpdateTechnicianSkill401JSONResponse) VisitUpdateTechnicianSkillResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateTechnicianSkill403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response UpdateTechnicianSkill403JSONResponse) VisitUpdateTechnicianSkillResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateTechnicianSkill404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response UpdateTechnicianSkill404JSONResponse) VisitUpdateTechnicianSkillResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateTechnicianSkill409JSONResponse struct{ ConflictJSONResponse }
+
+func (response UpdateTechnicianSkill409JSONResponse) VisitUpdateTechnicianSkillResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateTechnicianSkill500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response UpdateTechnicianSkill500JSONResponse) VisitUpdateTechnicianSkillResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type DeleteVehicleRequestObject struct {
 	VehicleId VehicleId `json:"vehicleId"`
 }
@@ -6258,6 +6791,18 @@ type StrictServerInterface interface {
 
 	// (PATCH /v1/technicians/{technicianId})
 	UpdateTechnician(ctx context.Context, request UpdateTechnicianRequestObject) (UpdateTechnicianResponseObject, error)
+
+	// (GET /v1/technicians/{technicianId}/skills)
+	ListTechnicianSkills(ctx context.Context, request ListTechnicianSkillsRequestObject) (ListTechnicianSkillsResponseObject, error)
+
+	// (POST /v1/technicians/{technicianId}/skills)
+	CreateTechnicianSkill(ctx context.Context, request CreateTechnicianSkillRequestObject) (CreateTechnicianSkillResponseObject, error)
+
+	// (DELETE /v1/technicians/{technicianId}/skills/{technicianSkillId})
+	DeleteTechnicianSkill(ctx context.Context, request DeleteTechnicianSkillRequestObject) (DeleteTechnicianSkillResponseObject, error)
+
+	// (PATCH /v1/technicians/{technicianId}/skills/{technicianSkillId})
+	UpdateTechnicianSkill(ctx context.Context, request UpdateTechnicianSkillRequestObject) (UpdateTechnicianSkillResponseObject, error)
 
 	// (DELETE /v1/vehicles/{vehicleId})
 	DeleteVehicle(ctx context.Context, request DeleteVehicleRequestObject) (DeleteVehicleResponseObject, error)
@@ -7637,6 +8182,140 @@ func (sh *strictHandler) UpdateTechnician(ctx *echo.Context, technicianId Techni
 		return err
 	} else if validResponse, ok := response.(UpdateTechnicianResponseObject); ok {
 		return validResponse.VisitUpdateTechnicianResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListTechnicianSkills operation middleware
+func (sh *strictHandler) ListTechnicianSkills(ctx *echo.Context, technicianId TechnicianId) error {
+	var request ListTechnicianSkillsRequestObject
+
+	request.TechnicianId = technicianId
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListTechnicianSkills(ctx.Request().Context(), request.(ListTechnicianSkillsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListTechnicianSkills")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListTechnicianSkillsResponseObject); ok {
+		return validResponse.VisitListTechnicianSkillsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateTechnicianSkill operation middleware
+func (sh *strictHandler) CreateTechnicianSkill(ctx *echo.Context, technicianId TechnicianId) error {
+	var request CreateTechnicianSkillRequestObject
+
+	request.TechnicianId = technicianId
+
+	var body CreateTechnicianSkillJSONRequestBody
+	var err error
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+		// Bind only the request body, so that path and query parameters
+		// are not also bound into the body struct.
+		err = echo.BindBody(ctx, &body)
+	} else {
+		// A custom binder is installed on the Echo instance; defer to it
+		// entirely, since echo.Binder does not expose body-only binding.
+		err = ctx.Bind(&body)
+	}
+	if err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateTechnicianSkill(ctx.Request().Context(), request.(CreateTechnicianSkillRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateTechnicianSkill")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateTechnicianSkillResponseObject); ok {
+		return validResponse.VisitCreateTechnicianSkillResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DeleteTechnicianSkill operation middleware
+func (sh *strictHandler) DeleteTechnicianSkill(ctx *echo.Context, technicianId TechnicianId, technicianSkillId TechnicianSkillId) error {
+	var request DeleteTechnicianSkillRequestObject
+
+	request.TechnicianId = technicianId
+	request.TechnicianSkillId = technicianSkillId
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteTechnicianSkill(ctx.Request().Context(), request.(DeleteTechnicianSkillRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteTechnicianSkill")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DeleteTechnicianSkillResponseObject); ok {
+		return validResponse.VisitDeleteTechnicianSkillResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateTechnicianSkill operation middleware
+func (sh *strictHandler) UpdateTechnicianSkill(ctx *echo.Context, technicianId TechnicianId, technicianSkillId TechnicianSkillId) error {
+	var request UpdateTechnicianSkillRequestObject
+
+	request.TechnicianId = technicianId
+	request.TechnicianSkillId = technicianSkillId
+
+	var body UpdateTechnicianSkillJSONRequestBody
+	var err error
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+		// Bind only the request body, so that path and query parameters
+		// are not also bound into the body struct.
+		err = echo.BindBody(ctx, &body)
+	} else {
+		// A custom binder is installed on the Echo instance; defer to it
+		// entirely, since echo.Binder does not expose body-only binding.
+		err = ctx.Bind(&body)
+	}
+	if err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateTechnicianSkill(ctx.Request().Context(), request.(UpdateTechnicianSkillRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateTechnicianSkill")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateTechnicianSkillResponseObject); ok {
+		return validResponse.VisitUpdateTechnicianSkillResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

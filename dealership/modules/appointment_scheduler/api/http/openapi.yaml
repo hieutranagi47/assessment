@@ -661,6 +661,68 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "409": { $ref: "#/components/responses/Conflict" }
         "500": { $ref: "#/components/responses/InternalServerError" }
+  /v1/technicians/{technicianId}/skills:
+    parameters:
+      - $ref: "#/components/parameters/TechnicianId"
+    get:
+      operationId: listTechnicianSkills
+      tags: [Technician skills]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/TechnicianSkillsListed" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    post:
+      operationId: createTechnicianSkill
+      tags: [Technician skills]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateTechnicianSkillRequest" }
+      responses:
+        "201": { $ref: "#/components/responses/TechnicianSkillCreated" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /v1/technicians/{technicianId}/skills/{technicianSkillId}:
+    parameters:
+      - $ref: "#/components/parameters/TechnicianId"
+      - $ref: "#/components/parameters/TechnicianSkillId"
+    patch:
+      operationId: updateTechnicianSkill
+      tags: [Technician skills]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateTechnicianSkillRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/TechnicianSkillUpdated" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    delete:
+      operationId: deleteTechnicianSkill
+      tags: [Technician skills]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "204": { description: Technician skill deleted }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /v1/vehicles/{vehicleId}:
     parameters:
       - $ref: "#/components/parameters/VehicleId"
@@ -746,6 +808,25 @@ components:
           items: { $ref: "#/components/schemas/Technician" }
         limit: { type: integer }
         offset: { type: integer }
+    CreateTechnicianSkillRequest:
+      type: object
+      required: [skill_id]
+      properties:
+        skill_id: { type: string, format: uuid }
+    UpdateTechnicianSkillRequest:
+      type: object
+      required: [skill_id]
+      properties:
+        skill_id: { type: string, format: uuid }
+    TechnicianSkill:
+      type: object
+      required: [technicianSkillId, technicianId, skillId, createdAt, updatedAt]
+      properties:
+        technicianSkillId: { type: string, format: uuid }
+        technicianId: { type: string, format: uuid }
+        skillId: { type: string, format: uuid }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
     CreateCustomerRequest:
       type: object
       required: [name, phone]
@@ -1179,6 +1260,23 @@ components:
       content:
         application/json:
           schema: { $ref: "#/components/schemas/TechnicianPage" }
+    TechnicianSkillCreated:
+      description: Technician skill assigned
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/TechnicianSkill" }
+    TechnicianSkillUpdated:
+      description: Technician skill updated
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/TechnicianSkill" }
+    TechnicianSkillsListed:
+      description: Skills assigned to the technician
+      content:
+        application/json:
+          schema:
+            type: array
+            items: { $ref: "#/components/schemas/TechnicianSkill" }
     ServiceTypeCreated:
       description: Service type created
       content:
@@ -1310,6 +1408,11 @@ components:
   parameters:
     TechnicianId:
       name: technicianId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    TechnicianSkillId:
+      name: technicianSkillId
       in: path
       required: true
       schema: { type: string, format: uuid }

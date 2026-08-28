@@ -119,6 +119,110 @@ func (r *DealershipRepository) DeactivateTechnician(ctx context.Context, dealers
 	return nil
 }
 
+func (r *DealershipRepository) CreateTechnicianSkill(ctx context.Context, technicianSkill domain.TechnicianSkill) (domain.TechnicianSkill, error) {
+	if err := r.ensureActiveTechnicianSkillTargets(ctx, technicianSkill.TechnicianID(), technicianSkill.SkillID()); err != nil {
+		return domain.TechnicianSkill{}, err
+	}
+	row, err := r.queries.CreateTechnicianSkill(ctx, dbmodels.CreateTechnicianSkillParams{
+		TechnicianSkillID: toPGUUID(technicianSkill.ID()),
+		TechnicianID:      toPGUUID(technicianSkill.TechnicianID()),
+		SkillID:           toPGUUID(technicianSkill.SkillID()),
+		CreatedAt:         technicianSkill.CreatedAt(),
+		UpdatedAt:         technicianSkill.UpdatedAt(),
+	})
+	return technicianSkillFromRow(row.TechnicianSkillID, row.TechnicianID, row.SkillID, row.CreatedAt, row.UpdatedAt, err)
+}
+
+func (r *DealershipRepository) GetTechnicianSkill(ctx context.Context, technicianID, technicianSkillID uuid.UUID) (domain.TechnicianSkill, error) {
+	row, err := r.queries.GetTechnicianSkill(ctx, dbmodels.GetTechnicianSkillParams{
+		TechnicianID:      toPGUUID(technicianID),
+		TechnicianSkillID: toPGUUID(technicianSkillID),
+	})
+	return technicianSkillFromRow(row.TechnicianSkillID, row.TechnicianID, row.SkillID, row.CreatedAt, row.UpdatedAt, err)
+}
+
+func (r *DealershipRepository) ListTechnicianSkills(ctx context.Context, technicianID uuid.UUID) ([]domain.TechnicianSkill, error) {
+	if _, err := r.queries.GetActiveTechnician(ctx, toPGUUID(technicianID)); errors.Is(err, pgx.ErrNoRows) {
+		return nil, app.ErrTechnicianNotFound
+	} else if err != nil {
+		return nil, err
+	}
+	rows, err := r.queries.ListTechnicianSkills(ctx, toPGUUID(technicianID))
+	if err != nil {
+		return nil, err
+	}
+	items := make([]domain.TechnicianSkill, 0, len(rows))
+	for _, row := range rows {
+		item, err := technicianSkillFromRow(row.TechnicianSkillID, row.TechnicianID, row.SkillID, row.CreatedAt, row.UpdatedAt, nil)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	return items, nil
+}
+
+func (r *DealershipRepository) UpdateTechnicianSkill(ctx context.Context, technicianSkill domain.TechnicianSkill) (domain.TechnicianSkill, error) {
+	if err := r.ensureActiveTechnicianSkillTargets(ctx, technicianSkill.TechnicianID(), technicianSkill.SkillID()); err != nil {
+		return domain.TechnicianSkill{}, err
+	}
+	row, err := r.queries.UpdateTechnicianSkill(ctx, dbmodels.UpdateTechnicianSkillParams{
+		TechnicianSkillID: toPGUUID(technicianSkill.ID()),
+		TechnicianID:      toPGUUID(technicianSkill.TechnicianID()),
+		SkillID:           toPGUUID(technicianSkill.SkillID()),
+		UpdatedAt:         technicianSkill.UpdatedAt(),
+	})
+	return technicianSkillFromRow(row.TechnicianSkillID, row.TechnicianID, row.SkillID, row.CreatedAt, row.UpdatedAt, err)
+}
+
+func (r *DealershipRepository) DeleteTechnicianSkill(ctx context.Context, technicianID, technicianSkillID uuid.UUID) error {
+	if _, err := r.queries.GetActiveTechnician(ctx, toPGUUID(technicianID)); errors.Is(err, pgx.ErrNoRows) {
+		return app.ErrTechnicianNotFound
+	} else if err != nil {
+		return err
+	}
+	deleted, err := r.queries.DeleteTechnicianSkill(ctx, dbmodels.DeleteTechnicianSkillParams{
+		TechnicianID:      toPGUUID(technicianID),
+		TechnicianSkillID: toPGUUID(technicianSkillID),
+	})
+	if err != nil {
+		return err
+	}
+	if deleted == 0 {
+		return app.ErrTechnicianSkillNotFound
+	}
+	return nil
+}
+
+func technicianSkillFromRow(id, technicianID, skillID pgtype.UUID, createdAt, updatedAt time.Time, err error) (domain.TechnicianSkill, error) {
+	if common.IsUniqueViolationError(err, "technician_skills_technician_skill_unique") {
+		return domain.TechnicianSkill{}, app.ErrTechnicianSkillTaken
+	}
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.TechnicianSkill{}, app.ErrTechnicianSkillNotFound
+	}
+	if err != nil {
+		return domain.TechnicianSkill{}, err
+	}
+	return domain.RehydrateTechnicianSkill(fromPGUUID(id), fromPGUUID(technicianID), fromPGUUID(skillID), createdAt, updatedAt)
+}
+
+func (r *DealershipRepository) ensureActiveTechnicianSkillTargets(ctx context.Context, technicianID, skillID uuid.UUID) error {
+	if _, err := r.queries.GetActiveTechnician(ctx, toPGUUID(technicianID)); errors.Is(err, pgx.ErrNoRows) {
+		return app.ErrTechnicianNotFound
+	} else if err != nil {
+		return err
+	}
+	isActive, err := r.queries.ActiveSkillExists(ctx, toPGUUID(skillID))
+	if err != nil {
+		return err
+	}
+	if !isActive {
+		return app.ErrSkillNotFound
+	}
+	return nil
+}
+
 func technicianFromRow(technicianID, userID pgtype.UUID, name string, phone, email *string, isActive bool, createdAt, updatedAt time.Time, err error) (domain.Technician, error) {
 	if errors.Is(err, pgx.ErrNoRows) {
 		return domain.Technician{}, app.ErrTechnicianNotFound

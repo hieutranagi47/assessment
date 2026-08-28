@@ -163,6 +163,7 @@ type AppointmentSchedulerSkill struct {
 	Name      string
 	CreatedAt time.Time
 	UpdatedAt time.Time
+	IsActive  bool
 }
 
 type AppointmentSchedulerTechnician struct {
@@ -188,10 +189,9 @@ type AppointmentSchedulerTechnicianShift struct {
 type AppointmentSchedulerTechnicianSkill struct {
 	TechnicianSkillID pgtype.UUID
 	TechnicianID      pgtype.UUID
-	SkillCode         string
-	ExpiresAt         pgtype.Timestamptz
 	CreatedAt         time.Time
-	DeletedAt         pgtype.Timestamptz
+	SkillID           pgtype.UUID
+	UpdatedAt         time.Time
 }
 
 type AppointmentSchedulerTechnicianTimeOff struct {

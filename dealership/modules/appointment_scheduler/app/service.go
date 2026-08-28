@@ -43,6 +43,8 @@ var (
 	ErrTechnicianPhoneTaken                     = errors.New("technician phone already exists")
 	ErrTechnicianEmailTaken                     = errors.New("technician email already exists")
 	ErrTechnicianHasFutureAppointments          = errors.New("technician has future active appointments")
+	ErrTechnicianSkillNotFound                  = errors.New("technician skill not found")
+	ErrTechnicianSkillTaken                     = errors.New("technician already has this skill")
 	ErrDealershipOperationTimeNotFound          = errors.New("dealership operation time not found")
 	ErrDealershipOperationTimeOverlaps          = errors.New("dealership operation time overlaps an existing interval")
 )
@@ -140,6 +142,17 @@ type TechnicianRepository interface {
 	UpdateTechnician(context.Context, uuid.UUID, domain.Technician) (domain.Technician, error)
 	HasFutureActiveTechnicianAppointments(context.Context, uuid.UUID, time.Time) (bool, error)
 	DeactivateTechnician(context.Context, uuid.UUID, uuid.UUID, time.Time) error
+}
+
+// TechnicianSkillRepository uses a global scheduler-admin role check because
+// technician skill administration is not dealership-scoped in the API.
+type TechnicianSkillRepository interface {
+	IsActiveSchedulerAdmin(context.Context, uuid.UUID) (bool, error)
+	CreateTechnicianSkill(context.Context, domain.TechnicianSkill) (domain.TechnicianSkill, error)
+	GetTechnicianSkill(context.Context, uuid.UUID, uuid.UUID) (domain.TechnicianSkill, error)
+	ListTechnicianSkills(context.Context, uuid.UUID) ([]domain.TechnicianSkill, error)
+	UpdateTechnicianSkill(context.Context, domain.TechnicianSkill) (domain.TechnicianSkill, error)
+	DeleteTechnicianSkill(context.Context, uuid.UUID, uuid.UUID) error
 }
 
 // ServiceBayCapabilityRepository scopes every association through its owning
@@ -299,6 +312,9 @@ type UpdateTechnicianInput struct {
 	EmailPresent bool
 	IsActive     *bool
 }
+
+type CreateTechnicianSkillInput struct{ SkillID uuid.UUID }
+type UpdateTechnicianSkillInput struct{ SkillID *uuid.UUID }
 
 type CreateServiceTypeRequiredSkillInput struct{ SkillID uuid.UUID }
 type UpdateServiceTypeRequiredSkillInput struct{ SkillID *uuid.UUID }
@@ -1575,6 +1591,93 @@ func invalidTechnicianInput(err error) common.Error {
 		return common.Error{HttpErrorCode: 422, PublicError: err.Error(), ErrorSlug: "invalid_technician_details"}
 	}
 	return common.NewInvalidInputError("invalid_technician_details", "%s", err)
+}
+
+func (s *Service) CreateTechnicianSkill(ctx context.Context, actorID, technicianID uuid.UUID, input CreateTechnicianSkillInput) (domain.TechnicianSkill, error) {
+	repository, err := s.authorizeTechnicianSkills(ctx, actorID)
+	if err != nil {
+		return domain.TechnicianSkill{}, err
+	}
+	skill, err := domain.NewTechnicianSkill(s.newID(), technicianID, input.SkillID, s.now())
+	if err != nil {
+		return domain.TechnicianSkill{}, invalidTechnicianSkillInput(err)
+	}
+	result, err := repository.CreateTechnicianSkill(ctx, skill)
+	return result, technicianSkillError(err)
+}
+
+func (s *Service) ListTechnicianSkills(ctx context.Context, actorID, technicianID uuid.UUID) ([]domain.TechnicianSkill, error) {
+	repository, err := s.authorizeTechnicianSkills(ctx, actorID)
+	if err != nil {
+		return nil, err
+	}
+	result, err := repository.ListTechnicianSkills(ctx, technicianID)
+	return result, technicianSkillError(err)
+}
+
+func (s *Service) UpdateTechnicianSkill(ctx context.Context, actorID, technicianID, technicianSkillID uuid.UUID, input UpdateTechnicianSkillInput) (domain.TechnicianSkill, error) {
+	if input.SkillID == nil {
+		return domain.TechnicianSkill{}, common.NewInvalidInputError("request_body_required", "skill_id is required")
+	}
+	repository, err := s.authorizeTechnicianSkills(ctx, actorID)
+	if err != nil {
+		return domain.TechnicianSkill{}, err
+	}
+	current, err := repository.GetTechnicianSkill(ctx, technicianID, technicianSkillID)
+	if err != nil {
+		return domain.TechnicianSkill{}, technicianSkillError(err)
+	}
+	updated, err := current.WithSkill(*input.SkillID, s.now())
+	if err != nil {
+		return domain.TechnicianSkill{}, invalidTechnicianSkillInput(err)
+	}
+	result, err := repository.UpdateTechnicianSkill(ctx, updated)
+	return result, technicianSkillError(err)
+}
+
+func (s *Service) DeleteTechnicianSkill(ctx context.Context, actorID, technicianID, technicianSkillID uuid.UUID) error {
+	repository, err := s.authorizeTechnicianSkills(ctx, actorID)
+	if err != nil {
+		return err
+	}
+	return technicianSkillError(repository.DeleteTechnicianSkill(ctx, technicianID, technicianSkillID))
+}
+
+func (s *Service) authorizeTechnicianSkills(ctx context.Context, actorID uuid.UUID) (TechnicianSkillRepository, error) {
+	if actorID == uuid.Nil {
+		return nil, common.NewUnauthorizedError("authentication_required", "authentication required")
+	}
+	repository, ok := s.repository.(TechnicianSkillRepository)
+	if !ok {
+		return nil, errors.New("technician skill repository is not configured")
+	}
+	isAdmin, err := repository.IsActiveSchedulerAdmin(ctx, actorID)
+	if err != nil {
+		return nil, err
+	}
+	if !isAdmin {
+		return nil, common.NewForbiddenError("technician_skill_access_forbidden", "you are not allowed to manage technician skills")
+	}
+	return repository, nil
+}
+
+func technicianSkillError(err error) error {
+	switch {
+	case errors.Is(err, ErrTechnicianNotFound):
+		return common.NewNotFoundError("technician_not_found", "technician was not found")
+	case errors.Is(err, ErrSkillNotFound):
+		return common.NewNotFoundError("skill_not_found", "skill was not found")
+	case errors.Is(err, ErrTechnicianSkillNotFound):
+		return common.NewNotFoundError("technician_skill_not_found", "technician skill was not found")
+	case errors.Is(err, ErrTechnicianSkillTaken):
+		return common.NewConflictError("technician_skill_taken", "the technician already has this skill")
+	default:
+		return err
+	}
+}
+
+func invalidTechnicianSkillInput(err error) common.Error {
+	return common.NewInvalidInputError("invalid_technician_skill", "%s", err)
 }
 
 type activeAuthUser struct {
