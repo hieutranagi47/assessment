@@ -16,6 +16,138 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+func (r *DealershipRepository) GetEmployeeDealership(ctx context.Context, authUserID uuid.UUID) (uuid.UUID, error) {
+	dealershipID, err := r.queries.GetActiveSchedulerEmployeeDealership(ctx, toPGUUID(authUserID))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return uuid.Nil, app.ErrTechnicianNotFound
+	}
+	return fromPGUUID(dealershipID), err
+}
+
+func (r *DealershipRepository) GetSchedulerUserID(ctx context.Context, authUserID uuid.UUID) (uuid.UUID, error) {
+	userID, err := r.queries.GetActiveSchedulerEmployeeID(ctx, toPGUUID(authUserID))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return uuid.Nil, app.ErrTechnicianNotFound
+	}
+	return fromPGUUID(userID), err
+}
+
+func (r *DealershipRepository) CreateTechnicianTimeOff(ctx context.Context, item domain.TechnicianTimeOff) error {
+	return r.withTechnicianScheduleLock(ctx, item.TechnicianID(), func(tx pgx.Tx, queries *dbmodels.Queries) error {
+		conflict, err := hasActiveAppointmentOverlap(ctx, tx, item.TechnicianID(), item.StartsAt(), item.EndsAt())
+		if err != nil {
+			return err
+		}
+		if conflict {
+			return app.ErrTechnicianTimeOffAppointmentConflict
+		}
+		err = queries.CreateTechnicianTimeOff(ctx, dbmodels.CreateTechnicianTimeOffParams{TechnicianTimeOffID: toPGUUID(item.ID()), TechnicianID: toPGUUID(item.TechnicianID()), StartsAt: item.StartsAt(), EndsAt: item.EndsAt(), Reason: item.Reason(), CreatedByUserID: toPGUUID(item.CreatedByUserID()), CreatedAt: item.CreatedAt(), UpdatedAt: item.UpdatedAt()})
+		return technicianTimeOffWriteError(err)
+	})
+}
+
+func (r *DealershipRepository) GetTechnicianTimeOff(ctx context.Context, technicianID, timeOffID uuid.UUID) (domain.TechnicianTimeOff, error) {
+	row, err := r.queries.GetTechnicianTimeOff(ctx, dbmodels.GetTechnicianTimeOffParams{TechnicianTimeOffID: toPGUUID(timeOffID), TechnicianID: toPGUUID(technicianID)})
+	return technicianTimeOffFromValues(row.TechnicianTimeOffID, row.TechnicianID, row.CreatedByUserID, row.StartsAt, row.EndsAt, row.Reason, row.CreatedAt, row.UpdatedAt, err)
+}
+
+func (r *DealershipRepository) ListTechnicianTimeOff(ctx context.Context, technicianID uuid.UUID, from, to *time.Time, limit, offset int) ([]domain.TechnicianTimeOff, error) {
+	if from == nil {
+		value := time.Now().UTC()
+		from = &value
+	}
+	var fromAt, toAt pgtype.Timestamptz
+	if from != nil {
+		fromAt = pgtype.Timestamptz{Time: from.UTC(), Valid: true}
+	}
+	if to != nil {
+		toAt = pgtype.Timestamptz{Time: to.UTC(), Valid: true}
+	}
+	rows, err := r.queries.ListTechnicianTimeOff(ctx, dbmodels.ListTechnicianTimeOffParams{TechnicianID: toPGUUID(technicianID), FromAt: fromAt, ToAt: toAt, Limit: int32(limit), Offset: int32(offset)})
+	if err != nil {
+		return nil, err
+	}
+	items := make([]domain.TechnicianTimeOff, 0, len(rows))
+	for _, row := range rows {
+		item, err := technicianTimeOffFromValues(row.TechnicianTimeOffID, row.TechnicianID, row.CreatedByUserID, row.StartsAt, row.EndsAt, row.Reason, row.CreatedAt, row.UpdatedAt, nil)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	return items, nil
+}
+
+func (r *DealershipRepository) UpdateTechnicianTimeOff(ctx context.Context, item domain.TechnicianTimeOff) error {
+	return r.withTechnicianScheduleLock(ctx, item.TechnicianID(), func(tx pgx.Tx, queries *dbmodels.Queries) error {
+		conflict, err := hasActiveAppointmentOverlap(ctx, tx, item.TechnicianID(), item.StartsAt(), item.EndsAt())
+		if err != nil {
+			return err
+		}
+		if conflict {
+			return app.ErrTechnicianTimeOffAppointmentConflict
+		}
+		rows, err := queries.UpdateTechnicianTimeOff(ctx, dbmodels.UpdateTechnicianTimeOffParams{TechnicianTimeOffID: toPGUUID(item.ID()), TechnicianID: toPGUUID(item.TechnicianID()), StartsAt: item.StartsAt(), EndsAt: item.EndsAt(), Reason: item.Reason(), UpdatedAt: item.UpdatedAt()})
+		if err = technicianTimeOffWriteError(err); err != nil {
+			return err
+		}
+		if rows == 0 {
+			return app.ErrTechnicianTimeOffNotFound
+		}
+		return nil
+	})
+}
+
+func (r *DealershipRepository) DeleteTechnicianTimeOff(ctx context.Context, technicianID, timeOffID uuid.UUID, now time.Time) error {
+	rows, err := r.queries.DeleteTechnicianTimeOff(ctx, dbmodels.DeleteTechnicianTimeOffParams{DeletedAt: now.UTC(), TechnicianTimeOffID: toPGUUID(timeOffID), TechnicianID: toPGUUID(technicianID)})
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return app.ErrTechnicianTimeOffNotFound
+	}
+	return nil
+}
+
+func (r *DealershipRepository) withTechnicianScheduleLock(ctx context.Context, technicianID uuid.UUID, write func(pgx.Tx, *dbmodels.Queries) error) error {
+	tx, err := r.database.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	if _, err := tx.Exec(ctx, "SELECT pg_advisory_xact_lock(hashtextextended($1::text, 0))", technicianID.String()); err != nil {
+		return err
+	}
+	if err := write(tx, r.queries.WithTx(tx)); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
+func hasActiveAppointmentOverlap(ctx context.Context, tx pgx.Tx, technicianID uuid.UUID, startsAt, endsAt time.Time) (bool, error) {
+	var conflict bool
+	err := tx.QueryRow(ctx, "SELECT EXISTS (SELECT 1 FROM appointment_scheduler.appointments WHERE technician_id = $1 AND deleted_at IS NULL AND status IN ('requested', 'checked_in', 'in_progress') AND starts_at < $3 AND ends_at > $2)", toPGUUID(technicianID), startsAt.UTC(), endsAt.UTC()).Scan(&conflict)
+	return conflict, err
+}
+
+func technicianTimeOffFromValues(id, technicianID, createdByUserID pgtype.UUID, startsAt, endsAt time.Time, reason *string, createdAt, updatedAt time.Time, err error) (domain.TechnicianTimeOff, error) {
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.TechnicianTimeOff{}, app.ErrTechnicianTimeOffNotFound
+	}
+	if err != nil {
+		return domain.TechnicianTimeOff{}, err
+	}
+	return domain.RehydrateTechnicianTimeOff(fromPGUUID(id), fromPGUUID(technicianID), fromPGUUID(createdByUserID), startsAt, endsAt, reason, createdAt, updatedAt)
+}
+
+func technicianTimeOffWriteError(err error) error {
+	var postgresErr *pgconn.PgError
+	if errors.As(err, &postgresErr) && postgresErr.Code == "23P01" && postgresErr.ConstraintName == "technician_time_off_no_overlap" {
+		return app.ErrTechnicianTimeOffOverlaps
+	}
+	return err
+}
+
 func (r *DealershipRepository) GetGlobalAdminDealership(ctx context.Context, authUserID uuid.UUID) (uuid.UUID, error) {
 	dealershipID, err := r.queries.GetGlobalAdminDealership(ctx, toPGUUID(authUserID))
 	if errors.Is(err, pgx.ErrNoRows) {

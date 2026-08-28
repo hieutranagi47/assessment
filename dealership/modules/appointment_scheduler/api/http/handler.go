@@ -87,6 +87,11 @@ func Register(_ context.Context, router common.EchoRouter, handler *Handler) err
 			"listTechnicianShifts":                   {handler.requireIdentity},
 			"updateTechnicianShift":                  {handler.requireIdentity},
 			"deleteTechnicianShift":                  {handler.requireIdentity},
+			"createTechnicianTimeOff":                {handler.requireIdentity},
+			"listTechnicianTimeOff":                  {handler.requireIdentity},
+			"getTechnicianTimeOff":                   {handler.requireIdentity},
+			"updateTechnicianTimeOff":                {handler.requireIdentity},
+			"deleteTechnicianTimeOff":                {handler.requireIdentity},
 		},
 	})
 	return nil
@@ -802,6 +807,73 @@ func technicianShiftResponse(shift domain.TechnicianShift) TechnicianShift {
 	return TechnicianShift{TechnicianShiftId: shift.ID(), TechnicianId: shift.TechnicianID(), DayOfWeek: shift.DayOfWeek(), StartsAt: formatOperationTime(shift.StartsAt()), EndsAt: formatOperationTime(shift.EndsAt()), CreatedAt: shift.CreatedAt(), UpdatedAt: shift.UpdatedAt()}
 }
 
+func (h *Handler) CreateTechnicianTimeOff(ctx context.Context, request CreateTechnicianTimeOffRequestObject) (CreateTechnicianTimeOffResponseObject, error) {
+	if request.Body == nil {
+		return CreateTechnicianTimeOff400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(errorResponse(common.NewInvalidInputError("request_body_required", "request body is required")))}, nil
+	}
+	item, err := h.service.CreateTechnicianTimeOff(ctx, identityFrom(ctx), uuid.UUID(request.TechnicianId), app.CreateTechnicianTimeOffInput{StartsAt: request.Body.StartsAt, EndsAt: request.Body.EndsAt, Reason: request.Body.Reason})
+	if err != nil {
+		return createTechnicianTimeOffError(err)
+	}
+	return CreateTechnicianTimeOff201JSONResponse{TechnicianTimeOffCreatedJSONResponse: TechnicianTimeOffCreatedJSONResponse(technicianTimeOffResponse(item))}, nil
+}
+
+func (h *Handler) ListTechnicianTimeOff(ctx context.Context, request ListTechnicianTimeOffRequestObject) (ListTechnicianTimeOffResponseObject, error) {
+	limit, offset := 25, 0
+	if request.Params.Limit != nil {
+		limit = int(*request.Params.Limit)
+	}
+	if request.Params.Offset != nil {
+		offset = int(*request.Params.Offset)
+	}
+	if request.Params.From != nil && request.Params.To != nil && !request.Params.To.After(*request.Params.From) {
+		return ListTechnicianTimeOff400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(errorResponse(common.NewInvalidInputError("invalid_time_off_interval", "to must be after from")))}, nil
+	}
+	items, err := h.service.ListTechnicianTimeOff(ctx, identityFrom(ctx), uuid.UUID(request.TechnicianId), request.Params.From, request.Params.To, limit, offset)
+	if err != nil {
+		return listTechnicianTimeOffError(err)
+	}
+	response := make([]TechnicianTimeOff, 0, len(items))
+	for _, item := range items {
+		response = append(response, technicianTimeOffResponse(item))
+	}
+	return ListTechnicianTimeOff200JSONResponse{TechnicianTimeOffListedJSONResponse: TechnicianTimeOffListedJSONResponse(TechnicianTimeOffPage{Items: response, Limit: limit, Offset: offset})}, nil
+}
+
+func (h *Handler) GetTechnicianTimeOff(ctx context.Context, request GetTechnicianTimeOffRequestObject) (GetTechnicianTimeOffResponseObject, error) {
+	item, err := h.service.GetTechnicianTimeOff(ctx, identityFrom(ctx), uuid.UUID(request.TechnicianId), uuid.UUID(request.TimeOffId))
+	if err != nil {
+		return getTechnicianTimeOffError(err)
+	}
+	return GetTechnicianTimeOff200JSONResponse{TechnicianTimeOffFoundJSONResponse: TechnicianTimeOffFoundJSONResponse(technicianTimeOffResponse(item))}, nil
+}
+
+func (h *Handler) UpdateTechnicianTimeOff(ctx context.Context, request UpdateTechnicianTimeOffRequestObject) (UpdateTechnicianTimeOffResponseObject, error) {
+	if request.Body == nil || (request.Body.StartsAt == nil && request.Body.EndsAt == nil && request.Body.Reason == nil) {
+		return UpdateTechnicianTimeOff400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(errorResponse(common.NewInvalidInputError("request_body_required", "at least one field is required")))}, nil
+	}
+	input := app.UpdateTechnicianTimeOffInput{StartsAt: request.Body.StartsAt, EndsAt: request.Body.EndsAt}
+	if request.Body.Reason != nil {
+		input.ReasonSet, input.Reason = request.Body.Reason.Present, request.Body.Reason.Value
+	}
+	item, err := h.service.UpdateTechnicianTimeOff(ctx, identityFrom(ctx), uuid.UUID(request.TechnicianId), uuid.UUID(request.TimeOffId), input)
+	if err != nil {
+		return updateTechnicianTimeOffError(err)
+	}
+	return UpdateTechnicianTimeOff200JSONResponse{TechnicianTimeOffUpdatedJSONResponse: TechnicianTimeOffUpdatedJSONResponse(technicianTimeOffResponse(item))}, nil
+}
+
+func (h *Handler) DeleteTechnicianTimeOff(ctx context.Context, request DeleteTechnicianTimeOffRequestObject) (DeleteTechnicianTimeOffResponseObject, error) {
+	if err := h.service.DeleteTechnicianTimeOff(ctx, identityFrom(ctx), uuid.UUID(request.TechnicianId), uuid.UUID(request.TimeOffId)); err != nil {
+		return deleteTechnicianTimeOffError(err)
+	}
+	return DeleteTechnicianTimeOff204Response{}, nil
+}
+
+func technicianTimeOffResponse(item domain.TechnicianTimeOff) TechnicianTimeOff {
+	return TechnicianTimeOff{TechnicianTimeOffId: item.ID(), TechnicianId: item.TechnicianID(), StartsAt: item.StartsAt(), EndsAt: item.EndsAt(), Reason: item.Reason(), CreatedByUserId: item.CreatedByUserID(), CreatedAt: item.CreatedAt(), UpdatedAt: item.UpdatedAt()}
+}
+
 func (h *Handler) CreateCustomer(ctx context.Context, request CreateCustomerRequestObject) (CreateCustomerResponseObject, error) {
 	if request.Body == nil {
 		return CreateCustomer400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(errorResponse(common.NewInvalidInputError("invalid_request", "request body is required")))}, nil
@@ -1231,6 +1303,82 @@ func deleteTechnicianShiftErrorResponse(err error) (DeleteTechnicianShiftRespons
 		return DeleteTechnicianShift409JSONResponse{ConflictJSONResponse: ConflictJSONResponse(response)}, nil
 	default:
 		return DeleteTechnicianShift500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
+}
+
+func createTechnicianTimeOffError(err error) (CreateTechnicianTimeOffResponseObject, error) {
+	problem, body := technicianProblem(err), errorResponse(technicianProblem(err))
+	switch problem.HttpErrorCode {
+	case 400:
+		return CreateTechnicianTimeOff400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(body)}, nil
+	case 401:
+		return CreateTechnicianTimeOff401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(body)}, nil
+	case 403:
+		return CreateTechnicianTimeOff403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(body)}, nil
+	case 404:
+		return CreateTechnicianTimeOff404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(body)}, nil
+	case 409:
+		return CreateTechnicianTimeOff409JSONResponse{ConflictJSONResponse: ConflictJSONResponse(body)}, nil
+	default:
+		return CreateTechnicianTimeOff500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(body)}, nil
+	}
+}
+func listTechnicianTimeOffError(err error) (ListTechnicianTimeOffResponseObject, error) {
+	problem, body := technicianProblem(err), errorResponse(technicianProblem(err))
+	switch problem.HttpErrorCode {
+	case 400:
+		return ListTechnicianTimeOff400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(body)}, nil
+	case 401:
+		return ListTechnicianTimeOff401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(body)}, nil
+	case 403:
+		return ListTechnicianTimeOff403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(body)}, nil
+	case 404:
+		return ListTechnicianTimeOff404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(body)}, nil
+	default:
+		return ListTechnicianTimeOff500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(body)}, nil
+	}
+}
+func getTechnicianTimeOffError(err error) (GetTechnicianTimeOffResponseObject, error) {
+	problem, body := technicianProblem(err), errorResponse(technicianProblem(err))
+	switch problem.HttpErrorCode {
+	case 401:
+		return GetTechnicianTimeOff401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(body)}, nil
+	case 403:
+		return GetTechnicianTimeOff403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(body)}, nil
+	case 404:
+		return GetTechnicianTimeOff404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(body)}, nil
+	default:
+		return GetTechnicianTimeOff500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(body)}, nil
+	}
+}
+func updateTechnicianTimeOffError(err error) (UpdateTechnicianTimeOffResponseObject, error) {
+	problem, body := technicianProblem(err), errorResponse(technicianProblem(err))
+	switch problem.HttpErrorCode {
+	case 400:
+		return UpdateTechnicianTimeOff400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(body)}, nil
+	case 401:
+		return UpdateTechnicianTimeOff401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(body)}, nil
+	case 403:
+		return UpdateTechnicianTimeOff403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(body)}, nil
+	case 404:
+		return UpdateTechnicianTimeOff404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(body)}, nil
+	case 409:
+		return UpdateTechnicianTimeOff409JSONResponse{ConflictJSONResponse: ConflictJSONResponse(body)}, nil
+	default:
+		return UpdateTechnicianTimeOff500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(body)}, nil
+	}
+}
+func deleteTechnicianTimeOffError(err error) (DeleteTechnicianTimeOffResponseObject, error) {
+	problem, body := technicianProblem(err), errorResponse(technicianProblem(err))
+	switch problem.HttpErrorCode {
+	case 401:
+		return DeleteTechnicianTimeOff401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(body)}, nil
+	case 403:
+		return DeleteTechnicianTimeOff403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(body)}, nil
+	case 404:
+		return DeleteTechnicianTimeOff404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(body)}, nil
+	default:
+		return DeleteTechnicianTimeOff500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(body)}, nil
 	}
 }
 

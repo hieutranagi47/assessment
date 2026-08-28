@@ -188,6 +188,13 @@ type CreateTechnicianSkillRequest struct {
 	SkillId openapi_types.UUID `json:"skill_id"`
 }
 
+// CreateTechnicianTimeOffRequest defines model for CreateTechnicianTimeOffRequest.
+type CreateTechnicianTimeOffRequest struct {
+	EndsAt   time.Time `json:"endsAt"`
+	Reason   *string   `json:"reason,omitempty"`
+	StartsAt time.Time `json:"startsAt"`
+}
+
 // CreateVehicleRequest defines model for CreateVehicleRequest.
 type CreateVehicleRequest struct {
 	Make              string  `json:"make"`
@@ -393,6 +400,25 @@ type TechnicianSkill struct {
 	UpdatedAt         time.Time          `json:"updatedAt"`
 }
 
+// TechnicianTimeOff defines model for TechnicianTimeOff.
+type TechnicianTimeOff struct {
+	CreatedAt           time.Time          `json:"createdAt"`
+	CreatedByUserId     openapi_types.UUID `json:"createdByUserId"`
+	EndsAt              time.Time          `json:"endsAt"`
+	Reason              *string            `json:"reason,omitempty"`
+	StartsAt            time.Time          `json:"startsAt"`
+	TechnicianId        openapi_types.UUID `json:"technicianId"`
+	TechnicianTimeOffId openapi_types.UUID `json:"technicianTimeOffId"`
+	UpdatedAt           time.Time          `json:"updatedAt"`
+}
+
+// TechnicianTimeOffPage defines model for TechnicianTimeOffPage.
+type TechnicianTimeOffPage struct {
+	Items  []TechnicianTimeOff `json:"items"`
+	Limit  int                 `json:"limit"`
+	Offset int                 `json:"offset"`
+}
+
 // UpdateCustomerRequest defines model for UpdateCustomerRequest.
 type UpdateCustomerRequest struct {
 	Email *OptionalNullableString `json:"email,omitempty"`
@@ -458,6 +484,13 @@ type UpdateTechnicianSkillRequest struct {
 	SkillId openapi_types.UUID `json:"skill_id"`
 }
 
+// UpdateTechnicianTimeOffRequest defines model for UpdateTechnicianTimeOffRequest.
+type UpdateTechnicianTimeOffRequest struct {
+	EndsAt   *time.Time              `json:"endsAt,omitempty"`
+	Reason   *OptionalNullableString `json:"reason,omitempty"`
+	StartsAt *time.Time              `json:"startsAt,omitempty"`
+}
+
 // UpdateVehicleRequest defines model for UpdateVehicleRequest.
 type UpdateVehicleRequest struct {
 	Make              *string                 `json:"make,omitempty"`
@@ -490,6 +523,12 @@ type CustomerId = openapi_types.UUID
 
 // DealershipId defines model for DealershipId.
 type DealershipId = openapi_types.UUID
+
+// Limit defines model for Limit.
+type Limit = int
+
+// Offset defines model for Offset.
+type Offset = int
 
 // OperationTimeId defines model for OperationTimeId.
 type OperationTimeId = openapi_types.UUID
@@ -644,6 +683,18 @@ type TechnicianSkillUpdated = TechnicianSkill
 // TechnicianSkillsListed defines model for TechnicianSkillsListed.
 type TechnicianSkillsListed = []TechnicianSkill
 
+// TechnicianTimeOffCreated defines model for TechnicianTimeOffCreated.
+type TechnicianTimeOffCreated = TechnicianTimeOff
+
+// TechnicianTimeOffFound defines model for TechnicianTimeOffFound.
+type TechnicianTimeOffFound = TechnicianTimeOff
+
+// TechnicianTimeOffListed defines model for TechnicianTimeOffListed.
+type TechnicianTimeOffListed = TechnicianTimeOffPage
+
+// TechnicianTimeOffUpdated defines model for TechnicianTimeOffUpdated.
+type TechnicianTimeOffUpdated = TechnicianTimeOff
+
 // TechnicianUpdated defines model for TechnicianUpdated.
 type TechnicianUpdated = Technician
 
@@ -691,6 +742,14 @@ type ListTechniciansParams struct {
 	IsActive *bool `form:"isActive,omitempty" json:"isActive,omitempty"`
 	Limit    *int  `form:"limit,omitempty" json:"limit,omitempty"`
 	Offset   *int  `form:"offset,omitempty" json:"offset,omitempty"`
+}
+
+// ListTechnicianTimeOffParams defines parameters for ListTechnicianTimeOff.
+type ListTechnicianTimeOffParams struct {
+	From   *time.Time `form:"from,omitempty" json:"from,omitempty"`
+	To     *time.Time `form:"to,omitempty" json:"to,omitempty"`
+	Limit  *Limit     `form:"limit,omitempty" json:"limit,omitempty"`
+	Offset *Offset    `form:"offset,omitempty" json:"offset,omitempty"`
 }
 
 // CreateDealershipUserJSONRequestBody defines body for CreateDealershipUser for application/json ContentType.
@@ -764,6 +823,12 @@ type CreateTechnicianSkillJSONRequestBody = CreateTechnicianSkillRequest
 
 // UpdateTechnicianSkillJSONRequestBody defines body for UpdateTechnicianSkill for application/json ContentType.
 type UpdateTechnicianSkillJSONRequestBody = UpdateTechnicianSkillRequest
+
+// CreateTechnicianTimeOffJSONRequestBody defines body for CreateTechnicianTimeOff for application/json ContentType.
+type CreateTechnicianTimeOffJSONRequestBody = CreateTechnicianTimeOffRequest
+
+// UpdateTechnicianTimeOffJSONRequestBody defines body for UpdateTechnicianTimeOff for application/json ContentType.
+type UpdateTechnicianTimeOffJSONRequestBody = UpdateTechnicianTimeOffRequest
 
 // UpdateVehicleJSONRequestBody defines body for UpdateVehicle for application/json ContentType.
 type UpdateVehicleJSONRequestBody = UpdateVehicleRequest
@@ -917,6 +982,21 @@ type ServerInterface interface {
 
 	// (PATCH /v1/technicians/{technicianId}/skills/{technicianSkillId})
 	UpdateTechnicianSkill(ctx *echo.Context, technicianId TechnicianId, technicianSkillId TechnicianSkillId) error
+
+	// (GET /v1/technicians/{technicianId}/time-off)
+	ListTechnicianTimeOff(ctx *echo.Context, technicianId TechnicianId, params ListTechnicianTimeOffParams) error
+
+	// (POST /v1/technicians/{technicianId}/time-off)
+	CreateTechnicianTimeOff(ctx *echo.Context, technicianId TechnicianId) error
+
+	// (DELETE /v1/technicians/{technicianId}/time-off/{timeOffId})
+	DeleteTechnicianTimeOff(ctx *echo.Context, technicianId TechnicianId, timeOffId openapi_types.UUID) error
+
+	// (GET /v1/technicians/{technicianId}/time-off/{timeOffId})
+	GetTechnicianTimeOff(ctx *echo.Context, technicianId TechnicianId, timeOffId openapi_types.UUID) error
+
+	// (PATCH /v1/technicians/{technicianId}/time-off/{timeOffId})
+	UpdateTechnicianTimeOff(ctx *echo.Context, technicianId TechnicianId, timeOffId openapi_types.UUID) error
 
 	// (DELETE /v1/vehicles/{vehicleId})
 	DeleteVehicle(ctx *echo.Context, vehicleId VehicleId) error
@@ -1972,6 +2052,140 @@ func (w *ServerInterfaceWrapper) UpdateTechnicianSkill(ctx *echo.Context) error 
 	return err
 }
 
+// ListTechnicianTimeOff converts echo context to params.
+func (w *ServerInterfaceWrapper) ListTechnicianTimeOff(ctx *echo.Context) error {
+	var err error
+	// ------------- Path parameter "technicianId" -------------
+	var technicianId TechnicianId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "technicianId", ctx.Param("technicianId"), &technicianId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter technicianId: %s", err))
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListTechnicianTimeOffParams
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", ctx.QueryParams(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter from: %s", err))
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", ctx.QueryParams(), &params.To, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter to: %s", err))
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", ctx.QueryParams(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter limit: %s", err))
+	}
+
+	// ------------- Optional query parameter "offset" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "offset", ctx.QueryParams(), &params.Offset, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter offset: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListTechnicianTimeOff(ctx, technicianId, params)
+	return err
+}
+
+// CreateTechnicianTimeOff converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateTechnicianTimeOff(ctx *echo.Context) error {
+	var err error
+	// ------------- Path parameter "technicianId" -------------
+	var technicianId TechnicianId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "technicianId", ctx.Param("technicianId"), &technicianId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter technicianId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateTechnicianTimeOff(ctx, technicianId)
+	return err
+}
+
+// DeleteTechnicianTimeOff converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteTechnicianTimeOff(ctx *echo.Context) error {
+	var err error
+	// ------------- Path parameter "technicianId" -------------
+	var technicianId TechnicianId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "technicianId", ctx.Param("technicianId"), &technicianId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter technicianId: %s", err))
+	}
+
+	// ------------- Path parameter "timeOffId" -------------
+	var timeOffId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "timeOffId", ctx.Param("timeOffId"), &timeOffId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter timeOffId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteTechnicianTimeOff(ctx, technicianId, timeOffId)
+	return err
+}
+
+// GetTechnicianTimeOff converts echo context to params.
+func (w *ServerInterfaceWrapper) GetTechnicianTimeOff(ctx *echo.Context) error {
+	var err error
+	// ------------- Path parameter "technicianId" -------------
+	var technicianId TechnicianId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "technicianId", ctx.Param("technicianId"), &technicianId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter technicianId: %s", err))
+	}
+
+	// ------------- Path parameter "timeOffId" -------------
+	var timeOffId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "timeOffId", ctx.Param("timeOffId"), &timeOffId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter timeOffId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetTechnicianTimeOff(ctx, technicianId, timeOffId)
+	return err
+}
+
+// UpdateTechnicianTimeOff converts echo context to params.
+func (w *ServerInterfaceWrapper) UpdateTechnicianTimeOff(ctx *echo.Context) error {
+	var err error
+	// ------------- Path parameter "technicianId" -------------
+	var technicianId TechnicianId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "technicianId", ctx.Param("technicianId"), &technicianId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter technicianId: %s", err))
+	}
+
+	// ------------- Path parameter "timeOffId" -------------
+	var timeOffId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "timeOffId", ctx.Param("timeOffId"), &timeOffId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter timeOffId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.UpdateTechnicianTimeOff(ctx, technicianId, timeOffId)
+	return err
+}
+
 // DeleteVehicle converts echo context to params.
 func (w *ServerInterfaceWrapper) DeleteVehicle(ctx *echo.Context) error {
 	var err error
@@ -2116,6 +2330,11 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.POST(options.BaseURL+"/v1/technicians/:technicianId/shifts", wrapper.CreateTechnicianShift, options.OperationMiddlewares["createTechnicianShift"]...)
 	router.DELETE(options.BaseURL+"/v1/technicians/:technicianId/shifts/:shiftId", wrapper.DeleteTechnicianShift, options.OperationMiddlewares["deleteTechnicianShift"]...)
 	router.PATCH(options.BaseURL+"/v1/technicians/:technicianId/shifts/:shiftId", wrapper.UpdateTechnicianShift, options.OperationMiddlewares["updateTechnicianShift"]...)
+	router.GET(options.BaseURL+"/v1/technicians/:technicianId/time-off", wrapper.ListTechnicianTimeOff, options.OperationMiddlewares["listTechnicianTimeOff"]...)
+	router.POST(options.BaseURL+"/v1/technicians/:technicianId/time-off", wrapper.CreateTechnicianTimeOff, options.OperationMiddlewares["createTechnicianTimeOff"]...)
+	router.DELETE(options.BaseURL+"/v1/technicians/:technicianId/time-off/:timeOffId", wrapper.DeleteTechnicianTimeOff, options.OperationMiddlewares["deleteTechnicianTimeOff"]...)
+	router.GET(options.BaseURL+"/v1/technicians/:technicianId/time-off/:timeOffId", wrapper.GetTechnicianTimeOff, options.OperationMiddlewares["getTechnicianTimeOff"]...)
+	router.PATCH(options.BaseURL+"/v1/technicians/:technicianId/time-off/:timeOffId", wrapper.UpdateTechnicianTimeOff, options.OperationMiddlewares["updateTechnicianTimeOff"]...)
 	router.DELETE(options.BaseURL+"/v1/vehicles/:vehicleId", wrapper.DeleteVehicle, options.OperationMiddlewares["deleteVehicle"]...)
 	router.GET(options.BaseURL+"/v1/vehicles/:vehicleId", wrapper.GetVehicle, options.OperationMiddlewares["getVehicle"]...)
 	router.PATCH(options.BaseURL+"/v1/vehicles/:vehicleId", wrapper.UpdateVehicle, options.OperationMiddlewares["updateVehicle"]...)
@@ -2210,6 +2429,14 @@ type TechnicianSkillCreatedJSONResponse TechnicianSkill
 type TechnicianSkillUpdatedJSONResponse TechnicianSkill
 
 type TechnicianSkillsListedJSONResponse []TechnicianSkill
+
+type TechnicianTimeOffCreatedJSONResponse TechnicianTimeOff
+
+type TechnicianTimeOffFoundJSONResponse TechnicianTimeOff
+
+type TechnicianTimeOffListedJSONResponse TechnicianTimeOffPage
+
+type TechnicianTimeOffUpdatedJSONResponse TechnicianTimeOff
 
 type TechnicianUpdatedJSONResponse Technician
 
@@ -6938,6 +7165,484 @@ func (response UpdateTechnicianSkill500JSONResponse) VisitUpdateTechnicianSkillR
 	return err
 }
 
+type ListTechnicianTimeOffRequestObject struct {
+	TechnicianId TechnicianId `json:"technicianId"`
+	Params       ListTechnicianTimeOffParams
+}
+
+type ListTechnicianTimeOffResponseObject interface {
+	VisitListTechnicianTimeOffResponse(w http.ResponseWriter) error
+}
+
+type ListTechnicianTimeOff200JSONResponse struct {
+	TechnicianTimeOffListedJSONResponse
+}
+
+func (response ListTechnicianTimeOff200JSONResponse) VisitListTechnicianTimeOffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTechnicianTimeOff400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ListTechnicianTimeOff400JSONResponse) VisitListTechnicianTimeOffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTechnicianTimeOff401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListTechnicianTimeOff401JSONResponse) VisitListTechnicianTimeOffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTechnicianTimeOff403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListTechnicianTimeOff403JSONResponse) VisitListTechnicianTimeOffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTechnicianTimeOff404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ListTechnicianTimeOff404JSONResponse) VisitListTechnicianTimeOffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTechnicianTimeOff500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ListTechnicianTimeOff500JSONResponse) VisitListTechnicianTimeOffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTechnicianTimeOffRequestObject struct {
+	TechnicianId TechnicianId `json:"technicianId"`
+	Body         *CreateTechnicianTimeOffJSONRequestBody
+}
+
+type CreateTechnicianTimeOffResponseObject interface {
+	VisitCreateTechnicianTimeOffResponse(w http.ResponseWriter) error
+}
+
+type CreateTechnicianTimeOff201JSONResponse struct {
+	TechnicianTimeOffCreatedJSONResponse
+}
+
+func (response CreateTechnicianTimeOff201JSONResponse) VisitCreateTechnicianTimeOffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTechnicianTimeOff400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreateTechnicianTimeOff400JSONResponse) VisitCreateTechnicianTimeOffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTechnicianTimeOff401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response CreateTechnicianTimeOff401JSONResponse) VisitCreateTechnicianTimeOffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTechnicianTimeOff403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response CreateTechnicianTimeOff403JSONResponse) VisitCreateTechnicianTimeOffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTechnicianTimeOff404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response CreateTechnicianTimeOff404JSONResponse) VisitCreateTechnicianTimeOffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTechnicianTimeOff409JSONResponse struct{ ConflictJSONResponse }
+
+func (response CreateTechnicianTimeOff409JSONResponse) VisitCreateTechnicianTimeOffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTechnicianTimeOff500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response CreateTechnicianTimeOff500JSONResponse) VisitCreateTechnicianTimeOffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteTechnicianTimeOffRequestObject struct {
+	TechnicianId TechnicianId       `json:"technicianId"`
+	TimeOffId    openapi_types.UUID `json:"timeOffId"`
+}
+
+type DeleteTechnicianTimeOffResponseObject interface {
+	VisitDeleteTechnicianTimeOffResponse(w http.ResponseWriter) error
+}
+
+type DeleteTechnicianTimeOff204Response struct {
+}
+
+func (response DeleteTechnicianTimeOff204Response) VisitDeleteTechnicianTimeOffResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteTechnicianTimeOff401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response DeleteTechnicianTimeOff401JSONResponse) VisitDeleteTechnicianTimeOffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteTechnicianTimeOff403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response DeleteTechnicianTimeOff403JSONResponse) VisitDeleteTechnicianTimeOffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteTechnicianTimeOff404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response DeleteTechnicianTimeOff404JSONResponse) VisitDeleteTechnicianTimeOffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteTechnicianTimeOff500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response DeleteTechnicianTimeOff500JSONResponse) VisitDeleteTechnicianTimeOffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTechnicianTimeOffRequestObject struct {
+	TechnicianId TechnicianId       `json:"technicianId"`
+	TimeOffId    openapi_types.UUID `json:"timeOffId"`
+}
+
+type GetTechnicianTimeOffResponseObject interface {
+	VisitGetTechnicianTimeOffResponse(w http.ResponseWriter) error
+}
+
+type GetTechnicianTimeOff200JSONResponse struct {
+	TechnicianTimeOffFoundJSONResponse
+}
+
+func (response GetTechnicianTimeOff200JSONResponse) VisitGetTechnicianTimeOffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTechnicianTimeOff401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response GetTechnicianTimeOff401JSONResponse) VisitGetTechnicianTimeOffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTechnicianTimeOff403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response GetTechnicianTimeOff403JSONResponse) VisitGetTechnicianTimeOffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTechnicianTimeOff404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetTechnicianTimeOff404JSONResponse) VisitGetTechnicianTimeOffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTechnicianTimeOff500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response GetTechnicianTimeOff500JSONResponse) VisitGetTechnicianTimeOffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateTechnicianTimeOffRequestObject struct {
+	TechnicianId TechnicianId       `json:"technicianId"`
+	TimeOffId    openapi_types.UUID `json:"timeOffId"`
+	Body         *UpdateTechnicianTimeOffJSONRequestBody
+}
+
+type UpdateTechnicianTimeOffResponseObject interface {
+	VisitUpdateTechnicianTimeOffResponse(w http.ResponseWriter) error
+}
+
+type UpdateTechnicianTimeOff200JSONResponse struct {
+	TechnicianTimeOffUpdatedJSONResponse
+}
+
+func (response UpdateTechnicianTimeOff200JSONResponse) VisitUpdateTechnicianTimeOffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateTechnicianTimeOff400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response UpdateTechnicianTimeOff400JSONResponse) VisitUpdateTechnicianTimeOffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateTechnicianTimeOff401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response UpdateTechnicianTimeOff401JSONResponse) VisitUpdateTechnicianTimeOffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateTechnicianTimeOff403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response UpdateTechnicianTimeOff403JSONResponse) VisitUpdateTechnicianTimeOffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateTechnicianTimeOff404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response UpdateTechnicianTimeOff404JSONResponse) VisitUpdateTechnicianTimeOffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateTechnicianTimeOff409JSONResponse struct{ ConflictJSONResponse }
+
+func (response UpdateTechnicianTimeOff409JSONResponse) VisitUpdateTechnicianTimeOffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateTechnicianTimeOff500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response UpdateTechnicianTimeOff500JSONResponse) VisitUpdateTechnicianTimeOffResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type DeleteVehicleRequestObject struct {
 	VehicleId VehicleId `json:"vehicleId"`
 }
@@ -7364,6 +8069,21 @@ type StrictServerInterface interface {
 
 	// (PATCH /v1/technicians/{technicianId}/skills/{technicianSkillId})
 	UpdateTechnicianSkill(ctx context.Context, request UpdateTechnicianSkillRequestObject) (UpdateTechnicianSkillResponseObject, error)
+
+	// (GET /v1/technicians/{technicianId}/time-off)
+	ListTechnicianTimeOff(ctx context.Context, request ListTechnicianTimeOffRequestObject) (ListTechnicianTimeOffResponseObject, error)
+
+	// (POST /v1/technicians/{technicianId}/time-off)
+	CreateTechnicianTimeOff(ctx context.Context, request CreateTechnicianTimeOffRequestObject) (CreateTechnicianTimeOffResponseObject, error)
+
+	// (DELETE /v1/technicians/{technicianId}/time-off/{timeOffId})
+	DeleteTechnicianTimeOff(ctx context.Context, request DeleteTechnicianTimeOffRequestObject) (DeleteTechnicianTimeOffResponseObject, error)
+
+	// (GET /v1/technicians/{technicianId}/time-off/{timeOffId})
+	GetTechnicianTimeOff(ctx context.Context, request GetTechnicianTimeOffRequestObject) (GetTechnicianTimeOffResponseObject, error)
+
+	// (PATCH /v1/technicians/{technicianId}/time-off/{timeOffId})
+	UpdateTechnicianTimeOff(ctx context.Context, request UpdateTechnicianTimeOffRequestObject) (UpdateTechnicianTimeOffResponseObject, error)
 
 	// (DELETE /v1/vehicles/{vehicleId})
 	DeleteVehicle(ctx context.Context, request DeleteVehicleRequestObject) (DeleteVehicleResponseObject, error)
@@ -9011,6 +9731,167 @@ func (sh *strictHandler) UpdateTechnicianSkill(ctx *echo.Context, technicianId T
 		return err
 	} else if validResponse, ok := response.(UpdateTechnicianSkillResponseObject); ok {
 		return validResponse.VisitUpdateTechnicianSkillResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListTechnicianTimeOff operation middleware
+func (sh *strictHandler) ListTechnicianTimeOff(ctx *echo.Context, technicianId TechnicianId, params ListTechnicianTimeOffParams) error {
+	var request ListTechnicianTimeOffRequestObject
+
+	request.TechnicianId = technicianId
+	request.Params = params
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListTechnicianTimeOff(ctx.Request().Context(), request.(ListTechnicianTimeOffRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListTechnicianTimeOff")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListTechnicianTimeOffResponseObject); ok {
+		return validResponse.VisitListTechnicianTimeOffResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateTechnicianTimeOff operation middleware
+func (sh *strictHandler) CreateTechnicianTimeOff(ctx *echo.Context, technicianId TechnicianId) error {
+	var request CreateTechnicianTimeOffRequestObject
+
+	request.TechnicianId = technicianId
+
+	var body CreateTechnicianTimeOffJSONRequestBody
+	var err error
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+		// Bind only the request body, so that path and query parameters
+		// are not also bound into the body struct.
+		err = echo.BindBody(ctx, &body)
+	} else {
+		// A custom binder is installed on the Echo instance; defer to it
+		// entirely, since echo.Binder does not expose body-only binding.
+		err = ctx.Bind(&body)
+	}
+	if err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateTechnicianTimeOff(ctx.Request().Context(), request.(CreateTechnicianTimeOffRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateTechnicianTimeOff")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateTechnicianTimeOffResponseObject); ok {
+		return validResponse.VisitCreateTechnicianTimeOffResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// DeleteTechnicianTimeOff operation middleware
+func (sh *strictHandler) DeleteTechnicianTimeOff(ctx *echo.Context, technicianId TechnicianId, timeOffId openapi_types.UUID) error {
+	var request DeleteTechnicianTimeOffRequestObject
+
+	request.TechnicianId = technicianId
+	request.TimeOffId = timeOffId
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteTechnicianTimeOff(ctx.Request().Context(), request.(DeleteTechnicianTimeOffRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteTechnicianTimeOff")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(DeleteTechnicianTimeOffResponseObject); ok {
+		return validResponse.VisitDeleteTechnicianTimeOffResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetTechnicianTimeOff operation middleware
+func (sh *strictHandler) GetTechnicianTimeOff(ctx *echo.Context, technicianId TechnicianId, timeOffId openapi_types.UUID) error {
+	var request GetTechnicianTimeOffRequestObject
+
+	request.TechnicianId = technicianId
+	request.TimeOffId = timeOffId
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetTechnicianTimeOff(ctx.Request().Context(), request.(GetTechnicianTimeOffRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetTechnicianTimeOff")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetTechnicianTimeOffResponseObject); ok {
+		return validResponse.VisitGetTechnicianTimeOffResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// UpdateTechnicianTimeOff operation middleware
+func (sh *strictHandler) UpdateTechnicianTimeOff(ctx *echo.Context, technicianId TechnicianId, timeOffId openapi_types.UUID) error {
+	var request UpdateTechnicianTimeOffRequestObject
+
+	request.TechnicianId = technicianId
+	request.TimeOffId = timeOffId
+
+	var body UpdateTechnicianTimeOffJSONRequestBody
+	var err error
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+		// Bind only the request body, so that path and query parameters
+		// are not also bound into the body struct.
+		err = echo.BindBody(ctx, &body)
+	} else {
+		// A custom binder is installed on the Echo instance; defer to it
+		// entirely, since echo.Binder does not expose body-only binding.
+		err = ctx.Bind(&body)
+	}
+	if err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateTechnicianTimeOff(ctx.Request().Context(), request.(UpdateTechnicianTimeOffRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateTechnicianTimeOff")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(UpdateTechnicianTimeOffResponseObject); ok {
+		return validResponse.VisitUpdateTechnicianTimeOffResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

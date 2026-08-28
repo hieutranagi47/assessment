@@ -147,6 +147,34 @@ func (q *Queries) DeleteTechnicians(ctx context.Context, arg DeleteTechniciansPa
 	return result.RowsAffected(), nil
 }
 
+const getActiveSchedulerEmployeeDealership = `-- name: GetActiveSchedulerEmployeeDealership :one
+SELECT users.dealership_id
+FROM appointment_scheduler.users
+WHERE users.auth_user_id = $1
+  AND users.is_active AND users.deleted_at IS NULL
+`
+
+func (q *Queries) GetActiveSchedulerEmployeeDealership(ctx context.Context, authUserID pgtype.UUID) (pgtype.UUID, error) {
+	row := q.db.QueryRow(ctx, getActiveSchedulerEmployeeDealership, authUserID)
+	var dealership_id pgtype.UUID
+	err := row.Scan(&dealership_id)
+	return dealership_id, err
+}
+
+const getActiveSchedulerEmployeeID = `-- name: GetActiveSchedulerEmployeeID :one
+SELECT users.user_id
+FROM appointment_scheduler.users
+WHERE users.auth_user_id = $1
+  AND users.is_active AND users.deleted_at IS NULL
+`
+
+func (q *Queries) GetActiveSchedulerEmployeeID(ctx context.Context, authUserID pgtype.UUID) (pgtype.UUID, error) {
+	row := q.db.QueryRow(ctx, getActiveSchedulerEmployeeID, authUserID)
+	var user_id pgtype.UUID
+	err := row.Scan(&user_id)
+	return user_id, err
+}
+
 const getGlobalAdminDealership = `-- name: GetGlobalAdminDealership :one
 
 SELECT users.dealership_id

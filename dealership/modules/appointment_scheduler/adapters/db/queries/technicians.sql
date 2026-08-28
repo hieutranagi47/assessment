@@ -10,6 +10,18 @@ WHERE users.auth_user_id = sqlc.arg('auth_user_id')
   AND user_roles.deleted_at IS NULL
   AND roles.code = 'admin' AND roles.deleted_at IS NULL;
 
+-- name: GetActiveSchedulerEmployeeDealership :one
+SELECT users.dealership_id
+FROM appointment_scheduler.users
+WHERE users.auth_user_id = sqlc.arg('auth_user_id')
+  AND users.is_active AND users.deleted_at IS NULL;
+
+-- name: GetActiveSchedulerEmployeeID :one
+SELECT users.user_id
+FROM appointment_scheduler.users
+WHERE users.auth_user_id = sqlc.arg('auth_user_id')
+  AND users.is_active AND users.deleted_at IS NULL;
+
 -- name: CreateTechnician :one
 WITH created_user AS (
   INSERT INTO appointment_scheduler.users (

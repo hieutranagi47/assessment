@@ -785,6 +785,79 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
         "409": { $ref: "#/components/responses/Conflict" }
         "500": { $ref: "#/components/responses/InternalServerError" }
+  /v1/technicians/{technicianId}/time-off:
+    parameters:
+      - $ref: "#/components/parameters/TechnicianId"
+    get:
+      operationId: listTechnicianTimeOff
+      tags: [Technician time off]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: from, in: query, schema: { type: string, format: date-time } }
+        - { name: to, in: query, schema: { type: string, format: date-time } }
+        - { $ref: "#/components/parameters/Limit" }
+        - { $ref: "#/components/parameters/Offset" }
+      responses:
+        "200": { $ref: "#/components/responses/TechnicianTimeOffListed" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    post:
+      operationId: createTechnicianTimeOff
+      tags: [Technician time off]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/CreateTechnicianTimeOffRequest" } } }
+      responses:
+        "201": { $ref: "#/components/responses/TechnicianTimeOffCreated" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /v1/technicians/{technicianId}/time-off/{timeOffId}:
+    parameters:
+      - $ref: "#/components/parameters/TechnicianId"
+      - { name: timeOffId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      operationId: getTechnicianTimeOff
+      tags: [Technician time off]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/TechnicianTimeOffFound" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    patch:
+      operationId: updateTechnicianTimeOff
+      tags: [Technician time off]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/UpdateTechnicianTimeOffRequest" } } }
+      responses:
+        "200": { $ref: "#/components/responses/TechnicianTimeOffUpdated" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    delete:
+      operationId: deleteTechnicianTimeOff
+      tags: [Technician time off]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "204": { description: Technician time off deleted }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /v1/vehicles/{vehicleId}:
     parameters:
       - $ref: "#/components/parameters/VehicleId"
@@ -914,6 +987,39 @@ components:
         endsAt: { type: string }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+    CreateTechnicianTimeOffRequest:
+      type: object
+      required: [startsAt, endsAt]
+      properties:
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
+        reason: { type: string, nullable: true }
+    UpdateTechnicianTimeOffRequest:
+      type: object
+      minProperties: 1
+      properties:
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
+        reason: { type: string, nullable: true, x-go-type: OptionalNullableString }
+    TechnicianTimeOff:
+      type: object
+      required: [technicianTimeOffId, technicianId, startsAt, endsAt, createdByUserId, createdAt, updatedAt]
+      properties:
+        technicianTimeOffId: { type: string, format: uuid }
+        technicianId: { type: string, format: uuid }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
+        reason: { type: string, nullable: true }
+        createdByUserId: { type: string, format: uuid }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    TechnicianTimeOffPage:
+      type: object
+      required: [items, limit, offset]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/TechnicianTimeOff" } }
+        limit: { type: integer }
+        offset: { type: integer }
     CreateCustomerRequest:
       type: object
       required: [name, phone]
@@ -1390,6 +1496,18 @@ components:
           schema:
             type: array
             items: { $ref: "#/components/schemas/TechnicianShift" }
+    TechnicianTimeOffCreated:
+      description: Technician time off created
+      content: { application/json: { schema: { $ref: "#/components/schemas/TechnicianTimeOff" } } }
+    TechnicianTimeOffFound:
+      description: Technician time off found
+      content: { application/json: { schema: { $ref: "#/components/schemas/TechnicianTimeOff" } } }
+    TechnicianTimeOffUpdated:
+      description: Technician time off updated
+      content: { application/json: { schema: { $ref: "#/components/schemas/TechnicianTimeOff" } } }
+    TechnicianTimeOffListed:
+      description: Technician time off ordered by start time
+      content: { application/json: { schema: { $ref: "#/components/schemas/TechnicianTimeOffPage" } } }
     ServiceTypeCreated:
       description: Service type created
       content:
@@ -1519,6 +1637,14 @@ components:
         application/json:
           schema: { $ref: "#/components/schemas/ErrorResponse" }
   parameters:
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100 }
+    Offset:
+      name: offset
+      in: query
+      schema: { type: integer, minimum: 0 }
     TechnicianId:
       name: technicianId
       in: path

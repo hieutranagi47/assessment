@@ -202,6 +202,8 @@ type AppointmentSchedulerTechnicianTimeOff struct {
 	Reason              *string
 	CreatedAt           time.Time
 	DeletedAt           pgtype.Timestamptz
+	CreatedByUserID     pgtype.UUID
+	UpdatedAt           time.Time
 }
 
 type AppointmentSchedulerUser struct {

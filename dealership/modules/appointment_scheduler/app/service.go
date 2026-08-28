@@ -47,6 +47,9 @@ var (
 	ErrTechnicianSkillTaken                     = errors.New("technician already has this skill")
 	ErrTechnicianShiftNotFound                  = errors.New("technician shift not found")
 	ErrTechnicianShiftOverlaps                  = errors.New("technician shift overlaps an existing shift")
+	ErrTechnicianTimeOffNotFound                = errors.New("technician time off not found")
+	ErrTechnicianTimeOffOverlaps                = errors.New("technician time off overlaps an existing interval")
+	ErrTechnicianTimeOffAppointmentConflict     = errors.New("technician time off overlaps an active appointment")
 	ErrDealershipOperationTimeNotFound          = errors.New("dealership operation time not found")
 	ErrDealershipOperationTimeOverlaps          = errors.New("dealership operation time overlaps an existing interval")
 )
@@ -158,6 +161,17 @@ type TechnicianShiftRepository interface {
 	UpdateTechnicianShift(context.Context, uuid.UUID, domain.TechnicianShift) error
 	DeleteTechnicianShift(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, time.Time) error
 	HasFutureAppointmentsOutsideTechnicianShift(context.Context, uuid.UUID, domain.TechnicianShift, uuid.UUID, time.Time) (bool, error)
+}
+
+type TechnicianTimeOffRepository interface {
+	GetEmployeeDealership(context.Context, uuid.UUID) (uuid.UUID, error)
+	GetSchedulerUserID(context.Context, uuid.UUID) (uuid.UUID, error)
+	GetTechnician(context.Context, uuid.UUID, uuid.UUID) (domain.Technician, error)
+	CreateTechnicianTimeOff(context.Context, domain.TechnicianTimeOff) error
+	GetTechnicianTimeOff(context.Context, uuid.UUID, uuid.UUID) (domain.TechnicianTimeOff, error)
+	ListTechnicianTimeOff(context.Context, uuid.UUID, *time.Time, *time.Time, int, int) ([]domain.TechnicianTimeOff, error)
+	UpdateTechnicianTimeOff(context.Context, domain.TechnicianTimeOff) error
+	DeleteTechnicianTimeOff(context.Context, uuid.UUID, uuid.UUID, time.Time) error
 }
 
 // TechnicianSkillRepository uses a global scheduler-admin role check because
@@ -339,6 +353,16 @@ type UpdateTechnicianShiftInput struct {
 	DayOfWeek *int
 	StartsAt  *time.Duration
 	EndsAt    *time.Duration
+}
+
+type CreateTechnicianTimeOffInput struct {
+	StartsAt, EndsAt time.Time
+	Reason           *string
+}
+type UpdateTechnicianTimeOffInput struct {
+	StartsAt, EndsAt *time.Time
+	Reason           *string
+	ReasonSet        bool
 }
 
 type CreateTechnicianSkillInput struct{ SkillID uuid.UUID }
@@ -1754,6 +1778,120 @@ func technicianShiftError(err error) error {
 
 func invalidTechnicianShiftInput(err error) common.Error {
 	return common.Error{HttpErrorCode: 422, PublicError: err.Error(), ErrorSlug: "validation_failed"}
+}
+
+func (s *Service) CreateTechnicianTimeOff(ctx context.Context, actorID, technicianID uuid.UUID, input CreateTechnicianTimeOffInput) (domain.TechnicianTimeOff, error) {
+	repository, dealershipID, err := s.authorizeTechnicianTimeOff(ctx, actorID)
+	if err != nil {
+		return domain.TechnicianTimeOff{}, err
+	}
+	if _, err := repository.GetTechnician(ctx, dealershipID, technicianID); err != nil {
+		return domain.TechnicianTimeOff{}, technicianTimeOffError(err)
+	}
+	createdByUserID, err := repository.GetSchedulerUserID(ctx, actorID)
+	if err != nil {
+		return domain.TechnicianTimeOff{}, common.NewForbiddenError("forbidden", "you are not allowed to manage technician time off")
+	}
+	item, err := domain.NewTechnicianTimeOff(s.newID(), technicianID, createdByUserID, input.StartsAt, input.EndsAt, input.Reason, s.now())
+	if err != nil {
+		return domain.TechnicianTimeOff{}, invalidTechnicianTimeOffInput(err)
+	}
+	if err := repository.CreateTechnicianTimeOff(ctx, item); err != nil {
+		return domain.TechnicianTimeOff{}, technicianTimeOffError(err)
+	}
+	return item, nil
+}
+
+func (s *Service) ListTechnicianTimeOff(ctx context.Context, actorID, technicianID uuid.UUID, from, to *time.Time, limit, offset int) ([]domain.TechnicianTimeOff, error) {
+	repository, dealershipID, err := s.authorizeTechnicianTimeOff(ctx, actorID)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := repository.GetTechnician(ctx, dealershipID, technicianID); err != nil {
+		return nil, technicianTimeOffError(err)
+	}
+	return repository.ListTechnicianTimeOff(ctx, technicianID, from, to, limit, offset)
+}
+
+func (s *Service) GetTechnicianTimeOff(ctx context.Context, actorID, technicianID, timeOffID uuid.UUID) (domain.TechnicianTimeOff, error) {
+	repository, dealershipID, err := s.authorizeTechnicianTimeOff(ctx, actorID)
+	if err != nil {
+		return domain.TechnicianTimeOff{}, err
+	}
+	if _, err := repository.GetTechnician(ctx, dealershipID, technicianID); err != nil {
+		return domain.TechnicianTimeOff{}, technicianTimeOffError(err)
+	}
+	item, err := repository.GetTechnicianTimeOff(ctx, technicianID, timeOffID)
+	return item, technicianTimeOffError(err)
+}
+
+func (s *Service) UpdateTechnicianTimeOff(ctx context.Context, actorID, technicianID, timeOffID uuid.UUID, input UpdateTechnicianTimeOffInput) (domain.TechnicianTimeOff, error) {
+	item, err := s.GetTechnicianTimeOff(ctx, actorID, technicianID, timeOffID)
+	if err != nil {
+		return domain.TechnicianTimeOff{}, err
+	}
+	repository, _, _ := s.authorizeTechnicianTimeOff(ctx, actorID)
+	reason := item.Reason()
+	if input.ReasonSet {
+		reason = input.Reason
+	}
+	updated, err := item.Update(valueOr(input.StartsAt, item.StartsAt()), valueOr(input.EndsAt, item.EndsAt()), reason, s.now())
+	if err != nil {
+		return domain.TechnicianTimeOff{}, invalidTechnicianTimeOffInput(err)
+	}
+	if err := repository.UpdateTechnicianTimeOff(ctx, updated); err != nil {
+		return domain.TechnicianTimeOff{}, technicianTimeOffError(err)
+	}
+	return updated, nil
+}
+
+func (s *Service) DeleteTechnicianTimeOff(ctx context.Context, actorID, technicianID, timeOffID uuid.UUID) error {
+	repository, dealershipID, err := s.authorizeTechnicianTimeOff(ctx, actorID)
+	if err != nil {
+		return err
+	}
+	if _, err := repository.GetTechnician(ctx, dealershipID, technicianID); err != nil {
+		return technicianTimeOffError(err)
+	}
+	return technicianTimeOffError(repository.DeleteTechnicianTimeOff(ctx, technicianID, timeOffID, s.now()))
+}
+
+func (s *Service) authorizeTechnicianTimeOff(ctx context.Context, actorID uuid.UUID) (TechnicianTimeOffRepository, uuid.UUID, error) {
+	if actorID == uuid.Nil {
+		return nil, uuid.Nil, common.NewUnauthorizedError("unauthenticated", "authentication required")
+	}
+	user, err := s.users.GetUserInfo(ctx, actorID)
+	if err != nil || user.UserID != actorID.String() || user.Status != "active" || (user.Role != "admin" && user.Role != "staff") {
+		return nil, uuid.Nil, common.NewForbiddenError("forbidden", "you are not allowed to manage technician time off")
+	}
+	repository, ok := s.repository.(TechnicianTimeOffRepository)
+	if !ok {
+		return nil, uuid.Nil, errors.New("technician time off repository is not configured")
+	}
+	dealershipID, err := repository.GetEmployeeDealership(ctx, actorID)
+	if err != nil {
+		return nil, uuid.Nil, common.NewForbiddenError("forbidden", "you are not allowed to manage technician time off")
+	}
+	return repository, dealershipID, nil
+}
+
+func technicianTimeOffError(err error) error {
+	switch {
+	case errors.Is(err, ErrTechnicianNotFound):
+		return common.NewNotFoundError("technician_not_found", "technician was not found")
+	case errors.Is(err, ErrTechnicianTimeOffNotFound):
+		return common.NewNotFoundError("time_off_not_found", "technician time off was not found")
+	case errors.Is(err, ErrTechnicianTimeOffOverlaps):
+		return common.NewConflictError("time_off_overlap", "time off overlaps an existing interval")
+	case errors.Is(err, ErrTechnicianTimeOffAppointmentConflict):
+		return common.NewConflictError("appointment_schedule_conflict", "time off overlaps an active appointment")
+	default:
+		return err
+	}
+}
+
+func invalidTechnicianTimeOffInput(error) common.Error {
+	return common.NewInvalidInputError("invalid_time_off_interval", "endsAt must be after startsAt")
 }
 
 func (s *Service) CreateTechnicianSkill(ctx context.Context, actorID, technicianID uuid.UUID, input CreateTechnicianSkillInput) (domain.TechnicianSkill, error) {

@@ -13,8 +13,8 @@ import (
 )
 
 const createTechnicianTimeOff = `-- name: CreateTechnicianTimeOff :exec
-INSERT INTO appointment_scheduler.technician_time_off (technician_time_off_id, technician_id, starts_at, ends_at, reason, created_at)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO appointment_scheduler.technician_time_off (technician_time_off_id, technician_id, starts_at, ends_at, reason, created_by_user_id, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 `
 
 type CreateTechnicianTimeOffParams struct {
@@ -23,7 +23,9 @@ type CreateTechnicianTimeOffParams struct {
 	StartsAt            time.Time
 	EndsAt              time.Time
 	Reason              *string
+	CreatedByUserID     pgtype.UUID
 	CreatedAt           time.Time
+	UpdatedAt           time.Time
 }
 
 func (q *Queries) CreateTechnicianTimeOff(ctx context.Context, arg CreateTechnicianTimeOffParams) error {
@@ -33,7 +35,9 @@ func (q *Queries) CreateTechnicianTimeOff(ctx context.Context, arg CreateTechnic
 		arg.StartsAt,
 		arg.EndsAt,
 		arg.Reason,
+		arg.CreatedByUserID,
 		arg.CreatedAt,
+		arg.UpdatedAt,
 	)
 	return err
 }
@@ -41,16 +45,17 @@ func (q *Queries) CreateTechnicianTimeOff(ctx context.Context, arg CreateTechnic
 const deleteTechnicianTimeOff = `-- name: DeleteTechnicianTimeOff :execrows
 UPDATE appointment_scheduler.technician_time_off
 SET deleted_at = $1::timestamptz
-WHERE technician_time_off_id = $2 AND deleted_at IS NULL
+WHERE technician_time_off_id = $2 AND technician_id = $3 AND deleted_at IS NULL
 `
 
 type DeleteTechnicianTimeOffParams struct {
 	DeletedAt           time.Time
 	TechnicianTimeOffID pgtype.UUID
+	TechnicianID        pgtype.UUID
 }
 
 func (q *Queries) DeleteTechnicianTimeOff(ctx context.Context, arg DeleteTechnicianTimeOffParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteTechnicianTimeOff, arg.DeletedAt, arg.TechnicianTimeOffID)
+	result, err := q.db.Exec(ctx, deleteTechnicianTimeOff, arg.DeletedAt, arg.TechnicianTimeOffID, arg.TechnicianID)
 	if err != nil {
 		return 0, err
 	}
@@ -59,48 +64,131 @@ func (q *Queries) DeleteTechnicianTimeOff(ctx context.Context, arg DeleteTechnic
 
 const getTechnicianTimeOff = `-- name: GetTechnicianTimeOff :one
 
-SELECT technician_time_off_id, technician_id, starts_at, ends_at, reason, created_at, deleted_at
+SELECT technician_time_off_id, technician_id, starts_at, ends_at, reason, created_by_user_id, created_at, updated_at
 FROM appointment_scheduler.technician_time_off
-WHERE technician_time_off_id = $1 AND deleted_at IS NULL
+WHERE technician_time_off_id = $1 AND technician_id = $2 AND deleted_at IS NULL
 `
 
+type GetTechnicianTimeOffParams struct {
+	TechnicianTimeOffID pgtype.UUID
+	TechnicianID        pgtype.UUID
+}
+
+type GetTechnicianTimeOffRow struct {
+	TechnicianTimeOffID pgtype.UUID
+	TechnicianID        pgtype.UUID
+	StartsAt            time.Time
+	EndsAt              time.Time
+	Reason              *string
+	CreatedByUserID     pgtype.UUID
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
+}
+
 // technician time off CRUD queries.
-func (q *Queries) GetTechnicianTimeOff(ctx context.Context, technicianTimeOffID pgtype.UUID) (AppointmentSchedulerTechnicianTimeOff, error) {
-	row := q.db.QueryRow(ctx, getTechnicianTimeOff, technicianTimeOffID)
-	var i AppointmentSchedulerTechnicianTimeOff
+func (q *Queries) GetTechnicianTimeOff(ctx context.Context, arg GetTechnicianTimeOffParams) (GetTechnicianTimeOffRow, error) {
+	row := q.db.QueryRow(ctx, getTechnicianTimeOff, arg.TechnicianTimeOffID, arg.TechnicianID)
+	var i GetTechnicianTimeOffRow
 	err := row.Scan(
 		&i.TechnicianTimeOffID,
 		&i.TechnicianID,
 		&i.StartsAt,
 		&i.EndsAt,
 		&i.Reason,
+		&i.CreatedByUserID,
 		&i.CreatedAt,
-		&i.DeletedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
-const updateTechnicianTimeOff = `-- name: UpdateTechnicianTimeOff :execrows
-UPDATE appointment_scheduler.technician_time_off
-SET technician_id = $1, starts_at = $2, ends_at = $3, reason = $4
-WHERE technician_time_off_id = $5 AND deleted_at IS NULL
+const listTechnicianTimeOff = `-- name: ListTechnicianTimeOff :many
+SELECT technician_time_off_id, technician_id, starts_at, ends_at, reason, created_by_user_id, created_at, updated_at
+FROM appointment_scheduler.technician_time_off
+WHERE technician_id = $1 AND deleted_at IS NULL
+  AND ($2::timestamptz IS NULL OR ends_at > $2::timestamptz)
+  AND ($3::timestamptz IS NULL OR starts_at < $3::timestamptz)
+ORDER BY starts_at, technician_time_off_id
+LIMIT $5 OFFSET $4
 `
 
-type UpdateTechnicianTimeOffParams struct {
+type ListTechnicianTimeOffParams struct {
+	TechnicianID pgtype.UUID
+	FromAt       pgtype.Timestamptz
+	ToAt         pgtype.Timestamptz
+	Offset       int32
+	Limit        int32
+}
+
+type ListTechnicianTimeOffRow struct {
+	TechnicianTimeOffID pgtype.UUID
 	TechnicianID        pgtype.UUID
 	StartsAt            time.Time
 	EndsAt              time.Time
 	Reason              *string
+	CreatedByUserID     pgtype.UUID
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
+}
+
+func (q *Queries) ListTechnicianTimeOff(ctx context.Context, arg ListTechnicianTimeOffParams) ([]ListTechnicianTimeOffRow, error) {
+	rows, err := q.db.Query(ctx, listTechnicianTimeOff,
+		arg.TechnicianID,
+		arg.FromAt,
+		arg.ToAt,
+		arg.Offset,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListTechnicianTimeOffRow{}
+	for rows.Next() {
+		var i ListTechnicianTimeOffRow
+		if err := rows.Scan(
+			&i.TechnicianTimeOffID,
+			&i.TechnicianID,
+			&i.StartsAt,
+			&i.EndsAt,
+			&i.Reason,
+			&i.CreatedByUserID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateTechnicianTimeOff = `-- name: UpdateTechnicianTimeOff :execrows
+UPDATE appointment_scheduler.technician_time_off
+SET starts_at = $1, ends_at = $2, reason = $3, updated_at = $4
+WHERE technician_time_off_id = $5 AND technician_id = $6 AND deleted_at IS NULL
+`
+
+type UpdateTechnicianTimeOffParams struct {
+	StartsAt            time.Time
+	EndsAt              time.Time
+	Reason              *string
+	UpdatedAt           time.Time
 	TechnicianTimeOffID pgtype.UUID
+	TechnicianID        pgtype.UUID
 }
 
 func (q *Queries) UpdateTechnicianTimeOff(ctx context.Context, arg UpdateTechnicianTimeOffParams) (int64, error) {
 	result, err := q.db.Exec(ctx, updateTechnicianTimeOff,
-		arg.TechnicianID,
 		arg.StartsAt,
 		arg.EndsAt,
 		arg.Reason,
+		arg.UpdatedAt,
 		arg.TechnicianTimeOffID,
+		arg.TechnicianID,
 	)
 	if err != nil {
 		return 0, err

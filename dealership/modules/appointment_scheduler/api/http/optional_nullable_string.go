@@ -1,6 +1,9 @@
 package http
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"time"
+)
 
 // OptionalNullableString preserves the difference between an omitted JSON
 // field and an explicit null in PATCH requests.
@@ -64,6 +67,40 @@ func (request *UpdateTechnicianRequest) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		request.Email = &value
+	}
+	return nil
+}
+
+func (request *UpdateTechnicianTimeOffRequest) UnmarshalJSON(data []byte) error {
+	var decoded struct {
+		StartsAt *string         `json:"startsAt"`
+		EndsAt   *string         `json:"endsAt"`
+		Reason   json.RawMessage `json:"reason"`
+	}
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+	if decoded.StartsAt != nil {
+		value, err := time.Parse(time.RFC3339, *decoded.StartsAt)
+		if err != nil {
+			return err
+		}
+		request.StartsAt = &value
+	}
+	if decoded.EndsAt != nil {
+		value, err := time.Parse(time.RFC3339, *decoded.EndsAt)
+		if err != nil {
+			return err
+		}
+		request.EndsAt = &value
+	}
+	request.Reason = nil
+	if decoded.Reason != nil {
+		value := OptionalNullableString{}
+		if err := value.UnmarshalJSON(decoded.Reason); err != nil {
+			return err
+		}
+		request.Reason = &value
 	}
 	return nil
 }
