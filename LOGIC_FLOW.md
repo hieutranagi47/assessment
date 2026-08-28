@@ -13,7 +13,7 @@
 - only superadmin/admin from auth.users can create Dealership
 - a login user (admin, supperadmin) can search user from auth.users table by provided email from the dealership staff to add it into appointment_scheduler.users table and grant admin role for a dealership
 - an admin of a dealership can get user by email from auth.users with the email that provided by the dealer staff, and grant the role as admin/staff/dealer.
-- an admin of a dealership can create technican account.
+- an admin of a dealership can create a technician account. A technician is a login-capable dealership user with the `technician` scheduler role.
 - a staff/admin of the dealership can make the shifts for the technician of the dealership.
 - a dealer can create customer account and make appointment for the customer for the dealership
 

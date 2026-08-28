@@ -18,25 +18,25 @@ import (
 
 // Defines values for AppointmentStatus.
 const (
-	Cancelled  AppointmentStatus = "cancelled"
-	CheckedIn  AppointmentStatus = "checked_in"
-	Completed  AppointmentStatus = "completed"
-	InProgress AppointmentStatus = "in_progress"
-	Requested  AppointmentStatus = "requested"
+	AppointmentStatusCancelled  AppointmentStatus = "cancelled"
+	AppointmentStatusCheckedIn  AppointmentStatus = "checked_in"
+	AppointmentStatusCompleted  AppointmentStatus = "completed"
+	AppointmentStatusInProgress AppointmentStatus = "in_progress"
+	AppointmentStatusRequested  AppointmentStatus = "requested"
 )
 
 // Valid indicates whether the value is a known member of the AppointmentStatus enum.
 func (e AppointmentStatus) Valid() bool {
 	switch e {
-	case Cancelled:
+	case AppointmentStatusCancelled:
 		return true
-	case CheckedIn:
+	case AppointmentStatusCheckedIn:
 		return true
-	case Completed:
+	case AppointmentStatusCompleted:
 		return true
-	case InProgress:
+	case AppointmentStatusInProgress:
 		return true
-	case Requested:
+	case AppointmentStatusRequested:
 		return true
 	default:
 		return false
@@ -106,24 +106,84 @@ func (e DealershipUserRole) Valid() bool {
 	}
 }
 
+// Defines values for TechnicianOccupiedSlotKind.
+const (
+	TechnicianOccupiedSlotKindAppointment TechnicianOccupiedSlotKind = "appointment"
+	TechnicianOccupiedSlotKindTimeOff     TechnicianOccupiedSlotKind = "time_off"
+)
+
+// Valid indicates whether the value is a known member of the TechnicianOccupiedSlotKind enum.
+func (e TechnicianOccupiedSlotKind) Valid() bool {
+	switch e {
+	case TechnicianOccupiedSlotKindAppointment:
+		return true
+	case TechnicianOccupiedSlotKindTimeOff:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TechnicianOccupiedSlotStatus.
+const (
+	TechnicianOccupiedSlotStatusCheckedIn  TechnicianOccupiedSlotStatus = "checked_in"
+	TechnicianOccupiedSlotStatusInProgress TechnicianOccupiedSlotStatus = "in_progress"
+	TechnicianOccupiedSlotStatusRequested  TechnicianOccupiedSlotStatus = "requested"
+)
+
+// Valid indicates whether the value is a known member of the TechnicianOccupiedSlotStatus enum.
+func (e TechnicianOccupiedSlotStatus) Valid() bool {
+	switch e {
+	case TechnicianOccupiedSlotStatusCheckedIn:
+		return true
+	case TechnicianOccupiedSlotStatusInProgress:
+		return true
+	case TechnicianOccupiedSlotStatusRequested:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListTechnicianSchedulesParamsInclude.
+const (
+	ListTechnicianSchedulesParamsIncludeAppointments ListTechnicianSchedulesParamsInclude = "appointments"
+	ListTechnicianSchedulesParamsIncludeShifts       ListTechnicianSchedulesParamsInclude = "shifts"
+	ListTechnicianSchedulesParamsIncludeTimeOff      ListTechnicianSchedulesParamsInclude = "time_off"
+)
+
+// Valid indicates whether the value is a known member of the ListTechnicianSchedulesParamsInclude enum.
+func (e ListTechnicianSchedulesParamsInclude) Valid() bool {
+	switch e {
+	case ListTechnicianSchedulesParamsIncludeAppointments:
+		return true
+	case ListTechnicianSchedulesParamsIncludeShifts:
+		return true
+	case ListTechnicianSchedulesParamsIncludeTimeOff:
+		return true
+	default:
+		return false
+	}
+}
+
 // Appointment defines model for Appointment.
 type Appointment struct {
-	ActualEndsAt           *time.Time          `json:"actualEndsAt,omitempty"`
-	AppointmentId          openapi_types.UUID  `json:"appointmentId"`
-	CreatedAt              time.Time           `json:"createdAt"`
-	CustomerId             *openapi_types.UUID `json:"customerId,omitempty"`
-	DealershipId           openapi_types.UUID  `json:"dealershipId"`
-	EndsAt                 time.Time           `json:"endsAt"`
+	ActualEndsAt           *time.Time          `json:"actual_ends_at,omitempty"`
+	AppointmentId          openapi_types.UUID  `json:"appointment_id"`
+	CreatedAt              time.Time           `json:"created_at"`
+	CustomerId             *openapi_types.UUID `json:"customer_id,omitempty"`
+	DealershipId           openapi_types.UUID  `json:"dealership_id"`
+	EndsAt                 time.Time           `json:"ends_at"`
 	Notes                  *string             `json:"notes,omitempty"`
-	PlannedDurationMinutes int                 `json:"plannedDurationMinutes"`
-	ReferenceCode          string              `json:"referenceCode"`
-	ServiceBayId           *openapi_types.UUID `json:"serviceBayId,omitempty"`
-	ServiceTypeId          *openapi_types.UUID `json:"serviceTypeId,omitempty"`
-	StartsAt               time.Time           `json:"startsAt"`
+	PlannedDurationMinutes int                 `json:"planned_duration_minutes"`
+	ReferenceCode          string              `json:"reference_code"`
+	ServiceBayId           *openapi_types.UUID `json:"service_bay_id,omitempty"`
+	ServiceTypeId          *openapi_types.UUID `json:"service_type_id,omitempty"`
+	StartsAt               time.Time           `json:"starts_at"`
 	Status                 AppointmentStatus   `json:"status"`
-	TechnicianId           *openapi_types.UUID `json:"technicianId,omitempty"`
-	UpdatedAt              time.Time           `json:"updatedAt"`
-	VehicleId              *openapi_types.UUID `json:"vehicleId,omitempty"`
+	TechnicianId           *openapi_types.UUID `json:"technician_id,omitempty"`
+	UpdatedAt              time.Time           `json:"updated_at"`
+	VehicleId              *openapi_types.UUID `json:"vehicle_id,omitempty"`
 }
 
 // AppointmentStatus defines model for Appointment.Status.
@@ -137,28 +197,28 @@ type AppointmentNoteRequest struct {
 // AuthUser defines model for AuthUser.
 type AuthUser struct {
 	Email    openapi_types.Email `json:"email"`
-	FullName string              `json:"fullName"`
+	FullName string              `json:"full_name"`
 	Role     string              `json:"role"`
 	Status   string              `json:"status"`
-	UserId   openapi_types.UUID  `json:"userId"`
+	UserId   openapi_types.UUID  `json:"user_id"`
 }
 
 // BayCapability defines model for BayCapability.
 type BayCapability struct {
-	BayCapabilityId openapi_types.UUID `json:"bayCapabilityId"`
+	BayCapabilityId openapi_types.UUID `json:"bay_capability_id"`
 	Code            string             `json:"code"`
 	Name            string             `json:"name"`
 }
 
 // CancelAppointmentRequest defines model for CancelAppointmentRequest.
 type CancelAppointmentRequest struct {
-	CancellationReason string  `json:"cancellationReason"`
+	CancellationReason string  `json:"cancellation_reason"`
 	Note               *string `json:"note,omitempty"`
 }
 
 // CompleteAppointmentRequest defines model for CompleteAppointmentRequest.
 type CompleteAppointmentRequest struct {
-	ActualEndsAt *time.Time `json:"actualEndsAt,omitempty"`
+	ActualEndsAt *time.Time `json:"actual_ends_at,omitempty"`
 	Note         *string    `json:"note,omitempty"`
 }
 
@@ -171,7 +231,7 @@ type CreateCustomerRequest struct {
 
 // CreateDealershipAdminRequest defines model for CreateDealershipAdminRequest.
 type CreateDealershipAdminRequest struct {
-	DealershipId openapi_types.UUID `json:"dealershipId"`
+	DealershipId openapi_types.UUID `json:"dealership_id"`
 
 	// Email Example: jane@example.com
 	Email openapi_types.Email `json:"email"`
@@ -183,9 +243,9 @@ type CreateDealershipAdminRequest struct {
 
 // CreateDealershipOperationTimeRequest defines model for CreateDealershipOperationTimeRequest.
 type CreateDealershipOperationTimeRequest struct {
-	ClosesAt  string `json:"closesAt"`
-	DayOfWeek int    `json:"dayOfWeek"`
-	OpensAt   string `json:"opensAt"`
+	ClosesAt  string `json:"closes_at"`
+	DayOfWeek int    `json:"day_of_week"`
+	OpensAt   string `json:"opens_at"`
 }
 
 // CreateDealershipRequest defines model for CreateDealershipRequest.
@@ -200,7 +260,7 @@ type CreateDealershipRequest struct {
 
 // CreateDealershipUserRequest defines model for CreateDealershipUserRequest.
 type CreateDealershipUserRequest struct {
-	DealershipId openapi_types.UUID `json:"dealershipId"`
+	DealershipId openapi_types.UUID `json:"dealership_id"`
 
 	// Email Example: user@example.com
 	Email openapi_types.Email             `json:"email"`
@@ -212,48 +272,48 @@ type CreateDealershipUserRequestRole string
 
 // CreateServiceBayCapabilityRequest defines model for CreateServiceBayCapabilityRequest.
 type CreateServiceBayCapabilityRequest struct {
-	BayCapabilityId openapi_types.UUID `json:"bayCapabilityId"`
+	BayCapabilityId openapi_types.UUID `json:"bay_capability_id"`
 }
 
 // CreateServiceBayRequest defines model for CreateServiceBayRequest.
 type CreateServiceBayRequest struct {
 	Code     string `json:"code"`
-	IsActive *bool  `json:"isActive,omitempty"`
+	IsActive *bool  `json:"is_active,omitempty"`
 	Name     string `json:"name"`
 }
 
 // CreateServiceTypeRequest defines model for CreateServiceTypeRequest.
 type CreateServiceTypeRequest struct {
-	DefaultDurationMinutes int    `json:"defaultDurationMinutes"`
-	IsActive               *bool  `json:"isActive,omitempty"`
-	MaxDurationMinutes     int    `json:"maxDurationMinutes"`
-	MinDurationMinutes     int    `json:"minDurationMinutes"`
+	DefaultDurationMinutes int    `json:"default_duration_minutes"`
+	IsActive               *bool  `json:"is_active,omitempty"`
+	MaxDurationMinutes     int    `json:"max_duration_minutes"`
+	MinDurationMinutes     int    `json:"min_duration_minutes"`
 	Name                   string `json:"name"`
 }
 
 // CreateServiceTypeRequiredBayCapabilityRequest defines model for CreateServiceTypeRequiredBayCapabilityRequest.
 type CreateServiceTypeRequiredBayCapabilityRequest struct {
-	BayCapabilityId openapi_types.UUID `json:"bayCapabilityId"`
+	BayCapabilityId openapi_types.UUID `json:"bay_capability_id"`
 }
 
 // CreateServiceTypeRequiredSkillRequest defines model for CreateServiceTypeRequiredSkillRequest.
 type CreateServiceTypeRequiredSkillRequest struct {
-	SkillId openapi_types.UUID `json:"skillId"`
+	SkillId openapi_types.UUID `json:"skill_id"`
 }
 
 // CreateTechnicianRequest defines model for CreateTechnicianRequest.
 type CreateTechnicianRequest struct {
 	Email    *openapi_types.Email `json:"email,omitempty"`
-	IsActive *bool                `json:"isActive,omitempty"`
+	IsActive *bool                `json:"is_active,omitempty"`
 	Name     string               `json:"name"`
 	Phone    string               `json:"phone"`
 }
 
 // CreateTechnicianShiftRequest defines model for CreateTechnicianShiftRequest.
 type CreateTechnicianShiftRequest struct {
-	DayOfWeek int    `json:"dayOfWeek"`
-	EndsAt    string `json:"endsAt"`
-	StartsAt  string `json:"startsAt"`
+	DayOfWeek int    `json:"day_of_week"`
+	EndsAt    string `json:"ends_at"`
+	StartsAt  string `json:"starts_at"`
 }
 
 // CreateTechnicianSkillRequest defines model for CreateTechnicianSkillRequest.
@@ -263,28 +323,28 @@ type CreateTechnicianSkillRequest struct {
 
 // CreateTechnicianTimeOffRequest defines model for CreateTechnicianTimeOffRequest.
 type CreateTechnicianTimeOffRequest struct {
-	EndsAt   time.Time `json:"endsAt"`
+	EndsAt   time.Time `json:"ends_at"`
 	Reason   *string   `json:"reason,omitempty"`
-	StartsAt time.Time `json:"startsAt"`
+	StartsAt time.Time `json:"starts_at"`
 }
 
 // CreateVehicleRequest defines model for CreateVehicleRequest.
 type CreateVehicleRequest struct {
 	Make              string  `json:"make"`
 	Model             string  `json:"model"`
-	ModelYear         *int    `json:"modelYear,omitempty"`
-	RegistrationPlate *string `json:"registrationPlate,omitempty"`
+	ModelYear         *int    `json:"model_year,omitempty"`
+	RegistrationPlate *string `json:"registration_plate,omitempty"`
 	Vin               *string `json:"vin,omitempty"`
 }
 
 // Customer defines model for Customer.
 type Customer struct {
-	CreatedAt  time.Time            `json:"createdAt"`
-	CustomerId openapi_types.UUID   `json:"customerId"`
+	CreatedAt  time.Time            `json:"created_at"`
+	CustomerId openapi_types.UUID   `json:"customer_id"`
 	Email      *openapi_types.Email `json:"email"`
 	Name       string               `json:"name"`
 	Phone      string               `json:"phone"`
-	UpdatedAt  time.Time            `json:"updatedAt"`
+	UpdatedAt  time.Time            `json:"updated_at"`
 }
 
 // CustomerListResponse defines model for CustomerListResponse.
@@ -296,26 +356,26 @@ type CustomerListResponse struct {
 type Dealership struct {
 	Address      string             `json:"address"`
 	Code         string             `json:"code"`
-	CreatedAt    time.Time          `json:"createdAt"`
-	DealershipId openapi_types.UUID `json:"dealershipId"`
-	IsActive     bool               `json:"isActive"`
+	CreatedAt    time.Time          `json:"created_at"`
+	DealershipId openapi_types.UUID `json:"dealership_id"`
+	IsActive     bool               `json:"is_active"`
 	Name         string             `json:"name"`
 	Timezone     string             `json:"timezone"`
-	UpdatedAt    time.Time          `json:"updatedAt"`
+	UpdatedAt    time.Time          `json:"updated_at"`
 }
 
 // DealershipAdmin defines model for DealershipAdmin.
 type DealershipAdmin struct {
-	AuthUserId   openapi_types.UUID   `json:"authUserId"`
-	CreatedAt    time.Time            `json:"createdAt"`
-	DealershipId openapi_types.UUID   `json:"dealershipId"`
+	AuthUserId   openapi_types.UUID   `json:"auth_user_id"`
+	CreatedAt    time.Time            `json:"created_at"`
+	DealershipId openapi_types.UUID   `json:"dealership_id"`
 	Email        *openapi_types.Email `json:"email,omitempty"`
-	IsActive     bool                 `json:"isActive"`
+	IsActive     bool                 `json:"is_active"`
 	Name         string               `json:"name"`
 	Phone        *string              `json:"phone,omitempty"`
 	Role         DealershipAdminRole  `json:"role"`
-	UpdatedAt    time.Time            `json:"updatedAt"`
-	UserId       openapi_types.UUID   `json:"userId"`
+	UpdatedAt    time.Time            `json:"updated_at"`
+	UserId       openapi_types.UUID   `json:"user_id"`
 }
 
 // DealershipAdminRole defines model for DealershipAdmin.Role.
@@ -323,26 +383,26 @@ type DealershipAdminRole string
 
 // DealershipOperationTime defines model for DealershipOperationTime.
 type DealershipOperationTime struct {
-	ClosesAt        string             `json:"closesAt"`
-	CreatedAt       time.Time          `json:"createdAt"`
-	DayOfWeek       int                `json:"dayOfWeek"`
-	DealershipId    openapi_types.UUID `json:"dealershipId"`
-	OpensAt         string             `json:"opensAt"`
-	OperationTimeId openapi_types.UUID `json:"operationTimeId"`
-	UpdatedAt       time.Time          `json:"updatedAt"`
+	ClosesAt        string             `json:"closes_at"`
+	CreatedAt       time.Time          `json:"created_at"`
+	DayOfWeek       int                `json:"day_of_week"`
+	DealershipId    openapi_types.UUID `json:"dealership_id"`
+	OpensAt         string             `json:"opens_at"`
+	OperationTimeId openapi_types.UUID `json:"operation_time_id"`
+	UpdatedAt       time.Time          `json:"updated_at"`
 }
 
 // DealershipUser defines model for DealershipUser.
 type DealershipUser struct {
-	AuthUserId   openapi_types.UUID  `json:"authUserId"`
-	CreatedAt    time.Time           `json:"createdAt"`
-	DealershipId openapi_types.UUID  `json:"dealershipId"`
+	AuthUserId   openapi_types.UUID  `json:"auth_user_id"`
+	CreatedAt    time.Time           `json:"created_at"`
+	DealershipId openapi_types.UUID  `json:"dealership_id"`
 	Email        openapi_types.Email `json:"email"`
-	IsActive     bool                `json:"isActive"`
+	IsActive     bool                `json:"is_active"`
 	Name         string              `json:"name"`
 	Role         DealershipUserRole  `json:"role"`
-	UpdatedAt    time.Time           `json:"updatedAt"`
-	UserId       openapi_types.UUID  `json:"userId"`
+	UpdatedAt    time.Time           `json:"updated_at"`
+	UserId       openapi_types.UUID  `json:"user_id"`
 }
 
 // DealershipUserRole defines model for DealershipUser.Role.
@@ -350,9 +410,9 @@ type DealershipUserRole string
 
 // ErrorDetail defines model for ErrorDetail.
 type ErrorDetail struct {
-	EntityId   string `json:"entityId"`
-	EntityType string `json:"entityType"`
-	ErrorSlug  string `json:"errorSlug"`
+	EntityId   string `json:"entity_id"`
+	EntityType string `json:"entity_type"`
+	ErrorSlug  string `json:"error_slug"`
 	Message    string `json:"message"`
 }
 
@@ -371,36 +431,36 @@ type ErrorResponse struct {
 
 // ScheduleAppointmentRequest defines model for ScheduleAppointmentRequest.
 type ScheduleAppointmentRequest struct {
-	CustomerId             openapi_types.UUID `json:"customerId"`
+	CustomerId             openapi_types.UUID `json:"customer_id"`
 	Notes                  *string            `json:"notes,omitempty"`
-	PlannedDurationMinutes *int               `json:"plannedDurationMinutes,omitempty"`
-	ServiceBayId           openapi_types.UUID `json:"serviceBayId"`
-	ServiceTypeId          openapi_types.UUID `json:"serviceTypeId"`
+	PlannedDurationMinutes *int               `json:"planned_duration_minutes,omitempty"`
+	ServiceBayId           openapi_types.UUID `json:"service_bay_id"`
+	ServiceTypeId          openapi_types.UUID `json:"service_type_id"`
 
 	// StartsAt UTC instant
-	StartsAt     time.Time          `json:"startsAt"`
-	TechnicianId openapi_types.UUID `json:"technicianId"`
-	VehicleId    openapi_types.UUID `json:"vehicleId"`
+	StartsAt     time.Time          `json:"starts_at"`
+	TechnicianId openapi_types.UUID `json:"technician_id"`
+	VehicleId    openapi_types.UUID `json:"vehicle_id"`
 }
 
 // ServiceBay defines model for ServiceBay.
 type ServiceBay struct {
 	Code         string             `json:"code"`
-	CreatedAt    time.Time          `json:"createdAt"`
-	DealershipId openapi_types.UUID `json:"dealershipId"`
-	IsActive     bool               `json:"isActive"`
+	CreatedAt    time.Time          `json:"created_at"`
+	DealershipId openapi_types.UUID `json:"dealership_id"`
+	IsActive     bool               `json:"is_active"`
 	Name         string             `json:"name"`
-	ServiceBayId openapi_types.UUID `json:"serviceBayId"`
-	UpdatedAt    time.Time          `json:"updatedAt"`
+	ServiceBayId openapi_types.UUID `json:"service_bay_id"`
+	UpdatedAt    time.Time          `json:"updated_at"`
 }
 
 // ServiceBayCapability defines model for ServiceBayCapability.
 type ServiceBayCapability struct {
-	BayCapability          BayCapability      `json:"bayCapability"`
-	CreatedAt              time.Time          `json:"createdAt"`
-	ServiceBayCapabilityId openapi_types.UUID `json:"serviceBayCapabilityId"`
-	ServiceBayId           openapi_types.UUID `json:"serviceBayId"`
-	UpdatedAt              time.Time          `json:"updatedAt"`
+	BayCapability          BayCapability      `json:"bay_capability"`
+	CreatedAt              time.Time          `json:"created_at"`
+	ServiceBayCapabilityId openapi_types.UUID `json:"service_bay_capability_id"`
+	ServiceBayId           openapi_types.UUID `json:"service_bay_id"`
+	UpdatedAt              time.Time          `json:"updated_at"`
 }
 
 // ServiceBayPage defines model for ServiceBayPage.
@@ -412,53 +472,72 @@ type ServiceBayPage struct {
 
 // ServiceType defines model for ServiceType.
 type ServiceType struct {
-	CreatedAt              time.Time          `json:"createdAt"`
-	DealershipId           openapi_types.UUID `json:"dealershipId"`
-	DefaultDurationMinutes int                `json:"defaultDurationMinutes"`
-	IsActive               bool               `json:"isActive"`
-	MaxDurationMinutes     int                `json:"maxDurationMinutes"`
-	MinDurationMinutes     int                `json:"minDurationMinutes"`
+	CreatedAt              time.Time          `json:"created_at"`
+	DealershipId           openapi_types.UUID `json:"dealership_id"`
+	DefaultDurationMinutes int                `json:"default_duration_minutes"`
+	IsActive               bool               `json:"is_active"`
+	MaxDurationMinutes     int                `json:"max_duration_minutes"`
+	MinDurationMinutes     int                `json:"min_duration_minutes"`
 	Name                   string             `json:"name"`
-	ServiceTypeId          openapi_types.UUID `json:"serviceTypeId"`
-	UpdatedAt              time.Time          `json:"updatedAt"`
+	ServiceTypeId          openapi_types.UUID `json:"service_type_id"`
+	UpdatedAt              time.Time          `json:"updated_at"`
 }
 
 // ServiceTypeRequiredBayCapability defines model for ServiceTypeRequiredBayCapability.
 type ServiceTypeRequiredBayCapability struct {
-	BayCapability        BayCapability      `json:"bayCapability"`
-	CreatedAt            time.Time          `json:"createdAt"`
-	RequiredCapabilityId openapi_types.UUID `json:"requiredCapabilityId"`
-	ServiceTypeId        openapi_types.UUID `json:"serviceTypeId"`
-	UpdatedAt            time.Time          `json:"updatedAt"`
+	BayCapability        BayCapability      `json:"bay_capability"`
+	CreatedAt            time.Time          `json:"created_at"`
+	RequiredCapabilityId openapi_types.UUID `json:"required_capability_id"`
+	ServiceTypeId        openapi_types.UUID `json:"service_type_id"`
+	UpdatedAt            time.Time          `json:"updated_at"`
 }
 
 // ServiceTypeRequiredSkill defines model for ServiceTypeRequiredSkill.
 type ServiceTypeRequiredSkill struct {
-	CreatedAt       time.Time          `json:"createdAt"`
-	RequiredSkillId openapi_types.UUID `json:"requiredSkillId"`
-	ServiceTypeId   openapi_types.UUID `json:"serviceTypeId"`
+	CreatedAt       time.Time          `json:"created_at"`
+	RequiredSkillId openapi_types.UUID `json:"required_skill_id"`
+	ServiceTypeId   openapi_types.UUID `json:"service_type_id"`
 	Skill           Skill              `json:"skill"`
-	UpdatedAt       time.Time          `json:"updatedAt"`
+	UpdatedAt       time.Time          `json:"updated_at"`
 }
 
 // Skill defines model for Skill.
 type Skill struct {
 	Code    string             `json:"code"`
 	Name    string             `json:"name"`
-	SkillId openapi_types.UUID `json:"skillId"`
+	SkillId openapi_types.UUID `json:"skill_id"`
 }
 
 // Technician defines model for Technician.
 type Technician struct {
-	CreatedAt    time.Time            `json:"createdAt"`
+	CreatedAt    time.Time            `json:"created_at"`
 	Email        *openapi_types.Email `json:"email,omitempty"`
-	IsActive     bool                 `json:"isActive"`
+	IsActive     bool                 `json:"is_active"`
 	Name         string               `json:"name"`
 	Phone        string               `json:"phone"`
-	TechnicianId openapi_types.UUID   `json:"technicianId"`
-	UpdatedAt    time.Time            `json:"updatedAt"`
-	UserId       openapi_types.UUID   `json:"userId"`
+	TechnicianId openapi_types.UUID   `json:"technician_id"`
+	UpdatedAt    time.Time            `json:"updated_at"`
+	UserId       openapi_types.UUID   `json:"user_id"`
 }
+
+// TechnicianOccupiedSlot defines model for TechnicianOccupiedSlot.
+type TechnicianOccupiedSlot struct {
+	AppointmentId   *openapi_types.UUID           `json:"appointment_id,omitempty"`
+	EndsAt          time.Time                     `json:"ends_at"`
+	Kind            TechnicianOccupiedSlotKind    `json:"kind"`
+	ReferenceCode   *string                       `json:"reference_code,omitempty"`
+	ServiceBayCode  *string                       `json:"service_bay_code,omitempty"`
+	ServiceBayId    *openapi_types.UUID           `json:"service_bay_id,omitempty"`
+	ServiceTypeName *string                       `json:"service_type_name,omitempty"`
+	StartsAt        time.Time                     `json:"starts_at"`
+	Status          *TechnicianOccupiedSlotStatus `json:"status,omitempty"`
+}
+
+// TechnicianOccupiedSlotKind defines model for TechnicianOccupiedSlot.Kind.
+type TechnicianOccupiedSlotKind string
+
+// TechnicianOccupiedSlotStatus defines model for TechnicianOccupiedSlot.Status.
+type TechnicianOccupiedSlotStatus string
 
 // TechnicianPage defines model for TechnicianPage.
 type TechnicianPage struct {
@@ -467,36 +546,61 @@ type TechnicianPage struct {
 	Offset int          `json:"offset"`
 }
 
+// TechnicianSchedule defines model for TechnicianSchedule.
+type TechnicianSchedule struct {
+	Name          string                    `json:"name"`
+	OccupiedSlots []TechnicianOccupiedSlot  `json:"occupied_slots"`
+	Shifts        []TechnicianScheduleShift `json:"shifts"`
+	TechnicianId  openapi_types.UUID        `json:"technician_id"`
+	UserId        openapi_types.UUID        `json:"user_id"`
+}
+
+// TechnicianScheduleResponse defines model for TechnicianScheduleResponse.
+type TechnicianScheduleResponse struct {
+	Date           openapi_types.Date   `json:"date"`
+	DealershipId   openapi_types.UUID   `json:"dealership_id"`
+	PeriodEndsAt   time.Time            `json:"period_ends_at"`
+	PeriodStartsAt time.Time            `json:"period_starts_at"`
+	Technicians    []TechnicianSchedule `json:"technicians"`
+	Timezone       string               `json:"timezone"`
+}
+
+// TechnicianScheduleShift defines model for TechnicianScheduleShift.
+type TechnicianScheduleShift struct {
+	EndsAt   time.Time `json:"ends_at"`
+	StartsAt time.Time `json:"starts_at"`
+}
+
 // TechnicianShift defines model for TechnicianShift.
 type TechnicianShift struct {
-	CreatedAt         time.Time          `json:"createdAt"`
-	DayOfWeek         int                `json:"dayOfWeek"`
-	EndsAt            string             `json:"endsAt"`
-	StartsAt          string             `json:"startsAt"`
-	TechnicianId      openapi_types.UUID `json:"technicianId"`
-	TechnicianShiftId openapi_types.UUID `json:"technicianShiftId"`
-	UpdatedAt         time.Time          `json:"updatedAt"`
+	CreatedAt         time.Time          `json:"created_at"`
+	DayOfWeek         int                `json:"day_of_week"`
+	EndsAt            string             `json:"ends_at"`
+	StartsAt          string             `json:"starts_at"`
+	TechnicianId      openapi_types.UUID `json:"technician_id"`
+	TechnicianShiftId openapi_types.UUID `json:"technician_shift_id"`
+	UpdatedAt         time.Time          `json:"updated_at"`
 }
 
 // TechnicianSkill defines model for TechnicianSkill.
 type TechnicianSkill struct {
-	CreatedAt         time.Time          `json:"createdAt"`
-	SkillId           openapi_types.UUID `json:"skillId"`
-	TechnicianId      openapi_types.UUID `json:"technicianId"`
-	TechnicianSkillId openapi_types.UUID `json:"technicianSkillId"`
-	UpdatedAt         time.Time          `json:"updatedAt"`
+	CreatedAt         time.Time          `json:"created_at"`
+	SkillId           openapi_types.UUID `json:"skill_id"`
+	TechnicianId      openapi_types.UUID `json:"technician_id"`
+	TechnicianSkillId openapi_types.UUID `json:"technician_skill_id"`
+	UpdatedAt         time.Time          `json:"updated_at"`
 }
 
 // TechnicianTimeOff defines model for TechnicianTimeOff.
 type TechnicianTimeOff struct {
-	CreatedAt           time.Time          `json:"createdAt"`
-	CreatedByUserId     openapi_types.UUID `json:"createdByUserId"`
-	EndsAt              time.Time          `json:"endsAt"`
+	CreatedAt           time.Time          `json:"created_at"`
+	CreatedByUserId     openapi_types.UUID `json:"created_by_user_id"`
+	EndsAt              time.Time          `json:"ends_at"`
 	Reason              *string            `json:"reason,omitempty"`
-	StartsAt            time.Time          `json:"startsAt"`
-	TechnicianId        openapi_types.UUID `json:"technicianId"`
-	TechnicianTimeOffId openapi_types.UUID `json:"technicianTimeOffId"`
-	UpdatedAt           time.Time          `json:"updatedAt"`
+	StartsAt            time.Time          `json:"starts_at"`
+	TechnicianId        openapi_types.UUID `json:"technician_id"`
+	TechnicianTimeOffId openapi_types.UUID `json:"technician_time_off_id"`
+	UpdatedAt           time.Time          `json:"updated_at"`
 }
 
 // TechnicianTimeOffPage defines model for TechnicianTimeOffPage.
@@ -515,55 +619,55 @@ type UpdateCustomerRequest struct {
 
 // UpdateDealershipOperationTimeRequest defines model for UpdateDealershipOperationTimeRequest.
 type UpdateDealershipOperationTimeRequest struct {
-	ClosesAt  *string `json:"closesAt,omitempty"`
-	DayOfWeek *int    `json:"dayOfWeek,omitempty"`
-	OpensAt   *string `json:"opensAt,omitempty"`
+	ClosesAt  *string `json:"closes_at,omitempty"`
+	DayOfWeek *int    `json:"day_of_week,omitempty"`
+	OpensAt   *string `json:"opens_at,omitempty"`
 }
 
 // UpdateServiceBayCapabilityRequest defines model for UpdateServiceBayCapabilityRequest.
 type UpdateServiceBayCapabilityRequest struct {
-	BayCapabilityId openapi_types.UUID `json:"bayCapabilityId"`
+	BayCapabilityId openapi_types.UUID `json:"bay_capability_id"`
 }
 
 // UpdateServiceBayRequest defines model for UpdateServiceBayRequest.
 type UpdateServiceBayRequest struct {
 	Code     *string `json:"code,omitempty"`
-	IsActive *bool   `json:"isActive,omitempty"`
+	IsActive *bool   `json:"is_active,omitempty"`
 	Name     *string `json:"name,omitempty"`
 }
 
 // UpdateServiceTypeRequest defines model for UpdateServiceTypeRequest.
 type UpdateServiceTypeRequest struct {
-	DefaultDurationMinutes *int    `json:"defaultDurationMinutes,omitempty"`
-	IsActive               *bool   `json:"isActive,omitempty"`
-	MaxDurationMinutes     *int    `json:"maxDurationMinutes,omitempty"`
-	MinDurationMinutes     *int    `json:"minDurationMinutes,omitempty"`
+	DefaultDurationMinutes *int    `json:"default_duration_minutes,omitempty"`
+	IsActive               *bool   `json:"is_active,omitempty"`
+	MaxDurationMinutes     *int    `json:"max_duration_minutes,omitempty"`
+	MinDurationMinutes     *int    `json:"min_duration_minutes,omitempty"`
 	Name                   *string `json:"name,omitempty"`
 }
 
 // UpdateServiceTypeRequiredBayCapabilityRequest defines model for UpdateServiceTypeRequiredBayCapabilityRequest.
 type UpdateServiceTypeRequiredBayCapabilityRequest struct {
-	BayCapabilityId openapi_types.UUID `json:"bayCapabilityId"`
+	BayCapabilityId openapi_types.UUID `json:"bay_capability_id"`
 }
 
 // UpdateServiceTypeRequiredSkillRequest defines model for UpdateServiceTypeRequiredSkillRequest.
 type UpdateServiceTypeRequiredSkillRequest struct {
-	SkillId openapi_types.UUID `json:"skillId"`
+	SkillId openapi_types.UUID `json:"skill_id"`
 }
 
 // UpdateTechnicianRequest defines model for UpdateTechnicianRequest.
 type UpdateTechnicianRequest struct {
 	Email    *OptionalNullableString `json:"email,omitempty"`
-	IsActive *bool                   `json:"isActive,omitempty"`
+	IsActive *bool                   `json:"is_active,omitempty"`
 	Name     *string                 `json:"name,omitempty"`
 	Phone    *string                 `json:"phone,omitempty"`
 }
 
 // UpdateTechnicianShiftRequest defines model for UpdateTechnicianShiftRequest.
 type UpdateTechnicianShiftRequest struct {
-	DayOfWeek *int    `json:"dayOfWeek,omitempty"`
-	EndsAt    *string `json:"endsAt,omitempty"`
-	StartsAt  *string `json:"startsAt,omitempty"`
+	DayOfWeek *int    `json:"day_of_week,omitempty"`
+	EndsAt    *string `json:"ends_at,omitempty"`
+	StartsAt  *string `json:"starts_at,omitempty"`
 }
 
 // UpdateTechnicianSkillRequest defines model for UpdateTechnicianSkillRequest.
@@ -573,30 +677,30 @@ type UpdateTechnicianSkillRequest struct {
 
 // UpdateTechnicianTimeOffRequest defines model for UpdateTechnicianTimeOffRequest.
 type UpdateTechnicianTimeOffRequest struct {
-	EndsAt   *time.Time              `json:"endsAt,omitempty"`
+	EndsAt   *time.Time              `json:"ends_at,omitempty"`
 	Reason   *OptionalNullableString `json:"reason,omitempty"`
-	StartsAt *time.Time              `json:"startsAt,omitempty"`
+	StartsAt *time.Time              `json:"starts_at,omitempty"`
 }
 
 // UpdateVehicleRequest defines model for UpdateVehicleRequest.
 type UpdateVehicleRequest struct {
 	Make              *string                 `json:"make,omitempty"`
 	Model             *string                 `json:"model,omitempty"`
-	ModelYear         *OptionalNullableInt    `json:"modelYear,omitempty"`
-	RegistrationPlate *OptionalNullableString `json:"registrationPlate,omitempty"`
+	ModelYear         *OptionalNullableInt    `json:"model_year,omitempty"`
+	RegistrationPlate *OptionalNullableString `json:"registration_plate,omitempty"`
 	Vin               *OptionalNullableString `json:"vin,omitempty"`
 }
 
 // Vehicle defines model for Vehicle.
 type Vehicle struct {
-	CreatedAt         time.Time          `json:"createdAt"`
-	CustomerId        openapi_types.UUID `json:"customerId"`
+	CreatedAt         time.Time          `json:"created_at"`
+	CustomerId        openapi_types.UUID `json:"customer_id"`
 	Make              string             `json:"make"`
 	Model             string             `json:"model"`
-	ModelYear         *int               `json:"modelYear,omitempty"`
-	RegistrationPlate *string            `json:"registrationPlate,omitempty"`
-	UpdatedAt         time.Time          `json:"updatedAt"`
-	VehicleId         openapi_types.UUID `json:"vehicleId"`
+	ModelYear         *int               `json:"model_year,omitempty"`
+	RegistrationPlate *string            `json:"registration_plate,omitempty"`
+	UpdatedAt         time.Time          `json:"updated_at"`
+	VehicleId         openapi_types.UUID `json:"vehicle_id"`
 	Vin               *string            `json:"vin,omitempty"`
 }
 
@@ -758,6 +862,9 @@ type TechnicianCreated = Technician
 // TechnicianFound defines model for TechnicianFound.
 type TechnicianFound = Technician
 
+// TechnicianSchedulesListed defines model for TechnicianSchedulesListed.
+type TechnicianSchedulesListed = TechnicianScheduleResponse
+
 // TechnicianShiftCreated defines model for TechnicianShiftCreated.
 type TechnicianShiftCreated = TechnicianShift
 
@@ -812,15 +919,15 @@ type VehicleUpdated = Vehicle
 // VehiclesListed defines model for VehiclesListed.
 type VehiclesListed = VehicleListResponse
 
-// SearchAuthUserByEmailParams defines parameters for SearchAuthUserByEmail.
-type SearchAuthUserByEmailParams struct {
-	Email openapi_types.Email `form:"email" json:"email"`
-}
-
 // SearchCustomersParams defines parameters for SearchCustomers.
 type SearchCustomersParams struct {
 	Phone *string              `form:"phone,omitempty" json:"phone,omitempty"`
 	Email *openapi_types.Email `form:"email,omitempty" json:"email,omitempty"`
+}
+
+// SearchAuthUserByEmailParams defines parameters for SearchAuthUserByEmail.
+type SearchAuthUserByEmailParams struct {
+	Email openapi_types.Email `form:"email" json:"email"`
 }
 
 // ListServiceBaysParams defines parameters for ListServiceBays.
@@ -829,6 +936,18 @@ type ListServiceBaysParams struct {
 	Limit    *int  `form:"limit,omitempty" json:"limit,omitempty"`
 	Offset   *int  `form:"offset,omitempty" json:"offset,omitempty"`
 }
+
+// ListTechnicianSchedulesParams defines parameters for ListTechnicianSchedules.
+type ListTechnicianSchedulesParams struct {
+	Date         openapi_types.Date `form:"date" json:"date"`
+	TechnicianId *string            `form:"technician_id,omitempty" json:"technician_id,omitempty"`
+
+	// Include Comma-separated schedule sections. Defaults to appointments, time_off, and shifts.
+	Include *[]ListTechnicianSchedulesParamsInclude `form:"include,omitempty" json:"include,omitempty"`
+}
+
+// ListTechnicianSchedulesParamsInclude defines parameters for ListTechnicianSchedules.
+type ListTechnicianSchedulesParamsInclude string
 
 // ListTechniciansParams defines parameters for ListTechnicians.
 type ListTechniciansParams struct {
@@ -844,15 +963,6 @@ type ListTechnicianTimeOffParams struct {
 	Limit  *Limit     `form:"limit,omitempty" json:"limit,omitempty"`
 	Offset *Offset    `form:"offset,omitempty" json:"offset,omitempty"`
 }
-
-// CreateDealershipUserJSONRequestBody defines body for CreateDealershipUser for application/json ContentType.
-type CreateDealershipUserJSONRequestBody = CreateDealershipUserRequest
-
-// CreateDealershipAdminJSONRequestBody defines body for CreateDealershipAdmin for application/json ContentType.
-type CreateDealershipAdminJSONRequestBody = CreateDealershipAdminRequest
-
-// CreateDealershipJSONRequestBody defines body for CreateDealership for application/json ContentType.
-type CreateDealershipJSONRequestBody = CreateDealershipRequest
 
 // ScheduleAppointmentJSONRequestBody defines body for ScheduleAppointment for application/json ContentType.
 type ScheduleAppointmentJSONRequestBody = ScheduleAppointmentRequest
@@ -877,6 +987,15 @@ type UpdateCustomerJSONRequestBody = UpdateCustomerRequest
 
 // CreateVehicleJSONRequestBody defines body for CreateVehicle for application/json ContentType.
 type CreateVehicleJSONRequestBody = CreateVehicleRequest
+
+// CreateDealershipUserJSONRequestBody defines body for CreateDealershipUser for application/json ContentType.
+type CreateDealershipUserJSONRequestBody = CreateDealershipUserRequest
+
+// CreateDealershipAdminJSONRequestBody defines body for CreateDealershipAdmin for application/json ContentType.
+type CreateDealershipAdminJSONRequestBody = CreateDealershipAdminRequest
+
+// CreateDealershipJSONRequestBody defines body for CreateDealership for application/json ContentType.
+type CreateDealershipJSONRequestBody = CreateDealershipRequest
 
 // CreateDealershipOperationTimeJSONRequestBody defines body for CreateDealershipOperationTime for application/json ContentType.
 type CreateDealershipOperationTimeJSONRequestBody = CreateDealershipOperationTimeRequest
@@ -943,6 +1062,39 @@ type UpdateVehicleJSONRequestBody = UpdateVehicleRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+
+	// (POST /appointments)
+	ScheduleAppointment(ctx *echo.Context) error
+
+	// (POST /appointments/{appointmentId}/cancel)
+	CancelAppointment(ctx *echo.Context, appointmentId AppointmentId) error
+
+	// (POST /appointments/{appointmentId}/check-in)
+	CheckInAppointment(ctx *echo.Context, appointmentId AppointmentId) error
+
+	// (POST /appointments/{appointmentId}/complete)
+	CompleteAppointment(ctx *echo.Context, appointmentId AppointmentId) error
+
+	// (POST /appointments/{appointmentId}/start)
+	StartAppointment(ctx *echo.Context, appointmentId AppointmentId) error
+	// CreateCustomer Create a global customer record
+	// (POST /customers)
+	CreateCustomer(ctx *echo.Context) error
+
+	// (GET /customers/{customerId})
+	GetCustomer(ctx *echo.Context, customerId CustomerId) error
+
+	// (PATCH /customers/{customerId})
+	UpdateCustomer(ctx *echo.Context, customerId CustomerId) error
+
+	// (GET /customers/{customerId}/vehicles)
+	ListCustomerVehicles(ctx *echo.Context, customerId CustomerId) error
+	// CreateVehicle Create a vehicle for an existing customer
+	// (POST /customers/{customerId}/vehicles)
+	CreateVehicle(ctx *echo.Context, customerId CustomerId) error
+	// SearchCustomers Find global customer records by exact normalized phone or email
+	// (GET /customers:search)
+	SearchCustomers(ctx *echo.Context, params SearchCustomersParams) error
 	// CreateDealershipUser Grant dealership access to an existing auth user
 	// (POST /dealership-users)
 	CreateDealershipUser(ctx *echo.Context) error
@@ -956,229 +1108,154 @@ type ServerInterface interface {
 	// (POST /dealerships)
 	CreateDealership(ctx *echo.Context) error
 
-	// (POST /v1/appointments)
-	ScheduleAppointment(ctx *echo.Context) error
-
-	// (POST /v1/appointments/{appointmentId}/cancel)
-	CancelAppointment(ctx *echo.Context, appointmentId AppointmentId) error
-
-	// (POST /v1/appointments/{appointmentId}/check-in)
-	CheckInAppointment(ctx *echo.Context, appointmentId AppointmentId) error
-
-	// (POST /v1/appointments/{appointmentId}/complete)
-	CompleteAppointment(ctx *echo.Context, appointmentId AppointmentId) error
-
-	// (POST /v1/appointments/{appointmentId}/start)
-	StartAppointment(ctx *echo.Context, appointmentId AppointmentId) error
-	// CreateCustomer Create a global customer record
-	// (POST /v1/customers)
-	CreateCustomer(ctx *echo.Context) error
-
-	// (GET /v1/customers/{customerId})
-	GetCustomer(ctx *echo.Context, customerId CustomerId) error
-
-	// (PATCH /v1/customers/{customerId})
-	UpdateCustomer(ctx *echo.Context, customerId CustomerId) error
-
-	// (GET /v1/customers/{customerId}/vehicles)
-	ListCustomerVehicles(ctx *echo.Context, customerId CustomerId) error
-	// CreateVehicle Create a vehicle for an existing customer
-	// (POST /v1/customers/{customerId}/vehicles)
-	CreateVehicle(ctx *echo.Context, customerId CustomerId) error
-	// SearchCustomers Find global customer records by exact normalized phone or email
-	// (GET /v1/customers:search)
-	SearchCustomers(ctx *echo.Context, params SearchCustomersParams) error
-
-	// (GET /v1/dealerships/{dealershipId}/operation-times)
+	// (GET /dealerships/{dealershipId}/operation-times)
 	ListDealershipOperationTimes(ctx *echo.Context, dealershipId DealershipId) error
 
-	// (POST /v1/dealerships/{dealershipId}/operation-times)
+	// (POST /dealerships/{dealershipId}/operation-times)
 	CreateDealershipOperationTime(ctx *echo.Context, dealershipId DealershipId) error
 
-	// (DELETE /v1/dealerships/{dealershipId}/operation-times/{operationTimeId})
+	// (DELETE /dealerships/{dealershipId}/operation-times/{operationTimeId})
 	DeleteDealershipOperationTime(ctx *echo.Context, dealershipId DealershipId, operationTimeId OperationTimeId) error
 
-	// (PATCH /v1/dealerships/{dealershipId}/operation-times/{operationTimeId})
+	// (PATCH /dealerships/{dealershipId}/operation-times/{operationTimeId})
 	UpdateDealershipOperationTime(ctx *echo.Context, dealershipId DealershipId, operationTimeId OperationTimeId) error
 
-	// (GET /v1/dealerships/{dealershipId}/service-bays)
+	// (GET /dealerships/{dealershipId}/service-bays)
 	ListServiceBays(ctx *echo.Context, dealershipId DealershipId, params ListServiceBaysParams) error
 
-	// (POST /v1/dealerships/{dealershipId}/service-bays)
+	// (POST /dealerships/{dealershipId}/service-bays)
 	CreateServiceBay(ctx *echo.Context, dealershipId DealershipId) error
 
-	// (DELETE /v1/dealerships/{dealershipId}/service-bays/{serviceBayId})
+	// (DELETE /dealerships/{dealershipId}/service-bays/{serviceBayId})
 	DeleteServiceBay(ctx *echo.Context, dealershipId DealershipId, serviceBayId ServiceBayId) error
 
-	// (GET /v1/dealerships/{dealershipId}/service-bays/{serviceBayId})
+	// (GET /dealerships/{dealershipId}/service-bays/{serviceBayId})
 	GetServiceBay(ctx *echo.Context, dealershipId DealershipId, serviceBayId ServiceBayId) error
 
-	// (PATCH /v1/dealerships/{dealershipId}/service-bays/{serviceBayId})
+	// (PATCH /dealerships/{dealershipId}/service-bays/{serviceBayId})
 	UpdateServiceBay(ctx *echo.Context, dealershipId DealershipId, serviceBayId ServiceBayId) error
 
-	// (GET /v1/dealerships/{dealershipId}/service-bays/{serviceBayId}/capabilities)
+	// (GET /dealerships/{dealershipId}/service-bays/{serviceBayId}/capabilities)
 	ListServiceBayCapabilities(ctx *echo.Context, dealershipId DealershipId, serviceBayId ServiceBayId) error
 
-	// (POST /v1/dealerships/{dealershipId}/service-bays/{serviceBayId}/capabilities)
+	// (POST /dealerships/{dealershipId}/service-bays/{serviceBayId}/capabilities)
 	CreateServiceBayCapability(ctx *echo.Context, dealershipId DealershipId, serviceBayId ServiceBayId) error
 
-	// (DELETE /v1/dealerships/{dealershipId}/service-bays/{serviceBayId}/capabilities/{serviceBayCapabilityId})
+	// (DELETE /dealerships/{dealershipId}/service-bays/{serviceBayId}/capabilities/{serviceBayCapabilityId})
 	DeleteServiceBayCapability(ctx *echo.Context, dealershipId DealershipId, serviceBayId ServiceBayId, serviceBayCapabilityId ServiceBayCapabilityId) error
 
-	// (PATCH /v1/dealerships/{dealershipId}/service-bays/{serviceBayId}/capabilities/{serviceBayCapabilityId})
+	// (PATCH /dealerships/{dealershipId}/service-bays/{serviceBayId}/capabilities/{serviceBayCapabilityId})
 	UpdateServiceBayCapability(ctx *echo.Context, dealershipId DealershipId, serviceBayId ServiceBayId, serviceBayCapabilityId ServiceBayCapabilityId) error
 
-	// (GET /v1/dealerships/{dealershipId}/service-types)
+	// (GET /dealerships/{dealershipId}/service-types)
 	ListServiceTypes(ctx *echo.Context, dealershipId DealershipId) error
 
-	// (POST /v1/dealerships/{dealershipId}/service-types)
+	// (POST /dealerships/{dealershipId}/service-types)
 	CreateServiceType(ctx *echo.Context, dealershipId DealershipId) error
 
-	// (DELETE /v1/dealerships/{dealershipId}/service-types/{serviceTypeId})
+	// (DELETE /dealerships/{dealershipId}/service-types/{serviceTypeId})
 	DeleteServiceType(ctx *echo.Context, dealershipId DealershipId, serviceTypeId ServiceTypeId) error
 
-	// (GET /v1/dealerships/{dealershipId}/service-types/{serviceTypeId})
+	// (GET /dealerships/{dealershipId}/service-types/{serviceTypeId})
 	GetServiceType(ctx *echo.Context, dealershipId DealershipId, serviceTypeId ServiceTypeId) error
 
-	// (PATCH /v1/dealerships/{dealershipId}/service-types/{serviceTypeId})
+	// (PATCH /dealerships/{dealershipId}/service-types/{serviceTypeId})
 	UpdateServiceType(ctx *echo.Context, dealershipId DealershipId, serviceTypeId ServiceTypeId) error
 
-	// (GET /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-bay-capabilities)
+	// (GET /dealerships/{dealershipId}/service-types/{serviceTypeId}/required-bay-capabilities)
 	ListServiceTypeRequiredBayCapabilities(ctx *echo.Context, dealershipId DealershipId, serviceTypeId ServiceTypeId) error
 
-	// (POST /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-bay-capabilities)
+	// (POST /dealerships/{dealershipId}/service-types/{serviceTypeId}/required-bay-capabilities)
 	CreateServiceTypeRequiredBayCapability(ctx *echo.Context, dealershipId DealershipId, serviceTypeId ServiceTypeId) error
 
-	// (DELETE /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-bay-capabilities/{requiredCapabilityId})
+	// (DELETE /dealerships/{dealershipId}/service-types/{serviceTypeId}/required-bay-capabilities/{requiredCapabilityId})
 	DeleteServiceTypeRequiredBayCapability(ctx *echo.Context, dealershipId DealershipId, serviceTypeId ServiceTypeId, requiredCapabilityId RequiredCapabilityId) error
 
-	// (PATCH /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-bay-capabilities/{requiredCapabilityId})
+	// (PATCH /dealerships/{dealershipId}/service-types/{serviceTypeId}/required-bay-capabilities/{requiredCapabilityId})
 	UpdateServiceTypeRequiredBayCapability(ctx *echo.Context, dealershipId DealershipId, serviceTypeId ServiceTypeId, requiredCapabilityId RequiredCapabilityId) error
 
-	// (GET /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-skills)
+	// (GET /dealerships/{dealershipId}/service-types/{serviceTypeId}/required-skills)
 	ListServiceTypeRequiredSkills(ctx *echo.Context, dealershipId DealershipId, serviceTypeId ServiceTypeId) error
 
-	// (POST /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-skills)
+	// (POST /dealerships/{dealershipId}/service-types/{serviceTypeId}/required-skills)
 	CreateServiceTypeRequiredSkill(ctx *echo.Context, dealershipId DealershipId, serviceTypeId ServiceTypeId) error
 
-	// (DELETE /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-skills/{requiredSkillId})
+	// (DELETE /dealerships/{dealershipId}/service-types/{serviceTypeId}/required-skills/{requiredSkillId})
 	DeleteServiceTypeRequiredSkill(ctx *echo.Context, dealershipId DealershipId, serviceTypeId ServiceTypeId, requiredSkillId RequiredSkillId) error
 
-	// (PATCH /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-skills/{requiredSkillId})
+	// (PATCH /dealerships/{dealershipId}/service-types/{serviceTypeId}/required-skills/{requiredSkillId})
 	UpdateServiceTypeRequiredSkill(ctx *echo.Context, dealershipId DealershipId, serviceTypeId ServiceTypeId, requiredSkillId RequiredSkillId) error
 
-	// (GET /v1/technicians)
+	// (GET /dealerships/{dealershipId}/technician-schedules)
+	ListTechnicianSchedules(ctx *echo.Context, dealershipId DealershipId, params ListTechnicianSchedulesParams) error
+
+	// (GET /technicians)
 	ListTechnicians(ctx *echo.Context, params ListTechniciansParams) error
 
-	// (POST /v1/technicians)
+	// (POST /technicians)
 	CreateTechnician(ctx *echo.Context) error
 
-	// (DELETE /v1/technicians/{technicianId})
+	// (DELETE /technicians/{technicianId})
 	DeleteTechnician(ctx *echo.Context, technicianId TechnicianId) error
 
-	// (GET /v1/technicians/{technicianId})
+	// (GET /technicians/{technicianId})
 	GetTechnician(ctx *echo.Context, technicianId TechnicianId) error
 
-	// (PATCH /v1/technicians/{technicianId})
+	// (PATCH /technicians/{technicianId})
 	UpdateTechnician(ctx *echo.Context, technicianId TechnicianId) error
 
-	// (GET /v1/technicians/{technicianId}/shifts)
+	// (GET /technicians/{technicianId}/shifts)
 	ListTechnicianShifts(ctx *echo.Context, technicianId TechnicianId) error
 
-	// (POST /v1/technicians/{technicianId}/shifts)
+	// (POST /technicians/{technicianId}/shifts)
 	CreateTechnicianShift(ctx *echo.Context, technicianId TechnicianId) error
 
-	// (DELETE /v1/technicians/{technicianId}/shifts/{shiftId})
+	// (DELETE /technicians/{technicianId}/shifts/{shiftId})
 	DeleteTechnicianShift(ctx *echo.Context, technicianId TechnicianId, shiftId ShiftId) error
 
-	// (PATCH /v1/technicians/{technicianId}/shifts/{shiftId})
+	// (PATCH /technicians/{technicianId}/shifts/{shiftId})
 	UpdateTechnicianShift(ctx *echo.Context, technicianId TechnicianId, shiftId ShiftId) error
 
-	// (GET /v1/technicians/{technicianId}/skills)
+	// (GET /technicians/{technicianId}/skills)
 	ListTechnicianSkills(ctx *echo.Context, technicianId TechnicianId) error
 
-	// (POST /v1/technicians/{technicianId}/skills)
+	// (POST /technicians/{technicianId}/skills)
 	CreateTechnicianSkill(ctx *echo.Context, technicianId TechnicianId) error
 
-	// (DELETE /v1/technicians/{technicianId}/skills/{technicianSkillId})
+	// (DELETE /technicians/{technicianId}/skills/{technicianSkillId})
 	DeleteTechnicianSkill(ctx *echo.Context, technicianId TechnicianId, technicianSkillId TechnicianSkillId) error
 
-	// (PATCH /v1/technicians/{technicianId}/skills/{technicianSkillId})
+	// (PATCH /technicians/{technicianId}/skills/{technicianSkillId})
 	UpdateTechnicianSkill(ctx *echo.Context, technicianId TechnicianId, technicianSkillId TechnicianSkillId) error
 
-	// (GET /v1/technicians/{technicianId}/time-off)
+	// (GET /technicians/{technicianId}/time-off)
 	ListTechnicianTimeOff(ctx *echo.Context, technicianId TechnicianId, params ListTechnicianTimeOffParams) error
 
-	// (POST /v1/technicians/{technicianId}/time-off)
+	// (POST /technicians/{technicianId}/time-off)
 	CreateTechnicianTimeOff(ctx *echo.Context, technicianId TechnicianId) error
 
-	// (DELETE /v1/technicians/{technicianId}/time-off/{timeOffId})
+	// (DELETE /technicians/{technicianId}/time-off/{timeOffId})
 	DeleteTechnicianTimeOff(ctx *echo.Context, technicianId TechnicianId, timeOffId openapi_types.UUID) error
 
-	// (GET /v1/technicians/{technicianId}/time-off/{timeOffId})
+	// (GET /technicians/{technicianId}/time-off/{timeOffId})
 	GetTechnicianTimeOff(ctx *echo.Context, technicianId TechnicianId, timeOffId openapi_types.UUID) error
 
-	// (PATCH /v1/technicians/{technicianId}/time-off/{timeOffId})
+	// (PATCH /technicians/{technicianId}/time-off/{timeOffId})
 	UpdateTechnicianTimeOff(ctx *echo.Context, technicianId TechnicianId, timeOffId openapi_types.UUID) error
 
-	// (DELETE /v1/vehicles/{vehicleId})
+	// (DELETE /vehicles/{vehicleId})
 	DeleteVehicle(ctx *echo.Context, vehicleId VehicleId) error
 
-	// (GET /v1/vehicles/{vehicleId})
+	// (GET /vehicles/{vehicleId})
 	GetVehicle(ctx *echo.Context, vehicleId VehicleId) error
 
-	// (PATCH /v1/vehicles/{vehicleId})
+	// (PATCH /vehicles/{vehicleId})
 	UpdateVehicle(ctx *echo.Context, vehicleId VehicleId) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
 type ServerInterfaceWrapper struct {
 	Handler ServerInterface
-}
-
-// CreateDealershipUser converts echo context to params.
-func (w *ServerInterfaceWrapper) CreateDealershipUser(ctx *echo.Context) error {
-	var err error
-
-	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.CreateDealershipUser(ctx)
-	return err
-}
-
-// CreateDealershipAdmin converts echo context to params.
-func (w *ServerInterfaceWrapper) CreateDealershipAdmin(ctx *echo.Context) error {
-	var err error
-
-	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.CreateDealershipAdmin(ctx)
-	return err
-}
-
-// SearchAuthUserByEmail converts echo context to params.
-func (w *ServerInterfaceWrapper) SearchAuthUserByEmail(ctx *echo.Context) error {
-	var err error
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params SearchAuthUserByEmailParams
-	// ------------- Required query parameter "email" -------------
-
-	err = runtime.BindQueryParameterWithOptions("form", true, true, "email", ctx.QueryParams(), &params.Email, runtime.BindQueryParameterOptions{Type: "string", Format: "email"})
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter email: %s", err))
-	}
-
-	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.SearchAuthUserByEmail(ctx, params)
-	return err
-}
-
-// CreateDealership converts echo context to params.
-func (w *ServerInterfaceWrapper) CreateDealership(ctx *echo.Context) error {
-	var err error
-
-	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.CreateDealership(ctx)
-	return err
 }
 
 // ScheduleAppointment converts echo context to params.
@@ -1349,6 +1426,51 @@ func (w *ServerInterfaceWrapper) SearchCustomers(ctx *echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.SearchCustomers(ctx, params)
+	return err
+}
+
+// CreateDealershipUser converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateDealershipUser(ctx *echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateDealershipUser(ctx)
+	return err
+}
+
+// CreateDealershipAdmin converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateDealershipAdmin(ctx *echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateDealershipAdmin(ctx)
+	return err
+}
+
+// SearchAuthUserByEmail converts echo context to params.
+func (w *ServerInterfaceWrapper) SearchAuthUserByEmail(ctx *echo.Context) error {
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params SearchAuthUserByEmailParams
+	// ------------- Required query parameter "email" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "email", ctx.QueryParams(), &params.Email, runtime.BindQueryParameterOptions{Type: "string", Format: "email"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter email: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.SearchAuthUserByEmail(ctx, params)
+	return err
+}
+
+// CreateDealership converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateDealership(ctx *echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateDealership(ctx)
 	return err
 }
 
@@ -1999,6 +2121,45 @@ func (w *ServerInterfaceWrapper) UpdateServiceTypeRequiredSkill(ctx *echo.Contex
 	return err
 }
 
+// ListTechnicianSchedules converts echo context to params.
+func (w *ServerInterfaceWrapper) ListTechnicianSchedules(ctx *echo.Context) error {
+	var err error
+	// ------------- Path parameter "dealershipId" -------------
+	var dealershipId DealershipId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "dealershipId", ctx.Param("dealershipId"), &dealershipId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter dealershipId: %s", err))
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListTechnicianSchedulesParams
+	// ------------- Required query parameter "date" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "date", ctx.QueryParams(), &params.Date, runtime.BindQueryParameterOptions{Type: "string", Format: "date"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter date: %s", err))
+	}
+
+	// ------------- Optional query parameter "technician_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "technician_id", ctx.QueryParams(), &params.TechnicianId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter technician_id: %s", err))
+	}
+
+	// ------------- Optional query parameter "include" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", false, false, "include", ctx.QueryParams(), &params.Include, runtime.BindQueryParameterOptions{Type: "array", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter include: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListTechnicianSchedules(ctx, dealershipId, params)
+	return err
+}
+
 // ListTechnicians converts echo context to params.
 func (w *ServerInterfaceWrapper) ListTechnicians(ctx *echo.Context) error {
 	var err error
@@ -2477,68 +2638,69 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 		Handler: si,
 	}
 
-	router.POST(options.BaseURL+"/v1/appointments", wrapper.ScheduleAppointment, options.OperationMiddlewares["scheduleAppointment"]...)
-	router.POST(options.BaseURL+"/v1/appointments/:appointmentId/check-in", wrapper.CheckInAppointment, options.OperationMiddlewares["checkInAppointment"]...)
-	router.POST(options.BaseURL+"/v1/appointments/:appointmentId/start", wrapper.StartAppointment, options.OperationMiddlewares["startAppointment"]...)
-	router.POST(options.BaseURL+"/v1/appointments/:appointmentId/complete", wrapper.CompleteAppointment, options.OperationMiddlewares["completeAppointment"]...)
-	router.POST(options.BaseURL+"/v1/appointments/:appointmentId/cancel", wrapper.CancelAppointment, options.OperationMiddlewares["cancelAppointment"]...)
-	router.GET(options.BaseURL+"/v1/dealerships/:dealershipId/operation-times", wrapper.ListDealershipOperationTimes, options.OperationMiddlewares["listDealershipOperationTimes"]...)
-	router.POST(options.BaseURL+"/v1/dealerships/:dealershipId/operation-times", wrapper.CreateDealershipOperationTime, options.OperationMiddlewares["createDealershipOperationTime"]...)
-	router.DELETE(options.BaseURL+"/v1/dealerships/:dealershipId/operation-times/:operationTimeId", wrapper.DeleteDealershipOperationTime, options.OperationMiddlewares["deleteDealershipOperationTime"]...)
-	router.PATCH(options.BaseURL+"/v1/dealerships/:dealershipId/operation-times/:operationTimeId", wrapper.UpdateDealershipOperationTime, options.OperationMiddlewares["updateDealershipOperationTime"]...)
-	router.GET(options.BaseURL+"/v1/dealerships/:dealershipId/service-bays", wrapper.ListServiceBays, options.OperationMiddlewares["listServiceBays"]...)
-	router.POST(options.BaseURL+"/v1/dealerships/:dealershipId/service-bays", wrapper.CreateServiceBay, options.OperationMiddlewares["createServiceBay"]...)
-	router.DELETE(options.BaseURL+"/v1/dealerships/:dealershipId/service-bays/:serviceBayId", wrapper.DeleteServiceBay, options.OperationMiddlewares["deleteServiceBay"]...)
-	router.GET(options.BaseURL+"/v1/dealerships/:dealershipId/service-bays/:serviceBayId", wrapper.GetServiceBay, options.OperationMiddlewares["getServiceBay"]...)
-	router.PATCH(options.BaseURL+"/v1/dealerships/:dealershipId/service-bays/:serviceBayId", wrapper.UpdateServiceBay, options.OperationMiddlewares["updateServiceBay"]...)
-	router.GET(options.BaseURL+"/v1/dealerships/:dealershipId/service-bays/:serviceBayId/capabilities", wrapper.ListServiceBayCapabilities, options.OperationMiddlewares["listServiceBayCapabilities"]...)
-	router.POST(options.BaseURL+"/v1/dealerships/:dealershipId/service-bays/:serviceBayId/capabilities", wrapper.CreateServiceBayCapability, options.OperationMiddlewares["createServiceBayCapability"]...)
-	router.DELETE(options.BaseURL+"/v1/dealerships/:dealershipId/service-bays/:serviceBayId/capabilities/:serviceBayCapabilityId", wrapper.DeleteServiceBayCapability, options.OperationMiddlewares["deleteServiceBayCapability"]...)
-	router.PATCH(options.BaseURL+"/v1/dealerships/:dealershipId/service-bays/:serviceBayId/capabilities/:serviceBayCapabilityId", wrapper.UpdateServiceBayCapability, options.OperationMiddlewares["updateServiceBayCapability"]...)
-	router.GET(options.BaseURL+"/v1/dealerships/:dealershipId/service-types", wrapper.ListServiceTypes, options.OperationMiddlewares["listServiceTypes"]...)
-	router.POST(options.BaseURL+"/v1/dealerships/:dealershipId/service-types", wrapper.CreateServiceType, options.OperationMiddlewares["createServiceType"]...)
-	router.DELETE(options.BaseURL+"/v1/dealerships/:dealershipId/service-types/:serviceTypeId", wrapper.DeleteServiceType, options.OperationMiddlewares["deleteServiceType"]...)
-	router.GET(options.BaseURL+"/v1/dealerships/:dealershipId/service-types/:serviceTypeId", wrapper.GetServiceType, options.OperationMiddlewares["getServiceType"]...)
-	router.PATCH(options.BaseURL+"/v1/dealerships/:dealershipId/service-types/:serviceTypeId", wrapper.UpdateServiceType, options.OperationMiddlewares["updateServiceType"]...)
-	router.GET(options.BaseURL+"/v1/dealerships/:dealershipId/service-types/:serviceTypeId/required-skills", wrapper.ListServiceTypeRequiredSkills, options.OperationMiddlewares["listServiceTypeRequiredSkills"]...)
-	router.POST(options.BaseURL+"/v1/dealerships/:dealershipId/service-types/:serviceTypeId/required-skills", wrapper.CreateServiceTypeRequiredSkill, options.OperationMiddlewares["createServiceTypeRequiredSkill"]...)
-	router.DELETE(options.BaseURL+"/v1/dealerships/:dealershipId/service-types/:serviceTypeId/required-skills/:requiredSkillId", wrapper.DeleteServiceTypeRequiredSkill, options.OperationMiddlewares["deleteServiceTypeRequiredSkill"]...)
-	router.PATCH(options.BaseURL+"/v1/dealerships/:dealershipId/service-types/:serviceTypeId/required-skills/:requiredSkillId", wrapper.UpdateServiceTypeRequiredSkill, options.OperationMiddlewares["updateServiceTypeRequiredSkill"]...)
-	router.GET(options.BaseURL+"/v1/dealerships/:dealershipId/service-types/:serviceTypeId/required-bay-capabilities", wrapper.ListServiceTypeRequiredBayCapabilities, options.OperationMiddlewares["listServiceTypeRequiredBayCapabilities"]...)
-	router.POST(options.BaseURL+"/v1/dealerships/:dealershipId/service-types/:serviceTypeId/required-bay-capabilities", wrapper.CreateServiceTypeRequiredBayCapability, options.OperationMiddlewares["createServiceTypeRequiredBayCapability"]...)
-	router.DELETE(options.BaseURL+"/v1/dealerships/:dealershipId/service-types/:serviceTypeId/required-bay-capabilities/:requiredCapabilityId", wrapper.DeleteServiceTypeRequiredBayCapability, options.OperationMiddlewares["deleteServiceTypeRequiredBayCapability"]...)
-	router.PATCH(options.BaseURL+"/v1/dealerships/:dealershipId/service-types/:serviceTypeId/required-bay-capabilities/:requiredCapabilityId", wrapper.UpdateServiceTypeRequiredBayCapability, options.OperationMiddlewares["updateServiceTypeRequiredBayCapability"]...)
+	router.GET(options.BaseURL+"/dealerships/:dealershipId/technician-schedules", wrapper.ListTechnicianSchedules, options.OperationMiddlewares["listTechnicianSchedules"]...)
+	router.POST(options.BaseURL+"/appointments", wrapper.ScheduleAppointment, options.OperationMiddlewares["scheduleAppointment"]...)
+	router.POST(options.BaseURL+"/appointments/:appointmentId/check-in", wrapper.CheckInAppointment, options.OperationMiddlewares["checkInAppointment"]...)
+	router.POST(options.BaseURL+"/appointments/:appointmentId/start", wrapper.StartAppointment, options.OperationMiddlewares["startAppointment"]...)
+	router.POST(options.BaseURL+"/appointments/:appointmentId/complete", wrapper.CompleteAppointment, options.OperationMiddlewares["completeAppointment"]...)
+	router.POST(options.BaseURL+"/appointments/:appointmentId/cancel", wrapper.CancelAppointment, options.OperationMiddlewares["cancelAppointment"]...)
+	router.GET(options.BaseURL+"/dealerships/:dealershipId/operation-times", wrapper.ListDealershipOperationTimes, options.OperationMiddlewares["listDealershipOperationTimes"]...)
+	router.POST(options.BaseURL+"/dealerships/:dealershipId/operation-times", wrapper.CreateDealershipOperationTime, options.OperationMiddlewares["createDealershipOperationTime"]...)
+	router.DELETE(options.BaseURL+"/dealerships/:dealershipId/operation-times/:operationTimeId", wrapper.DeleteDealershipOperationTime, options.OperationMiddlewares["deleteDealershipOperationTime"]...)
+	router.PATCH(options.BaseURL+"/dealerships/:dealershipId/operation-times/:operationTimeId", wrapper.UpdateDealershipOperationTime, options.OperationMiddlewares["updateDealershipOperationTime"]...)
+	router.GET(options.BaseURL+"/dealerships/:dealershipId/service-bays", wrapper.ListServiceBays, options.OperationMiddlewares["listServiceBays"]...)
+	router.POST(options.BaseURL+"/dealerships/:dealershipId/service-bays", wrapper.CreateServiceBay, options.OperationMiddlewares["createServiceBay"]...)
+	router.DELETE(options.BaseURL+"/dealerships/:dealershipId/service-bays/:serviceBayId", wrapper.DeleteServiceBay, options.OperationMiddlewares["deleteServiceBay"]...)
+	router.GET(options.BaseURL+"/dealerships/:dealershipId/service-bays/:serviceBayId", wrapper.GetServiceBay, options.OperationMiddlewares["getServiceBay"]...)
+	router.PATCH(options.BaseURL+"/dealerships/:dealershipId/service-bays/:serviceBayId", wrapper.UpdateServiceBay, options.OperationMiddlewares["updateServiceBay"]...)
+	router.GET(options.BaseURL+"/dealerships/:dealershipId/service-bays/:serviceBayId/capabilities", wrapper.ListServiceBayCapabilities, options.OperationMiddlewares["listServiceBayCapabilities"]...)
+	router.POST(options.BaseURL+"/dealerships/:dealershipId/service-bays/:serviceBayId/capabilities", wrapper.CreateServiceBayCapability, options.OperationMiddlewares["createServiceBayCapability"]...)
+	router.DELETE(options.BaseURL+"/dealerships/:dealershipId/service-bays/:serviceBayId/capabilities/:serviceBayCapabilityId", wrapper.DeleteServiceBayCapability, options.OperationMiddlewares["deleteServiceBayCapability"]...)
+	router.PATCH(options.BaseURL+"/dealerships/:dealershipId/service-bays/:serviceBayId/capabilities/:serviceBayCapabilityId", wrapper.UpdateServiceBayCapability, options.OperationMiddlewares["updateServiceBayCapability"]...)
+	router.GET(options.BaseURL+"/dealerships/:dealershipId/service-types", wrapper.ListServiceTypes, options.OperationMiddlewares["listServiceTypes"]...)
+	router.POST(options.BaseURL+"/dealerships/:dealershipId/service-types", wrapper.CreateServiceType, options.OperationMiddlewares["createServiceType"]...)
+	router.DELETE(options.BaseURL+"/dealerships/:dealershipId/service-types/:serviceTypeId", wrapper.DeleteServiceType, options.OperationMiddlewares["deleteServiceType"]...)
+	router.GET(options.BaseURL+"/dealerships/:dealershipId/service-types/:serviceTypeId", wrapper.GetServiceType, options.OperationMiddlewares["getServiceType"]...)
+	router.PATCH(options.BaseURL+"/dealerships/:dealershipId/service-types/:serviceTypeId", wrapper.UpdateServiceType, options.OperationMiddlewares["updateServiceType"]...)
+	router.GET(options.BaseURL+"/dealerships/:dealershipId/service-types/:serviceTypeId/required-skills", wrapper.ListServiceTypeRequiredSkills, options.OperationMiddlewares["listServiceTypeRequiredSkills"]...)
+	router.POST(options.BaseURL+"/dealerships/:dealershipId/service-types/:serviceTypeId/required-skills", wrapper.CreateServiceTypeRequiredSkill, options.OperationMiddlewares["createServiceTypeRequiredSkill"]...)
+	router.DELETE(options.BaseURL+"/dealerships/:dealershipId/service-types/:serviceTypeId/required-skills/:requiredSkillId", wrapper.DeleteServiceTypeRequiredSkill, options.OperationMiddlewares["deleteServiceTypeRequiredSkill"]...)
+	router.PATCH(options.BaseURL+"/dealerships/:dealershipId/service-types/:serviceTypeId/required-skills/:requiredSkillId", wrapper.UpdateServiceTypeRequiredSkill, options.OperationMiddlewares["updateServiceTypeRequiredSkill"]...)
+	router.GET(options.BaseURL+"/dealerships/:dealershipId/service-types/:serviceTypeId/required-bay-capabilities", wrapper.ListServiceTypeRequiredBayCapabilities, options.OperationMiddlewares["listServiceTypeRequiredBayCapabilities"]...)
+	router.POST(options.BaseURL+"/dealerships/:dealershipId/service-types/:serviceTypeId/required-bay-capabilities", wrapper.CreateServiceTypeRequiredBayCapability, options.OperationMiddlewares["createServiceTypeRequiredBayCapability"]...)
+	router.DELETE(options.BaseURL+"/dealerships/:dealershipId/service-types/:serviceTypeId/required-bay-capabilities/:requiredCapabilityId", wrapper.DeleteServiceTypeRequiredBayCapability, options.OperationMiddlewares["deleteServiceTypeRequiredBayCapability"]...)
+	router.PATCH(options.BaseURL+"/dealerships/:dealershipId/service-types/:serviceTypeId/required-bay-capabilities/:requiredCapabilityId", wrapper.UpdateServiceTypeRequiredBayCapability, options.OperationMiddlewares["updateServiceTypeRequiredBayCapability"]...)
 	router.POST(options.BaseURL+"/dealership-users", wrapper.CreateDealershipUser, options.OperationMiddlewares["createDealershipUser"]...)
 	router.GET(options.BaseURL+"/dealership-users/search", wrapper.SearchAuthUserByEmail, options.OperationMiddlewares["searchAuthUserByEmail"]...)
 	router.POST(options.BaseURL+"/dealership-users/admins", wrapper.CreateDealershipAdmin, options.OperationMiddlewares["createDealershipAdmin"]...)
 	router.POST(options.BaseURL+"/dealerships", wrapper.CreateDealership, options.OperationMiddlewares["createDealership"]...)
-	router.POST(options.BaseURL+"/v1/customers", wrapper.CreateCustomer, options.OperationMiddlewares["createCustomer"]...)
-	router.GET(options.BaseURL+"/v1/customers/:customerId", wrapper.GetCustomer, options.OperationMiddlewares["getCustomer"]...)
-	router.PATCH(options.BaseURL+"/v1/customers/:customerId", wrapper.UpdateCustomer, options.OperationMiddlewares["updateCustomer"]...)
-	router.GET(options.BaseURL+"/v1/customers\\:search", wrapper.SearchCustomers, options.OperationMiddlewares["searchCustomers"]...)
-	router.GET(options.BaseURL+"/v1/customers/:customerId/vehicles", wrapper.ListCustomerVehicles, options.OperationMiddlewares["listCustomerVehicles"]...)
-	router.POST(options.BaseURL+"/v1/customers/:customerId/vehicles", wrapper.CreateVehicle, options.OperationMiddlewares["createVehicle"]...)
-	router.GET(options.BaseURL+"/v1/technicians", wrapper.ListTechnicians, options.OperationMiddlewares["listTechnicians"]...)
-	router.POST(options.BaseURL+"/v1/technicians", wrapper.CreateTechnician, options.OperationMiddlewares["createTechnician"]...)
-	router.DELETE(options.BaseURL+"/v1/technicians/:technicianId", wrapper.DeleteTechnician, options.OperationMiddlewares["deleteTechnician"]...)
-	router.GET(options.BaseURL+"/v1/technicians/:technicianId", wrapper.GetTechnician, options.OperationMiddlewares["getTechnician"]...)
-	router.PATCH(options.BaseURL+"/v1/technicians/:technicianId", wrapper.UpdateTechnician, options.OperationMiddlewares["updateTechnician"]...)
-	router.GET(options.BaseURL+"/v1/technicians/:technicianId/skills", wrapper.ListTechnicianSkills, options.OperationMiddlewares["listTechnicianSkills"]...)
-	router.POST(options.BaseURL+"/v1/technicians/:technicianId/skills", wrapper.CreateTechnicianSkill, options.OperationMiddlewares["createTechnicianSkill"]...)
-	router.DELETE(options.BaseURL+"/v1/technicians/:technicianId/skills/:technicianSkillId", wrapper.DeleteTechnicianSkill, options.OperationMiddlewares["deleteTechnicianSkill"]...)
-	router.PATCH(options.BaseURL+"/v1/technicians/:technicianId/skills/:technicianSkillId", wrapper.UpdateTechnicianSkill, options.OperationMiddlewares["updateTechnicianSkill"]...)
-	router.GET(options.BaseURL+"/v1/technicians/:technicianId/shifts", wrapper.ListTechnicianShifts, options.OperationMiddlewares["listTechnicianShifts"]...)
-	router.POST(options.BaseURL+"/v1/technicians/:technicianId/shifts", wrapper.CreateTechnicianShift, options.OperationMiddlewares["createTechnicianShift"]...)
-	router.DELETE(options.BaseURL+"/v1/technicians/:technicianId/shifts/:shiftId", wrapper.DeleteTechnicianShift, options.OperationMiddlewares["deleteTechnicianShift"]...)
-	router.PATCH(options.BaseURL+"/v1/technicians/:technicianId/shifts/:shiftId", wrapper.UpdateTechnicianShift, options.OperationMiddlewares["updateTechnicianShift"]...)
-	router.GET(options.BaseURL+"/v1/technicians/:technicianId/time-off", wrapper.ListTechnicianTimeOff, options.OperationMiddlewares["listTechnicianTimeOff"]...)
-	router.POST(options.BaseURL+"/v1/technicians/:technicianId/time-off", wrapper.CreateTechnicianTimeOff, options.OperationMiddlewares["createTechnicianTimeOff"]...)
-	router.DELETE(options.BaseURL+"/v1/technicians/:technicianId/time-off/:timeOffId", wrapper.DeleteTechnicianTimeOff, options.OperationMiddlewares["deleteTechnicianTimeOff"]...)
-	router.GET(options.BaseURL+"/v1/technicians/:technicianId/time-off/:timeOffId", wrapper.GetTechnicianTimeOff, options.OperationMiddlewares["getTechnicianTimeOff"]...)
-	router.PATCH(options.BaseURL+"/v1/technicians/:technicianId/time-off/:timeOffId", wrapper.UpdateTechnicianTimeOff, options.OperationMiddlewares["updateTechnicianTimeOff"]...)
-	router.DELETE(options.BaseURL+"/v1/vehicles/:vehicleId", wrapper.DeleteVehicle, options.OperationMiddlewares["deleteVehicle"]...)
-	router.GET(options.BaseURL+"/v1/vehicles/:vehicleId", wrapper.GetVehicle, options.OperationMiddlewares["getVehicle"]...)
-	router.PATCH(options.BaseURL+"/v1/vehicles/:vehicleId", wrapper.UpdateVehicle, options.OperationMiddlewares["updateVehicle"]...)
+	router.POST(options.BaseURL+"/customers", wrapper.CreateCustomer, options.OperationMiddlewares["createCustomer"]...)
+	router.GET(options.BaseURL+"/customers/:customerId", wrapper.GetCustomer, options.OperationMiddlewares["getCustomer"]...)
+	router.PATCH(options.BaseURL+"/customers/:customerId", wrapper.UpdateCustomer, options.OperationMiddlewares["updateCustomer"]...)
+	router.GET(options.BaseURL+"/customers\\:search", wrapper.SearchCustomers, options.OperationMiddlewares["searchCustomers"]...)
+	router.GET(options.BaseURL+"/customers/:customerId/vehicles", wrapper.ListCustomerVehicles, options.OperationMiddlewares["listCustomerVehicles"]...)
+	router.POST(options.BaseURL+"/customers/:customerId/vehicles", wrapper.CreateVehicle, options.OperationMiddlewares["createVehicle"]...)
+	router.GET(options.BaseURL+"/technicians", wrapper.ListTechnicians, options.OperationMiddlewares["listTechnicians"]...)
+	router.POST(options.BaseURL+"/technicians", wrapper.CreateTechnician, options.OperationMiddlewares["createTechnician"]...)
+	router.DELETE(options.BaseURL+"/technicians/:technicianId", wrapper.DeleteTechnician, options.OperationMiddlewares["deleteTechnician"]...)
+	router.GET(options.BaseURL+"/technicians/:technicianId", wrapper.GetTechnician, options.OperationMiddlewares["getTechnician"]...)
+	router.PATCH(options.BaseURL+"/technicians/:technicianId", wrapper.UpdateTechnician, options.OperationMiddlewares["updateTechnician"]...)
+	router.GET(options.BaseURL+"/technicians/:technicianId/skills", wrapper.ListTechnicianSkills, options.OperationMiddlewares["listTechnicianSkills"]...)
+	router.POST(options.BaseURL+"/technicians/:technicianId/skills", wrapper.CreateTechnicianSkill, options.OperationMiddlewares["createTechnicianSkill"]...)
+	router.DELETE(options.BaseURL+"/technicians/:technicianId/skills/:technicianSkillId", wrapper.DeleteTechnicianSkill, options.OperationMiddlewares["deleteTechnicianSkill"]...)
+	router.PATCH(options.BaseURL+"/technicians/:technicianId/skills/:technicianSkillId", wrapper.UpdateTechnicianSkill, options.OperationMiddlewares["updateTechnicianSkill"]...)
+	router.GET(options.BaseURL+"/technicians/:technicianId/shifts", wrapper.ListTechnicianShifts, options.OperationMiddlewares["listTechnicianShifts"]...)
+	router.POST(options.BaseURL+"/technicians/:technicianId/shifts", wrapper.CreateTechnicianShift, options.OperationMiddlewares["createTechnicianShift"]...)
+	router.DELETE(options.BaseURL+"/technicians/:technicianId/shifts/:shiftId", wrapper.DeleteTechnicianShift, options.OperationMiddlewares["deleteTechnicianShift"]...)
+	router.PATCH(options.BaseURL+"/technicians/:technicianId/shifts/:shiftId", wrapper.UpdateTechnicianShift, options.OperationMiddlewares["updateTechnicianShift"]...)
+	router.GET(options.BaseURL+"/technicians/:technicianId/time-off", wrapper.ListTechnicianTimeOff, options.OperationMiddlewares["listTechnicianTimeOff"]...)
+	router.POST(options.BaseURL+"/technicians/:technicianId/time-off", wrapper.CreateTechnicianTimeOff, options.OperationMiddlewares["createTechnicianTimeOff"]...)
+	router.DELETE(options.BaseURL+"/technicians/:technicianId/time-off/:timeOffId", wrapper.DeleteTechnicianTimeOff, options.OperationMiddlewares["deleteTechnicianTimeOff"]...)
+	router.GET(options.BaseURL+"/technicians/:technicianId/time-off/:timeOffId", wrapper.GetTechnicianTimeOff, options.OperationMiddlewares["getTechnicianTimeOff"]...)
+	router.PATCH(options.BaseURL+"/technicians/:technicianId/time-off/:timeOffId", wrapper.UpdateTechnicianTimeOff, options.OperationMiddlewares["updateTechnicianTimeOff"]...)
+	router.DELETE(options.BaseURL+"/vehicles/:vehicleId", wrapper.DeleteVehicle, options.OperationMiddlewares["deleteVehicle"]...)
+	router.GET(options.BaseURL+"/vehicles/:vehicleId", wrapper.GetVehicle, options.OperationMiddlewares["getVehicle"]...)
+	router.PATCH(options.BaseURL+"/vehicles/:vehicleId", wrapper.UpdateVehicle, options.OperationMiddlewares["updateVehicle"]...)
 
 }
 
@@ -2621,6 +2783,8 @@ type TechnicianCreatedJSONResponse Technician
 
 type TechnicianFoundJSONResponse Technician
 
+type TechnicianSchedulesListedJSONResponse TechnicianScheduleResponse
+
 type TechnicianShiftCreatedJSONResponse TechnicianShift
 
 type TechnicianShiftUpdatedJSONResponse TechnicianShift
@@ -2656,414 +2820,6 @@ type VehicleFoundJSONResponse Vehicle
 type VehicleUpdatedJSONResponse Vehicle
 
 type VehiclesListedJSONResponse VehicleListResponse
-
-type CreateDealershipUserRequestObject struct {
-	Body *CreateDealershipUserJSONRequestBody
-}
-
-type CreateDealershipUserResponseObject interface {
-	VisitCreateDealershipUserResponse(w http.ResponseWriter) error
-}
-
-type CreateDealershipUser201JSONResponse struct {
-	DealershipUserCreatedJSONResponse
-}
-
-func (response CreateDealershipUser201JSONResponse) VisitCreateDealershipUserResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(201)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type CreateDealershipUser400JSONResponse struct{ BadRequestJSONResponse }
-
-func (response CreateDealershipUser400JSONResponse) VisitCreateDealershipUserResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type CreateDealershipUser401JSONResponse struct{ UnauthorizedJSONResponse }
-
-func (response CreateDealershipUser401JSONResponse) VisitCreateDealershipUserResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(401)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type CreateDealershipUser403JSONResponse struct{ ForbiddenJSONResponse }
-
-func (response CreateDealershipUser403JSONResponse) VisitCreateDealershipUserResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(403)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type CreateDealershipUser404JSONResponse struct{ NotFoundJSONResponse }
-
-func (response CreateDealershipUser404JSONResponse) VisitCreateDealershipUserResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type CreateDealershipUser409JSONResponse struct{ ConflictJSONResponse }
-
-func (response CreateDealershipUser409JSONResponse) VisitCreateDealershipUserResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(409)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type CreateDealershipUser500JSONResponse struct {
-	InternalServerErrorJSONResponse
-}
-
-func (response CreateDealershipUser500JSONResponse) VisitCreateDealershipUserResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type CreateDealershipAdminRequestObject struct {
-	Body *CreateDealershipAdminJSONRequestBody
-}
-
-type CreateDealershipAdminResponseObject interface {
-	VisitCreateDealershipAdminResponse(w http.ResponseWriter) error
-}
-
-type CreateDealershipAdmin201JSONResponse struct {
-	DealershipAdminCreatedJSONResponse
-}
-
-func (response CreateDealershipAdmin201JSONResponse) VisitCreateDealershipAdminResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(201)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type CreateDealershipAdmin400JSONResponse struct{ BadRequestJSONResponse }
-
-func (response CreateDealershipAdmin400JSONResponse) VisitCreateDealershipAdminResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type CreateDealershipAdmin401JSONResponse struct{ UnauthorizedJSONResponse }
-
-func (response CreateDealershipAdmin401JSONResponse) VisitCreateDealershipAdminResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(401)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type CreateDealershipAdmin403JSONResponse struct{ ForbiddenJSONResponse }
-
-func (response CreateDealershipAdmin403JSONResponse) VisitCreateDealershipAdminResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(403)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type CreateDealershipAdmin404JSONResponse struct{ NotFoundJSONResponse }
-
-func (response CreateDealershipAdmin404JSONResponse) VisitCreateDealershipAdminResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type CreateDealershipAdmin409JSONResponse struct{ ConflictJSONResponse }
-
-func (response CreateDealershipAdmin409JSONResponse) VisitCreateDealershipAdminResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(409)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type CreateDealershipAdmin500JSONResponse struct {
-	InternalServerErrorJSONResponse
-}
-
-func (response CreateDealershipAdmin500JSONResponse) VisitCreateDealershipAdminResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type SearchAuthUserByEmailRequestObject struct {
-	Params SearchAuthUserByEmailParams
-}
-
-type SearchAuthUserByEmailResponseObject interface {
-	VisitSearchAuthUserByEmailResponse(w http.ResponseWriter) error
-}
-
-type SearchAuthUserByEmail200JSONResponse struct{ AuthUserFoundJSONResponse }
-
-func (response SearchAuthUserByEmail200JSONResponse) VisitSearchAuthUserByEmailResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type SearchAuthUserByEmail400JSONResponse struct{ BadRequestJSONResponse }
-
-func (response SearchAuthUserByEmail400JSONResponse) VisitSearchAuthUserByEmailResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type SearchAuthUserByEmail401JSONResponse struct{ UnauthorizedJSONResponse }
-
-func (response SearchAuthUserByEmail401JSONResponse) VisitSearchAuthUserByEmailResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(401)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type SearchAuthUserByEmail403JSONResponse struct{ ForbiddenJSONResponse }
-
-func (response SearchAuthUserByEmail403JSONResponse) VisitSearchAuthUserByEmailResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(403)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type SearchAuthUserByEmail404JSONResponse struct{ NotFoundJSONResponse }
-
-func (response SearchAuthUserByEmail404JSONResponse) VisitSearchAuthUserByEmailResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type SearchAuthUserByEmail500JSONResponse struct {
-	InternalServerErrorJSONResponse
-}
-
-func (response SearchAuthUserByEmail500JSONResponse) VisitSearchAuthUserByEmailResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type CreateDealershipRequestObject struct {
-	Body *CreateDealershipJSONRequestBody
-}
-
-type CreateDealershipResponseObject interface {
-	VisitCreateDealershipResponse(w http.ResponseWriter) error
-}
-
-type CreateDealership201JSONResponse struct{ DealershipCreatedJSONResponse }
-
-func (response CreateDealership201JSONResponse) VisitCreateDealershipResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(201)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type CreateDealership400JSONResponse struct{ BadRequestJSONResponse }
-
-func (response CreateDealership400JSONResponse) VisitCreateDealershipResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type CreateDealership401JSONResponse struct{ UnauthorizedJSONResponse }
-
-func (response CreateDealership401JSONResponse) VisitCreateDealershipResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(401)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type CreateDealership403JSONResponse struct{ ForbiddenJSONResponse }
-
-func (response CreateDealership403JSONResponse) VisitCreateDealershipResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(403)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type CreateDealership409JSONResponse struct{ ConflictJSONResponse }
-
-func (response CreateDealership409JSONResponse) VisitCreateDealershipResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(409)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type CreateDealership500JSONResponse struct {
-	InternalServerErrorJSONResponse
-}
-
-func (response CreateDealership500JSONResponse) VisitCreateDealershipResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-	_, err := buf.WriteTo(w)
-	return err
-}
 
 type ScheduleAppointmentRequestObject struct {
 	Body *ScheduleAppointmentJSONRequestBody
@@ -4103,6 +3859,414 @@ type SearchCustomers500JSONResponse struct {
 }
 
 func (response SearchCustomers500JSONResponse) VisitSearchCustomersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDealershipUserRequestObject struct {
+	Body *CreateDealershipUserJSONRequestBody
+}
+
+type CreateDealershipUserResponseObject interface {
+	VisitCreateDealershipUserResponse(w http.ResponseWriter) error
+}
+
+type CreateDealershipUser201JSONResponse struct {
+	DealershipUserCreatedJSONResponse
+}
+
+func (response CreateDealershipUser201JSONResponse) VisitCreateDealershipUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDealershipUser400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreateDealershipUser400JSONResponse) VisitCreateDealershipUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDealershipUser401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response CreateDealershipUser401JSONResponse) VisitCreateDealershipUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDealershipUser403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response CreateDealershipUser403JSONResponse) VisitCreateDealershipUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDealershipUser404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response CreateDealershipUser404JSONResponse) VisitCreateDealershipUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDealershipUser409JSONResponse struct{ ConflictJSONResponse }
+
+func (response CreateDealershipUser409JSONResponse) VisitCreateDealershipUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDealershipUser500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response CreateDealershipUser500JSONResponse) VisitCreateDealershipUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDealershipAdminRequestObject struct {
+	Body *CreateDealershipAdminJSONRequestBody
+}
+
+type CreateDealershipAdminResponseObject interface {
+	VisitCreateDealershipAdminResponse(w http.ResponseWriter) error
+}
+
+type CreateDealershipAdmin201JSONResponse struct {
+	DealershipAdminCreatedJSONResponse
+}
+
+func (response CreateDealershipAdmin201JSONResponse) VisitCreateDealershipAdminResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDealershipAdmin400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreateDealershipAdmin400JSONResponse) VisitCreateDealershipAdminResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDealershipAdmin401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response CreateDealershipAdmin401JSONResponse) VisitCreateDealershipAdminResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDealershipAdmin403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response CreateDealershipAdmin403JSONResponse) VisitCreateDealershipAdminResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDealershipAdmin404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response CreateDealershipAdmin404JSONResponse) VisitCreateDealershipAdminResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDealershipAdmin409JSONResponse struct{ ConflictJSONResponse }
+
+func (response CreateDealershipAdmin409JSONResponse) VisitCreateDealershipAdminResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDealershipAdmin500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response CreateDealershipAdmin500JSONResponse) VisitCreateDealershipAdminResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SearchAuthUserByEmailRequestObject struct {
+	Params SearchAuthUserByEmailParams
+}
+
+type SearchAuthUserByEmailResponseObject interface {
+	VisitSearchAuthUserByEmailResponse(w http.ResponseWriter) error
+}
+
+type SearchAuthUserByEmail200JSONResponse struct{ AuthUserFoundJSONResponse }
+
+func (response SearchAuthUserByEmail200JSONResponse) VisitSearchAuthUserByEmailResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SearchAuthUserByEmail400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response SearchAuthUserByEmail400JSONResponse) VisitSearchAuthUserByEmailResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SearchAuthUserByEmail401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response SearchAuthUserByEmail401JSONResponse) VisitSearchAuthUserByEmailResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SearchAuthUserByEmail403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response SearchAuthUserByEmail403JSONResponse) VisitSearchAuthUserByEmailResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SearchAuthUserByEmail404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response SearchAuthUserByEmail404JSONResponse) VisitSearchAuthUserByEmailResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SearchAuthUserByEmail500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response SearchAuthUserByEmail500JSONResponse) VisitSearchAuthUserByEmailResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDealershipRequestObject struct {
+	Body *CreateDealershipJSONRequestBody
+}
+
+type CreateDealershipResponseObject interface {
+	VisitCreateDealershipResponse(w http.ResponseWriter) error
+}
+
+type CreateDealership201JSONResponse struct{ DealershipCreatedJSONResponse }
+
+func (response CreateDealership201JSONResponse) VisitCreateDealershipResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDealership400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreateDealership400JSONResponse) VisitCreateDealershipResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDealership401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response CreateDealership401JSONResponse) VisitCreateDealershipResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDealership403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response CreateDealership403JSONResponse) VisitCreateDealershipResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDealership409JSONResponse struct{ ConflictJSONResponse }
+
+func (response CreateDealership409JSONResponse) VisitCreateDealershipResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDealership500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response CreateDealership500JSONResponse) VisitCreateDealershipResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -6575,6 +6739,103 @@ func (response UpdateServiceTypeRequiredSkill500JSONResponse) VisitUpdateService
 	return err
 }
 
+type ListTechnicianSchedulesRequestObject struct {
+	DealershipId DealershipId `json:"dealershipId"`
+	Params       ListTechnicianSchedulesParams
+}
+
+type ListTechnicianSchedulesResponseObject interface {
+	VisitListTechnicianSchedulesResponse(w http.ResponseWriter) error
+}
+
+type ListTechnicianSchedules200JSONResponse struct {
+	TechnicianSchedulesListedJSONResponse
+}
+
+func (response ListTechnicianSchedules200JSONResponse) VisitListTechnicianSchedulesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTechnicianSchedules400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ListTechnicianSchedules400JSONResponse) VisitListTechnicianSchedulesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTechnicianSchedules401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListTechnicianSchedules401JSONResponse) VisitListTechnicianSchedulesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTechnicianSchedules403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListTechnicianSchedules403JSONResponse) VisitListTechnicianSchedulesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTechnicianSchedules404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ListTechnicianSchedules404JSONResponse) VisitListTechnicianSchedulesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTechnicianSchedules500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ListTechnicianSchedules500JSONResponse) VisitListTechnicianSchedulesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListTechniciansRequestObject struct {
 	Params ListTechniciansParams
 }
@@ -8607,6 +8868,39 @@ func (response UpdateVehicle500JSONResponse) VisitUpdateVehicleResponse(w http.R
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+
+	// (POST /appointments)
+	ScheduleAppointment(ctx context.Context, request ScheduleAppointmentRequestObject) (ScheduleAppointmentResponseObject, error)
+
+	// (POST /appointments/{appointmentId}/cancel)
+	CancelAppointment(ctx context.Context, request CancelAppointmentRequestObject) (CancelAppointmentResponseObject, error)
+
+	// (POST /appointments/{appointmentId}/check-in)
+	CheckInAppointment(ctx context.Context, request CheckInAppointmentRequestObject) (CheckInAppointmentResponseObject, error)
+
+	// (POST /appointments/{appointmentId}/complete)
+	CompleteAppointment(ctx context.Context, request CompleteAppointmentRequestObject) (CompleteAppointmentResponseObject, error)
+
+	// (POST /appointments/{appointmentId}/start)
+	StartAppointment(ctx context.Context, request StartAppointmentRequestObject) (StartAppointmentResponseObject, error)
+	// CreateCustomer Create a global customer record
+	// (POST /customers)
+	CreateCustomer(ctx context.Context, request CreateCustomerRequestObject) (CreateCustomerResponseObject, error)
+
+	// (GET /customers/{customerId})
+	GetCustomer(ctx context.Context, request GetCustomerRequestObject) (GetCustomerResponseObject, error)
+
+	// (PATCH /customers/{customerId})
+	UpdateCustomer(ctx context.Context, request UpdateCustomerRequestObject) (UpdateCustomerResponseObject, error)
+
+	// (GET /customers/{customerId}/vehicles)
+	ListCustomerVehicles(ctx context.Context, request ListCustomerVehiclesRequestObject) (ListCustomerVehiclesResponseObject, error)
+	// CreateVehicle Create a vehicle for an existing customer
+	// (POST /customers/{customerId}/vehicles)
+	CreateVehicle(ctx context.Context, request CreateVehicleRequestObject) (CreateVehicleResponseObject, error)
+	// SearchCustomers Find global customer records by exact normalized phone or email
+	// (GET /customers:search)
+	SearchCustomers(ctx context.Context, request SearchCustomersRequestObject) (SearchCustomersResponseObject, error)
 	// CreateDealershipUser Grant dealership access to an existing auth user
 	// (POST /dealership-users)
 	CreateDealershipUser(ctx context.Context, request CreateDealershipUserRequestObject) (CreateDealershipUserResponseObject, error)
@@ -8620,178 +8914,148 @@ type StrictServerInterface interface {
 	// (POST /dealerships)
 	CreateDealership(ctx context.Context, request CreateDealershipRequestObject) (CreateDealershipResponseObject, error)
 
-	// (POST /v1/appointments)
-	ScheduleAppointment(ctx context.Context, request ScheduleAppointmentRequestObject) (ScheduleAppointmentResponseObject, error)
-
-	// (POST /v1/appointments/{appointmentId}/cancel)
-	CancelAppointment(ctx context.Context, request CancelAppointmentRequestObject) (CancelAppointmentResponseObject, error)
-
-	// (POST /v1/appointments/{appointmentId}/check-in)
-	CheckInAppointment(ctx context.Context, request CheckInAppointmentRequestObject) (CheckInAppointmentResponseObject, error)
-
-	// (POST /v1/appointments/{appointmentId}/complete)
-	CompleteAppointment(ctx context.Context, request CompleteAppointmentRequestObject) (CompleteAppointmentResponseObject, error)
-
-	// (POST /v1/appointments/{appointmentId}/start)
-	StartAppointment(ctx context.Context, request StartAppointmentRequestObject) (StartAppointmentResponseObject, error)
-	// CreateCustomer Create a global customer record
-	// (POST /v1/customers)
-	CreateCustomer(ctx context.Context, request CreateCustomerRequestObject) (CreateCustomerResponseObject, error)
-
-	// (GET /v1/customers/{customerId})
-	GetCustomer(ctx context.Context, request GetCustomerRequestObject) (GetCustomerResponseObject, error)
-
-	// (PATCH /v1/customers/{customerId})
-	UpdateCustomer(ctx context.Context, request UpdateCustomerRequestObject) (UpdateCustomerResponseObject, error)
-
-	// (GET /v1/customers/{customerId}/vehicles)
-	ListCustomerVehicles(ctx context.Context, request ListCustomerVehiclesRequestObject) (ListCustomerVehiclesResponseObject, error)
-	// CreateVehicle Create a vehicle for an existing customer
-	// (POST /v1/customers/{customerId}/vehicles)
-	CreateVehicle(ctx context.Context, request CreateVehicleRequestObject) (CreateVehicleResponseObject, error)
-	// SearchCustomers Find global customer records by exact normalized phone or email
-	// (GET /v1/customers:search)
-	SearchCustomers(ctx context.Context, request SearchCustomersRequestObject) (SearchCustomersResponseObject, error)
-
-	// (GET /v1/dealerships/{dealershipId}/operation-times)
+	// (GET /dealerships/{dealershipId}/operation-times)
 	ListDealershipOperationTimes(ctx context.Context, request ListDealershipOperationTimesRequestObject) (ListDealershipOperationTimesResponseObject, error)
 
-	// (POST /v1/dealerships/{dealershipId}/operation-times)
+	// (POST /dealerships/{dealershipId}/operation-times)
 	CreateDealershipOperationTime(ctx context.Context, request CreateDealershipOperationTimeRequestObject) (CreateDealershipOperationTimeResponseObject, error)
 
-	// (DELETE /v1/dealerships/{dealershipId}/operation-times/{operationTimeId})
+	// (DELETE /dealerships/{dealershipId}/operation-times/{operationTimeId})
 	DeleteDealershipOperationTime(ctx context.Context, request DeleteDealershipOperationTimeRequestObject) (DeleteDealershipOperationTimeResponseObject, error)
 
-	// (PATCH /v1/dealerships/{dealershipId}/operation-times/{operationTimeId})
+	// (PATCH /dealerships/{dealershipId}/operation-times/{operationTimeId})
 	UpdateDealershipOperationTime(ctx context.Context, request UpdateDealershipOperationTimeRequestObject) (UpdateDealershipOperationTimeResponseObject, error)
 
-	// (GET /v1/dealerships/{dealershipId}/service-bays)
+	// (GET /dealerships/{dealershipId}/service-bays)
 	ListServiceBays(ctx context.Context, request ListServiceBaysRequestObject) (ListServiceBaysResponseObject, error)
 
-	// (POST /v1/dealerships/{dealershipId}/service-bays)
+	// (POST /dealerships/{dealershipId}/service-bays)
 	CreateServiceBay(ctx context.Context, request CreateServiceBayRequestObject) (CreateServiceBayResponseObject, error)
 
-	// (DELETE /v1/dealerships/{dealershipId}/service-bays/{serviceBayId})
+	// (DELETE /dealerships/{dealershipId}/service-bays/{serviceBayId})
 	DeleteServiceBay(ctx context.Context, request DeleteServiceBayRequestObject) (DeleteServiceBayResponseObject, error)
 
-	// (GET /v1/dealerships/{dealershipId}/service-bays/{serviceBayId})
+	// (GET /dealerships/{dealershipId}/service-bays/{serviceBayId})
 	GetServiceBay(ctx context.Context, request GetServiceBayRequestObject) (GetServiceBayResponseObject, error)
 
-	// (PATCH /v1/dealerships/{dealershipId}/service-bays/{serviceBayId})
+	// (PATCH /dealerships/{dealershipId}/service-bays/{serviceBayId})
 	UpdateServiceBay(ctx context.Context, request UpdateServiceBayRequestObject) (UpdateServiceBayResponseObject, error)
 
-	// (GET /v1/dealerships/{dealershipId}/service-bays/{serviceBayId}/capabilities)
+	// (GET /dealerships/{dealershipId}/service-bays/{serviceBayId}/capabilities)
 	ListServiceBayCapabilities(ctx context.Context, request ListServiceBayCapabilitiesRequestObject) (ListServiceBayCapabilitiesResponseObject, error)
 
-	// (POST /v1/dealerships/{dealershipId}/service-bays/{serviceBayId}/capabilities)
+	// (POST /dealerships/{dealershipId}/service-bays/{serviceBayId}/capabilities)
 	CreateServiceBayCapability(ctx context.Context, request CreateServiceBayCapabilityRequestObject) (CreateServiceBayCapabilityResponseObject, error)
 
-	// (DELETE /v1/dealerships/{dealershipId}/service-bays/{serviceBayId}/capabilities/{serviceBayCapabilityId})
+	// (DELETE /dealerships/{dealershipId}/service-bays/{serviceBayId}/capabilities/{serviceBayCapabilityId})
 	DeleteServiceBayCapability(ctx context.Context, request DeleteServiceBayCapabilityRequestObject) (DeleteServiceBayCapabilityResponseObject, error)
 
-	// (PATCH /v1/dealerships/{dealershipId}/service-bays/{serviceBayId}/capabilities/{serviceBayCapabilityId})
+	// (PATCH /dealerships/{dealershipId}/service-bays/{serviceBayId}/capabilities/{serviceBayCapabilityId})
 	UpdateServiceBayCapability(ctx context.Context, request UpdateServiceBayCapabilityRequestObject) (UpdateServiceBayCapabilityResponseObject, error)
 
-	// (GET /v1/dealerships/{dealershipId}/service-types)
+	// (GET /dealerships/{dealershipId}/service-types)
 	ListServiceTypes(ctx context.Context, request ListServiceTypesRequestObject) (ListServiceTypesResponseObject, error)
 
-	// (POST /v1/dealerships/{dealershipId}/service-types)
+	// (POST /dealerships/{dealershipId}/service-types)
 	CreateServiceType(ctx context.Context, request CreateServiceTypeRequestObject) (CreateServiceTypeResponseObject, error)
 
-	// (DELETE /v1/dealerships/{dealershipId}/service-types/{serviceTypeId})
+	// (DELETE /dealerships/{dealershipId}/service-types/{serviceTypeId})
 	DeleteServiceType(ctx context.Context, request DeleteServiceTypeRequestObject) (DeleteServiceTypeResponseObject, error)
 
-	// (GET /v1/dealerships/{dealershipId}/service-types/{serviceTypeId})
+	// (GET /dealerships/{dealershipId}/service-types/{serviceTypeId})
 	GetServiceType(ctx context.Context, request GetServiceTypeRequestObject) (GetServiceTypeResponseObject, error)
 
-	// (PATCH /v1/dealerships/{dealershipId}/service-types/{serviceTypeId})
+	// (PATCH /dealerships/{dealershipId}/service-types/{serviceTypeId})
 	UpdateServiceType(ctx context.Context, request UpdateServiceTypeRequestObject) (UpdateServiceTypeResponseObject, error)
 
-	// (GET /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-bay-capabilities)
+	// (GET /dealerships/{dealershipId}/service-types/{serviceTypeId}/required-bay-capabilities)
 	ListServiceTypeRequiredBayCapabilities(ctx context.Context, request ListServiceTypeRequiredBayCapabilitiesRequestObject) (ListServiceTypeRequiredBayCapabilitiesResponseObject, error)
 
-	// (POST /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-bay-capabilities)
+	// (POST /dealerships/{dealershipId}/service-types/{serviceTypeId}/required-bay-capabilities)
 	CreateServiceTypeRequiredBayCapability(ctx context.Context, request CreateServiceTypeRequiredBayCapabilityRequestObject) (CreateServiceTypeRequiredBayCapabilityResponseObject, error)
 
-	// (DELETE /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-bay-capabilities/{requiredCapabilityId})
+	// (DELETE /dealerships/{dealershipId}/service-types/{serviceTypeId}/required-bay-capabilities/{requiredCapabilityId})
 	DeleteServiceTypeRequiredBayCapability(ctx context.Context, request DeleteServiceTypeRequiredBayCapabilityRequestObject) (DeleteServiceTypeRequiredBayCapabilityResponseObject, error)
 
-	// (PATCH /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-bay-capabilities/{requiredCapabilityId})
+	// (PATCH /dealerships/{dealershipId}/service-types/{serviceTypeId}/required-bay-capabilities/{requiredCapabilityId})
 	UpdateServiceTypeRequiredBayCapability(ctx context.Context, request UpdateServiceTypeRequiredBayCapabilityRequestObject) (UpdateServiceTypeRequiredBayCapabilityResponseObject, error)
 
-	// (GET /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-skills)
+	// (GET /dealerships/{dealershipId}/service-types/{serviceTypeId}/required-skills)
 	ListServiceTypeRequiredSkills(ctx context.Context, request ListServiceTypeRequiredSkillsRequestObject) (ListServiceTypeRequiredSkillsResponseObject, error)
 
-	// (POST /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-skills)
+	// (POST /dealerships/{dealershipId}/service-types/{serviceTypeId}/required-skills)
 	CreateServiceTypeRequiredSkill(ctx context.Context, request CreateServiceTypeRequiredSkillRequestObject) (CreateServiceTypeRequiredSkillResponseObject, error)
 
-	// (DELETE /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-skills/{requiredSkillId})
+	// (DELETE /dealerships/{dealershipId}/service-types/{serviceTypeId}/required-skills/{requiredSkillId})
 	DeleteServiceTypeRequiredSkill(ctx context.Context, request DeleteServiceTypeRequiredSkillRequestObject) (DeleteServiceTypeRequiredSkillResponseObject, error)
 
-	// (PATCH /v1/dealerships/{dealershipId}/service-types/{serviceTypeId}/required-skills/{requiredSkillId})
+	// (PATCH /dealerships/{dealershipId}/service-types/{serviceTypeId}/required-skills/{requiredSkillId})
 	UpdateServiceTypeRequiredSkill(ctx context.Context, request UpdateServiceTypeRequiredSkillRequestObject) (UpdateServiceTypeRequiredSkillResponseObject, error)
 
-	// (GET /v1/technicians)
+	// (GET /dealerships/{dealershipId}/technician-schedules)
+	ListTechnicianSchedules(ctx context.Context, request ListTechnicianSchedulesRequestObject) (ListTechnicianSchedulesResponseObject, error)
+
+	// (GET /technicians)
 	ListTechnicians(ctx context.Context, request ListTechniciansRequestObject) (ListTechniciansResponseObject, error)
 
-	// (POST /v1/technicians)
+	// (POST /technicians)
 	CreateTechnician(ctx context.Context, request CreateTechnicianRequestObject) (CreateTechnicianResponseObject, error)
 
-	// (DELETE /v1/technicians/{technicianId})
+	// (DELETE /technicians/{technicianId})
 	DeleteTechnician(ctx context.Context, request DeleteTechnicianRequestObject) (DeleteTechnicianResponseObject, error)
 
-	// (GET /v1/technicians/{technicianId})
+	// (GET /technicians/{technicianId})
 	GetTechnician(ctx context.Context, request GetTechnicianRequestObject) (GetTechnicianResponseObject, error)
 
-	// (PATCH /v1/technicians/{technicianId})
+	// (PATCH /technicians/{technicianId})
 	UpdateTechnician(ctx context.Context, request UpdateTechnicianRequestObject) (UpdateTechnicianResponseObject, error)
 
-	// (GET /v1/technicians/{technicianId}/shifts)
+	// (GET /technicians/{technicianId}/shifts)
 	ListTechnicianShifts(ctx context.Context, request ListTechnicianShiftsRequestObject) (ListTechnicianShiftsResponseObject, error)
 
-	// (POST /v1/technicians/{technicianId}/shifts)
+	// (POST /technicians/{technicianId}/shifts)
 	CreateTechnicianShift(ctx context.Context, request CreateTechnicianShiftRequestObject) (CreateTechnicianShiftResponseObject, error)
 
-	// (DELETE /v1/technicians/{technicianId}/shifts/{shiftId})
+	// (DELETE /technicians/{technicianId}/shifts/{shiftId})
 	DeleteTechnicianShift(ctx context.Context, request DeleteTechnicianShiftRequestObject) (DeleteTechnicianShiftResponseObject, error)
 
-	// (PATCH /v1/technicians/{technicianId}/shifts/{shiftId})
+	// (PATCH /technicians/{technicianId}/shifts/{shiftId})
 	UpdateTechnicianShift(ctx context.Context, request UpdateTechnicianShiftRequestObject) (UpdateTechnicianShiftResponseObject, error)
 
-	// (GET /v1/technicians/{technicianId}/skills)
+	// (GET /technicians/{technicianId}/skills)
 	ListTechnicianSkills(ctx context.Context, request ListTechnicianSkillsRequestObject) (ListTechnicianSkillsResponseObject, error)
 
-	// (POST /v1/technicians/{technicianId}/skills)
+	// (POST /technicians/{technicianId}/skills)
 	CreateTechnicianSkill(ctx context.Context, request CreateTechnicianSkillRequestObject) (CreateTechnicianSkillResponseObject, error)
 
-	// (DELETE /v1/technicians/{technicianId}/skills/{technicianSkillId})
+	// (DELETE /technicians/{technicianId}/skills/{technicianSkillId})
 	DeleteTechnicianSkill(ctx context.Context, request DeleteTechnicianSkillRequestObject) (DeleteTechnicianSkillResponseObject, error)
 
-	// (PATCH /v1/technicians/{technicianId}/skills/{technicianSkillId})
+	// (PATCH /technicians/{technicianId}/skills/{technicianSkillId})
 	UpdateTechnicianSkill(ctx context.Context, request UpdateTechnicianSkillRequestObject) (UpdateTechnicianSkillResponseObject, error)
 
-	// (GET /v1/technicians/{technicianId}/time-off)
+	// (GET /technicians/{technicianId}/time-off)
 	ListTechnicianTimeOff(ctx context.Context, request ListTechnicianTimeOffRequestObject) (ListTechnicianTimeOffResponseObject, error)
 
-	// (POST /v1/technicians/{technicianId}/time-off)
+	// (POST /technicians/{technicianId}/time-off)
 	CreateTechnicianTimeOff(ctx context.Context, request CreateTechnicianTimeOffRequestObject) (CreateTechnicianTimeOffResponseObject, error)
 
-	// (DELETE /v1/technicians/{technicianId}/time-off/{timeOffId})
+	// (DELETE /technicians/{technicianId}/time-off/{timeOffId})
 	DeleteTechnicianTimeOff(ctx context.Context, request DeleteTechnicianTimeOffRequestObject) (DeleteTechnicianTimeOffResponseObject, error)
 
-	// (GET /v1/technicians/{technicianId}/time-off/{timeOffId})
+	// (GET /technicians/{technicianId}/time-off/{timeOffId})
 	GetTechnicianTimeOff(ctx context.Context, request GetTechnicianTimeOffRequestObject) (GetTechnicianTimeOffResponseObject, error)
 
-	// (PATCH /v1/technicians/{technicianId}/time-off/{timeOffId})
+	// (PATCH /technicians/{technicianId}/time-off/{timeOffId})
 	UpdateTechnicianTimeOff(ctx context.Context, request UpdateTechnicianTimeOffRequestObject) (UpdateTechnicianTimeOffResponseObject, error)
 
-	// (DELETE /v1/vehicles/{vehicleId})
+	// (DELETE /vehicles/{vehicleId})
 	DeleteVehicle(ctx context.Context, request DeleteVehicleRequestObject) (DeleteVehicleResponseObject, error)
 
-	// (GET /v1/vehicles/{vehicleId})
+	// (GET /vehicles/{vehicleId})
 	GetVehicle(ctx context.Context, request GetVehicleRequestObject) (GetVehicleResponseObject, error)
 
-	// (PATCH /v1/vehicles/{vehicleId})
+	// (PATCH /vehicles/{vehicleId})
 	UpdateVehicle(ctx context.Context, request UpdateVehicleRequestObject) (UpdateVehicleResponseObject, error)
 }
 
@@ -8805,148 +9069,6 @@ func NewStrictHandler(ssi StrictServerInterface, middlewares []StrictMiddlewareF
 type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
-}
-
-// CreateDealershipUser operation middleware
-func (sh *strictHandler) CreateDealershipUser(ctx *echo.Context) error {
-	var request CreateDealershipUserRequestObject
-
-	var body CreateDealershipUserJSONRequestBody
-	var err error
-	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
-		// Bind only the request body, so that path and query parameters
-		// are not also bound into the body struct.
-		err = echo.BindBody(ctx, &body)
-	} else {
-		// A custom binder is installed on the Echo instance; defer to it
-		// entirely, since echo.Binder does not expose body-only binding.
-		err = ctx.Bind(&body)
-	}
-	if err != nil {
-		return err
-	}
-	request.Body = &body
-
-	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.CreateDealershipUser(ctx.Request().Context(), request.(CreateDealershipUserRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "CreateDealershipUser")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		return err
-	} else if validResponse, ok := response.(CreateDealershipUserResponseObject); ok {
-		return validResponse.VisitCreateDealershipUserResponse(ctx.Response())
-	} else if response != nil {
-		return fmt.Errorf("unexpected response type: %T", response)
-	}
-	return nil
-}
-
-// CreateDealershipAdmin operation middleware
-func (sh *strictHandler) CreateDealershipAdmin(ctx *echo.Context) error {
-	var request CreateDealershipAdminRequestObject
-
-	var body CreateDealershipAdminJSONRequestBody
-	var err error
-	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
-		// Bind only the request body, so that path and query parameters
-		// are not also bound into the body struct.
-		err = echo.BindBody(ctx, &body)
-	} else {
-		// A custom binder is installed on the Echo instance; defer to it
-		// entirely, since echo.Binder does not expose body-only binding.
-		err = ctx.Bind(&body)
-	}
-	if err != nil {
-		return err
-	}
-	request.Body = &body
-
-	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.CreateDealershipAdmin(ctx.Request().Context(), request.(CreateDealershipAdminRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "CreateDealershipAdmin")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		return err
-	} else if validResponse, ok := response.(CreateDealershipAdminResponseObject); ok {
-		return validResponse.VisitCreateDealershipAdminResponse(ctx.Response())
-	} else if response != nil {
-		return fmt.Errorf("unexpected response type: %T", response)
-	}
-	return nil
-}
-
-// SearchAuthUserByEmail operation middleware
-func (sh *strictHandler) SearchAuthUserByEmail(ctx *echo.Context, params SearchAuthUserByEmailParams) error {
-	var request SearchAuthUserByEmailRequestObject
-
-	request.Params = params
-
-	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.SearchAuthUserByEmail(ctx.Request().Context(), request.(SearchAuthUserByEmailRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "SearchAuthUserByEmail")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		return err
-	} else if validResponse, ok := response.(SearchAuthUserByEmailResponseObject); ok {
-		return validResponse.VisitSearchAuthUserByEmailResponse(ctx.Response())
-	} else if response != nil {
-		return fmt.Errorf("unexpected response type: %T", response)
-	}
-	return nil
-}
-
-// CreateDealership operation middleware
-func (sh *strictHandler) CreateDealership(ctx *echo.Context) error {
-	var request CreateDealershipRequestObject
-
-	var body CreateDealershipJSONRequestBody
-	var err error
-	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
-		// Bind only the request body, so that path and query parameters
-		// are not also bound into the body struct.
-		err = echo.BindBody(ctx, &body)
-	} else {
-		// A custom binder is installed on the Echo instance; defer to it
-		// entirely, since echo.Binder does not expose body-only binding.
-		err = ctx.Bind(&body)
-	}
-	if err != nil {
-		return err
-	}
-	request.Body = &body
-
-	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.CreateDealership(ctx.Request().Context(), request.(CreateDealershipRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "CreateDealership")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		return err
-	} else if validResponse, ok := response.(CreateDealershipResponseObject); ok {
-		return validResponse.VisitCreateDealershipResponse(ctx.Response())
-	} else if response != nil {
-		return fmt.Errorf("unexpected response type: %T", response)
-	}
-	return nil
 }
 
 // ScheduleAppointment operation middleware
@@ -9342,6 +9464,148 @@ func (sh *strictHandler) SearchCustomers(ctx *echo.Context, params SearchCustome
 		return err
 	} else if validResponse, ok := response.(SearchCustomersResponseObject); ok {
 		return validResponse.VisitSearchCustomersResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateDealershipUser operation middleware
+func (sh *strictHandler) CreateDealershipUser(ctx *echo.Context) error {
+	var request CreateDealershipUserRequestObject
+
+	var body CreateDealershipUserJSONRequestBody
+	var err error
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+		// Bind only the request body, so that path and query parameters
+		// are not also bound into the body struct.
+		err = echo.BindBody(ctx, &body)
+	} else {
+		// A custom binder is installed on the Echo instance; defer to it
+		// entirely, since echo.Binder does not expose body-only binding.
+		err = ctx.Bind(&body)
+	}
+	if err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateDealershipUser(ctx.Request().Context(), request.(CreateDealershipUserRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateDealershipUser")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateDealershipUserResponseObject); ok {
+		return validResponse.VisitCreateDealershipUserResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateDealershipAdmin operation middleware
+func (sh *strictHandler) CreateDealershipAdmin(ctx *echo.Context) error {
+	var request CreateDealershipAdminRequestObject
+
+	var body CreateDealershipAdminJSONRequestBody
+	var err error
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+		// Bind only the request body, so that path and query parameters
+		// are not also bound into the body struct.
+		err = echo.BindBody(ctx, &body)
+	} else {
+		// A custom binder is installed on the Echo instance; defer to it
+		// entirely, since echo.Binder does not expose body-only binding.
+		err = ctx.Bind(&body)
+	}
+	if err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateDealershipAdmin(ctx.Request().Context(), request.(CreateDealershipAdminRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateDealershipAdmin")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateDealershipAdminResponseObject); ok {
+		return validResponse.VisitCreateDealershipAdminResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// SearchAuthUserByEmail operation middleware
+func (sh *strictHandler) SearchAuthUserByEmail(ctx *echo.Context, params SearchAuthUserByEmailParams) error {
+	var request SearchAuthUserByEmailRequestObject
+
+	request.Params = params
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.SearchAuthUserByEmail(ctx.Request().Context(), request.(SearchAuthUserByEmailRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SearchAuthUserByEmail")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(SearchAuthUserByEmailResponseObject); ok {
+		return validResponse.VisitSearchAuthUserByEmailResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CreateDealership operation middleware
+func (sh *strictHandler) CreateDealership(ctx *echo.Context) error {
+	var request CreateDealershipRequestObject
+
+	var body CreateDealershipJSONRequestBody
+	var err error
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+		// Bind only the request body, so that path and query parameters
+		// are not also bound into the body struct.
+		err = echo.BindBody(ctx, &body)
+	} else {
+		// A custom binder is installed on the Echo instance; defer to it
+		// entirely, since echo.Binder does not expose body-only binding.
+		err = ctx.Bind(&body)
+	}
+	if err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateDealership(ctx.Request().Context(), request.(CreateDealershipRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateDealership")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateDealershipResponseObject); ok {
+		return validResponse.VisitCreateDealershipResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}
@@ -10211,6 +10475,32 @@ func (sh *strictHandler) UpdateServiceTypeRequiredSkill(ctx *echo.Context, deale
 		return err
 	} else if validResponse, ok := response.(UpdateServiceTypeRequiredSkillResponseObject); ok {
 		return validResponse.VisitUpdateServiceTypeRequiredSkillResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListTechnicianSchedules operation middleware
+func (sh *strictHandler) ListTechnicianSchedules(ctx *echo.Context, dealershipId DealershipId, params ListTechnicianSchedulesParams) error {
+	var request ListTechnicianSchedulesRequestObject
+
+	request.DealershipId = dealershipId
+	request.Params = params
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListTechnicianSchedules(ctx.Request().Context(), request.(ListTechnicianSchedulesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListTechnicianSchedules")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListTechnicianSchedulesResponseObject); ok {
+		return validResponse.VisitListTechnicianSchedulesResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

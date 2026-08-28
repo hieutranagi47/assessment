@@ -6,6 +6,36 @@ info:
 servers:
   - url: /appointment-scheduler/v1
 paths:
+  /dealerships/{dealershipId}/technician-schedules:
+    parameters:
+      - $ref: "#/components/parameters/DealershipId"
+    get:
+      operationId: listTechnicianSchedules
+      tags: [Technician schedules]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema: { type: string, format: date, pattern: '^\d{4}-\d{2}-\d{2}$' }
+        - name: technician_id
+          in: query
+          schema: { type: string, pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$' }
+        - name: include
+          in: query
+          description: Comma-separated schedule sections. Defaults to appointments, time_off, and shifts.
+          schema:
+            type: array
+            items: { type: string, enum: [appointments, time_off, shifts] }
+          style: form
+          explode: false
+      responses:
+        "200": { $ref: "#/components/responses/TechnicianSchedulesListed" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /appointments:
     post:
       operationId: scheduleAppointment
@@ -959,46 +989,46 @@ components:
     CompleteAppointmentRequest:
       type: object
       properties:
-        actualEndsAt: { type: string, format: date-time, nullable: true }
+        actual_ends_at: { type: string, format: date-time, nullable: true }
         note: { type: string, nullable: true }
     CancelAppointmentRequest:
       type: object
-      required: [cancellationReason]
+      required: [cancellation_reason]
       properties:
-        cancellationReason: { type: string, minLength: 1 }
+        cancellation_reason: { type: string, minLength: 1 }
         note: { type: string, nullable: true }
     ScheduleAppointmentRequest:
       type: object
-      required: [customerId, vehicleId, serviceTypeId, startsAt, technicianId, serviceBayId]
+      required: [customer_id, vehicle_id, service_type_id, starts_at, technician_id, service_bay_id]
       properties:
-        customerId: { type: string, format: uuid }
-        vehicleId: { type: string, format: uuid }
-        serviceTypeId: { type: string, format: uuid }
-        startsAt: { type: string, format: date-time, description: UTC instant }
-        technicianId: { type: string, format: uuid }
-        serviceBayId: { type: string, format: uuid }
-        plannedDurationMinutes: { type: integer, minimum: 1 }
+        customer_id: { type: string, format: uuid }
+        vehicle_id: { type: string, format: uuid }
+        service_type_id: { type: string, format: uuid }
+        starts_at: { type: string, format: date-time, description: UTC instant }
+        technician_id: { type: string, format: uuid }
+        service_bay_id: { type: string, format: uuid }
+        planned_duration_minutes: { type: integer, minimum: 1 }
         notes: { type: string, nullable: true }
     Appointment:
       type: object
-      required: [appointmentId, referenceCode, dealershipId, startsAt, endsAt, plannedDurationMinutes, status, createdAt, updatedAt]
+      required: [appointment_id, reference_code, dealership_id, starts_at, ends_at, planned_duration_minutes, status, created_at, updated_at]
       properties:
-        appointmentId: { type: string, format: uuid }
-        referenceCode: { type: string }
-        dealershipId: { type: string, format: uuid }
-        customerId: { type: string, format: uuid }
-        vehicleId: { type: string, format: uuid }
-        serviceTypeId: { type: string, format: uuid }
-        technicianId: { type: string, format: uuid }
-        serviceBayId: { type: string, format: uuid }
-        startsAt: { type: string, format: date-time }
-        endsAt: { type: string, format: date-time }
-        actualEndsAt: { type: string, format: date-time, nullable: true }
-        plannedDurationMinutes: { type: integer }
+        appointment_id: { type: string, format: uuid }
+        reference_code: { type: string }
+        dealership_id: { type: string, format: uuid }
+        customer_id: { type: string, format: uuid }
+        vehicle_id: { type: string, format: uuid }
+        service_type_id: { type: string, format: uuid }
+        technician_id: { type: string, format: uuid }
+        service_bay_id: { type: string, format: uuid }
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time }
+        actual_ends_at: { type: string, format: date-time, nullable: true }
+        planned_duration_minutes: { type: integer }
         status: { type: string, enum: [requested, checked_in, in_progress, completed, cancelled] }
         notes: { type: string, nullable: true }
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
     CreateTechnicianRequest:
       type: object
       required: [name, phone]
@@ -1006,7 +1036,7 @@ components:
         name: { type: string, minLength: 1 }
         phone: { type: string, minLength: 1 }
         email: { type: string, format: email, nullable: true }
-        isActive: { type: boolean, default: true }
+        is_active: { type: boolean, default: true }
     UpdateTechnicianRequest:
       type: object
       minProperties: 1
@@ -1016,19 +1046,19 @@ components:
         email:
           nullable: true
           x-go-type: OptionalNullableString
-        isActive: { type: boolean }
+        is_active: { type: boolean }
     Technician:
       type: object
-      required: [technicianId, userId, name, phone, isActive, createdAt, updatedAt]
+      required: [technician_id, user_id, name, phone, is_active, created_at, updated_at]
       properties:
-        technicianId: { type: string, format: uuid }
-        userId: { type: string, format: uuid }
+        technician_id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid }
         name: { type: string }
         phone: { type: string }
         email: { type: string, format: email, nullable: true }
-        isActive: { type: boolean }
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
+        is_active: { type: boolean }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
     TechnicianPage:
       type: object
       required: [items, limit, offset]
@@ -1050,64 +1080,64 @@ components:
         skill_id: { type: string, format: uuid }
     TechnicianSkill:
       type: object
-      required: [technicianSkillId, technicianId, skillId, createdAt, updatedAt]
+      required: [technician_skill_id, technician_id, skill_id, created_at, updated_at]
       properties:
-        technicianSkillId: { type: string, format: uuid }
-        technicianId: { type: string, format: uuid }
-        skillId: { type: string, format: uuid }
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
+        technician_skill_id: { type: string, format: uuid }
+        technician_id: { type: string, format: uuid }
+        skill_id: { type: string, format: uuid }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
     CreateTechnicianShiftRequest:
       type: object
-      required: [dayOfWeek, startsAt, endsAt]
+      required: [day_of_week, starts_at, ends_at]
       properties:
-        dayOfWeek: { type: integer, minimum: 1, maximum: 7 }
-        startsAt: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
-        endsAt: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
+        day_of_week: { type: integer, minimum: 1, maximum: 7 }
+        starts_at: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
+        ends_at: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
     UpdateTechnicianShiftRequest:
       type: object
       minProperties: 1
       properties:
-        dayOfWeek: { type: integer, minimum: 1, maximum: 7 }
-        startsAt: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
-        endsAt: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
+        day_of_week: { type: integer, minimum: 1, maximum: 7 }
+        starts_at: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
+        ends_at: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
     TechnicianShift:
       type: object
-      required: [technicianShiftId, technicianId, dayOfWeek, startsAt, endsAt, createdAt, updatedAt]
+      required: [technician_shift_id, technician_id, day_of_week, starts_at, ends_at, created_at, updated_at]
       properties:
-        technicianShiftId: { type: string, format: uuid }
-        technicianId: { type: string, format: uuid }
-        dayOfWeek: { type: integer, minimum: 1, maximum: 7 }
-        startsAt: { type: string }
-        endsAt: { type: string }
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
+        technician_shift_id: { type: string, format: uuid }
+        technician_id: { type: string, format: uuid }
+        day_of_week: { type: integer, minimum: 1, maximum: 7 }
+        starts_at: { type: string }
+        ends_at: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
     CreateTechnicianTimeOffRequest:
       type: object
-      required: [startsAt, endsAt]
+      required: [starts_at, ends_at]
       properties:
-        startsAt: { type: string, format: date-time }
-        endsAt: { type: string, format: date-time }
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time }
         reason: { type: string, nullable: true }
     UpdateTechnicianTimeOffRequest:
       type: object
       minProperties: 1
       properties:
-        startsAt: { type: string, format: date-time }
-        endsAt: { type: string, format: date-time }
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time }
         reason: { type: string, nullable: true, x-go-type: OptionalNullableString }
     TechnicianTimeOff:
       type: object
-      required: [technicianTimeOffId, technicianId, startsAt, endsAt, createdByUserId, createdAt, updatedAt]
+      required: [technician_time_off_id, technician_id, starts_at, ends_at, created_by_user_id, created_at, updated_at]
       properties:
-        technicianTimeOffId: { type: string, format: uuid }
-        technicianId: { type: string, format: uuid }
-        startsAt: { type: string, format: date-time }
-        endsAt: { type: string, format: date-time }
+        technician_time_off_id: { type: string, format: uuid }
+        technician_id: { type: string, format: uuid }
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time }
         reason: { type: string, nullable: true }
-        createdByUserId: { type: string, format: uuid }
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
+        created_by_user_id: { type: string, format: uuid }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
     TechnicianTimeOffPage:
       type: object
       required: [items, limit, offset]
@@ -1115,6 +1145,50 @@ components:
         items: { type: array, items: { $ref: "#/components/schemas/TechnicianTimeOff" } }
         limit: { type: integer }
         offset: { type: integer }
+    TechnicianScheduleShift:
+      type: object
+      required: [starts_at, ends_at]
+      properties:
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time }
+    TechnicianOccupiedSlot:
+      type: object
+      required: [kind, starts_at, ends_at]
+      properties:
+        kind: { type: string, enum: [appointment, time_off] }
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time }
+        appointment_id: { type: string, format: uuid }
+        reference_code: { type: string }
+        status: { type: string, enum: [requested, checked_in, in_progress] }
+        service_type_name: { type: string }
+        service_bay_id: { type: string, format: uuid }
+        service_bay_code: { type: string }
+    TechnicianSchedule:
+      type: object
+      required: [technician_id, user_id, name, shifts, occupied_slots]
+      properties:
+        technician_id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid }
+        name: { type: string }
+        shifts:
+          type: array
+          items: { $ref: "#/components/schemas/TechnicianScheduleShift" }
+        occupied_slots:
+          type: array
+          items: { $ref: "#/components/schemas/TechnicianOccupiedSlot" }
+    TechnicianScheduleResponse:
+      type: object
+      required: [dealership_id, timezone, date, period_starts_at, period_ends_at, technicians]
+      properties:
+        dealership_id: { type: string, format: uuid }
+        timezone: { type: string }
+        date: { type: string, format: date }
+        period_starts_at: { type: string, format: date-time }
+        period_ends_at: { type: string, format: date-time }
+        technicians:
+          type: array
+          items: { $ref: "#/components/schemas/TechnicianSchedule" }
     CreateCustomerRequest:
       type: object
       required: [name, phone]
@@ -1132,14 +1206,14 @@ components:
           x-go-type: OptionalNullableString
     Customer:
       type: object
-      required: [customerId, name, phone, email, createdAt, updatedAt]
+      required: [customer_id, name, phone, email, created_at, updated_at]
       properties:
-        customerId: { type: string, format: uuid }
+        customer_id: { type: string, format: uuid }
         name: { type: string }
         phone: { type: string, pattern: '^\\+[1-9][0-9]{7,14}$' }
         email: { type: string, format: email, nullable: true }
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
     CustomerListResponse:
       type: object
       required: [items]
@@ -1152,10 +1226,10 @@ components:
       required: [make, model]
       properties:
         vin: { type: string, minLength: 1, maxLength: 17 }
-        registrationPlate: { type: string, minLength: 1, maxLength: 32 }
+        registration_plate: { type: string, minLength: 1, maxLength: 32 }
         make: { type: string, minLength: 1, maxLength: 100 }
         model: { type: string, minLength: 1, maxLength: 100 }
-        modelYear: { type: integer, minimum: 1886, maximum: 2100 }
+        model_year: { type: integer, minimum: 1886, maximum: 2100 }
     UpdateVehicleRequest:
       type: object
       minProperties: 1
@@ -1163,27 +1237,27 @@ components:
         vin:
           nullable: true
           x-go-type: OptionalNullableString
-        registrationPlate:
+        registration_plate:
           nullable: true
           x-go-type: OptionalNullableString
         make: { type: string, minLength: 1, maxLength: 100 }
         model: { type: string, minLength: 1, maxLength: 100 }
-        modelYear:
+        model_year:
           nullable: true
           x-go-type: OptionalNullableInt
     Vehicle:
       type: object
-      required: [vehicleId, customerId, make, model, createdAt, updatedAt]
+      required: [vehicle_id, customer_id, make, model, created_at, updated_at]
       properties:
-        vehicleId: { type: string, format: uuid }
-        customerId: { type: string, format: uuid }
+        vehicle_id: { type: string, format: uuid }
+        customer_id: { type: string, format: uuid }
         vin: { type: string, nullable: true }
-        registrationPlate: { type: string, nullable: true }
+        registration_plate: { type: string, nullable: true }
         make: { type: string }
         model: { type: string }
-        modelYear: { type: integer, nullable: true }
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
+        model_year: { type: integer, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
     VehicleListResponse:
       type: object
       required: [items]
@@ -1197,25 +1271,25 @@ components:
       properties:
         code: { type: string, minLength: 1 }
         name: { type: string, minLength: 1 }
-        isActive: { type: boolean, default: true }
+        is_active: { type: boolean, default: true }
     UpdateServiceBayRequest:
       type: object
       minProperties: 1
       properties:
         code: { type: string, minLength: 1 }
         name: { type: string, minLength: 1 }
-        isActive: { type: boolean }
+        is_active: { type: boolean }
     ServiceBay:
       type: object
-      required: [serviceBayId, dealershipId, code, name, isActive, createdAt, updatedAt]
+      required: [service_bay_id, dealership_id, code, name, is_active, created_at, updated_at]
       properties:
-        serviceBayId: { type: string, format: uuid }
-        dealershipId: { type: string, format: uuid }
+        service_bay_id: { type: string, format: uuid }
+        dealership_id: { type: string, format: uuid }
         code: { type: string }
         name: { type: string }
-        isActive: { type: boolean }
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
+        is_active: { type: boolean }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
     ServiceBayPage:
       type: object
       required: [items, limit, offset]
@@ -1227,157 +1301,157 @@ components:
         offset: { type: integer }
     CreateServiceTypeRequest:
       type: object
-      required: [name, defaultDurationMinutes, minDurationMinutes, maxDurationMinutes]
+      required: [name, default_duration_minutes, min_duration_minutes, max_duration_minutes]
       properties:
         name: { type: string, minLength: 1 }
-        defaultDurationMinutes: { type: integer, minimum: 1 }
-        minDurationMinutes: { type: integer, minimum: 1 }
-        maxDurationMinutes: { type: integer, minimum: 1 }
-        isActive: { type: boolean, default: true }
+        default_duration_minutes: { type: integer, minimum: 1 }
+        min_duration_minutes: { type: integer, minimum: 1 }
+        max_duration_minutes: { type: integer, minimum: 1 }
+        is_active: { type: boolean, default: true }
     UpdateServiceTypeRequest:
       type: object
       minProperties: 1
       properties:
         name: { type: string, minLength: 1 }
-        defaultDurationMinutes: { type: integer, minimum: 1 }
-        minDurationMinutes: { type: integer, minimum: 1 }
-        maxDurationMinutes: { type: integer, minimum: 1 }
-        isActive: { type: boolean }
+        default_duration_minutes: { type: integer, minimum: 1 }
+        min_duration_minutes: { type: integer, minimum: 1 }
+        max_duration_minutes: { type: integer, minimum: 1 }
+        is_active: { type: boolean }
     ServiceType:
       type: object
-      required: [serviceTypeId, dealershipId, name, defaultDurationMinutes, minDurationMinutes, maxDurationMinutes, isActive, createdAt, updatedAt]
+      required: [service_type_id, dealership_id, name, default_duration_minutes, min_duration_minutes, max_duration_minutes, is_active, created_at, updated_at]
       properties:
-        serviceTypeId: { type: string, format: uuid }
-        dealershipId: { type: string, format: uuid }
+        service_type_id: { type: string, format: uuid }
+        dealership_id: { type: string, format: uuid }
         name: { type: string }
-        defaultDurationMinutes: { type: integer }
-        minDurationMinutes: { type: integer }
-        maxDurationMinutes: { type: integer }
-        isActive: { type: boolean }
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
+        default_duration_minutes: { type: integer }
+        min_duration_minutes: { type: integer }
+        max_duration_minutes: { type: integer }
+        is_active: { type: boolean }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
     CreateServiceTypeRequiredSkillRequest:
       type: object
-      required: [skillId]
+      required: [skill_id]
       properties:
-        skillId: { type: string, format: uuid }
+        skill_id: { type: string, format: uuid }
     UpdateServiceTypeRequiredSkillRequest:
       type: object
-      required: [skillId]
+      required: [skill_id]
       properties:
-        skillId: { type: string, format: uuid }
+        skill_id: { type: string, format: uuid }
     Skill:
       type: object
-      required: [skillId, code, name]
+      required: [skill_id, code, name]
       properties:
-        skillId: { type: string, format: uuid }
+        skill_id: { type: string, format: uuid }
         code: { type: string }
         name: { type: string }
     ServiceTypeRequiredSkill:
       type: object
-      required: [requiredSkillId, serviceTypeId, skill, createdAt, updatedAt]
+      required: [required_skill_id, service_type_id, skill, created_at, updated_at]
       properties:
-        requiredSkillId: { type: string, format: uuid }
-        serviceTypeId: { type: string, format: uuid }
+        required_skill_id: { type: string, format: uuid }
+        service_type_id: { type: string, format: uuid }
         skill: { $ref: "#/components/schemas/Skill" }
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
     CreateServiceTypeRequiredBayCapabilityRequest:
       type: object
-      required: [bayCapabilityId]
+      required: [bay_capability_id]
       properties:
-        bayCapabilityId: { type: string, format: uuid }
+        bay_capability_id: { type: string, format: uuid }
     UpdateServiceTypeRequiredBayCapabilityRequest:
       type: object
-      required: [bayCapabilityId]
+      required: [bay_capability_id]
       properties:
-        bayCapabilityId: { type: string, format: uuid }
+        bay_capability_id: { type: string, format: uuid }
     BayCapability:
       type: object
-      required: [bayCapabilityId, code, name]
+      required: [bay_capability_id, code, name]
       properties:
-        bayCapabilityId: { type: string, format: uuid }
+        bay_capability_id: { type: string, format: uuid }
         code: { type: string }
         name: { type: string }
     ServiceTypeRequiredBayCapability:
       type: object
-      required: [requiredCapabilityId, serviceTypeId, bayCapability, createdAt, updatedAt]
+      required: [required_capability_id, service_type_id, bay_capability, created_at, updated_at]
       properties:
-        requiredCapabilityId: { type: string, format: uuid }
-        serviceTypeId: { type: string, format: uuid }
-        bayCapability: { $ref: "#/components/schemas/BayCapability" }
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
+        required_capability_id: { type: string, format: uuid }
+        service_type_id: { type: string, format: uuid }
+        bay_capability: { $ref: "#/components/schemas/BayCapability" }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
     CreateServiceBayCapabilityRequest:
       type: object
-      required: [bayCapabilityId]
+      required: [bay_capability_id]
       properties:
-        bayCapabilityId: { type: string, format: uuid }
+        bay_capability_id: { type: string, format: uuid }
     UpdateServiceBayCapabilityRequest:
       type: object
-      required: [bayCapabilityId]
+      required: [bay_capability_id]
       properties:
-        bayCapabilityId: { type: string, format: uuid }
+        bay_capability_id: { type: string, format: uuid }
     ServiceBayCapability:
       type: object
-      required: [serviceBayCapabilityId, serviceBayId, bayCapability, createdAt, updatedAt]
+      required: [service_bay_capability_id, service_bay_id, bay_capability, created_at, updated_at]
       properties:
-        serviceBayCapabilityId: { type: string, format: uuid }
-        serviceBayId: { type: string, format: uuid }
-        bayCapability: { $ref: "#/components/schemas/BayCapability" }
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
+        service_bay_capability_id: { type: string, format: uuid }
+        service_bay_id: { type: string, format: uuid }
+        bay_capability: { $ref: "#/components/schemas/BayCapability" }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
     CreateDealershipUserRequest:
       type: object
-      required: [dealershipId, email, role]
+      required: [dealership_id, email, role]
       properties:
-        dealershipId: { type: string, format: uuid }
+        dealership_id: { type: string, format: uuid }
         email: { type: string, format: email, example: user@example.com }
         role: { type: string, enum: [admin, dealer, staff, technician] }
     DealershipUser:
       type: object
-      required: [userId, authUserId, dealershipId, name, email, isActive, role, createdAt, updatedAt]
+      required: [user_id, auth_user_id, dealership_id, name, email, is_active, role, created_at, updated_at]
       properties:
-        userId: { type: string, format: uuid }
-        authUserId: { type: string, format: uuid }
-        dealershipId: { type: string, format: uuid }
+        user_id: { type: string, format: uuid }
+        auth_user_id: { type: string, format: uuid }
+        dealership_id: { type: string, format: uuid }
         name: { type: string }
         email: { type: string, format: email }
-        isActive: { type: boolean }
+        is_active: { type: boolean }
         role: { type: string, enum: [admin, dealer, staff, technician] }
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
     CreateDealershipAdminRequest:
       type: object
-      required: [dealershipId, name, email]
+      required: [dealership_id, name, email]
       properties:
-        dealershipId: { type: string, format: uuid }
+        dealership_id: { type: string, format: uuid }
         name: { type: string, minLength: 1 }
         phone: { type: string, nullable: true, example: "+84901234567" }
         email: { type: string, format: email, example: jane@example.com }
     AuthUser:
       type: object
-      required: [userId, email, fullName, status, role]
+      required: [user_id, email, full_name, status, role]
       properties:
-        userId: { type: string, format: uuid }
+        user_id: { type: string, format: uuid }
         email: { type: string, format: email }
-        fullName: { type: string }
+        full_name: { type: string }
         status: { type: string }
         role: { type: string }
     DealershipAdmin:
       type: object
-      required: [userId, authUserId, dealershipId, name, isActive, role, createdAt, updatedAt]
+      required: [user_id, auth_user_id, dealership_id, name, is_active, role, created_at, updated_at]
       properties:
-        userId: { type: string, format: uuid }
-        authUserId: { type: string, format: uuid }
-        dealershipId: { type: string, format: uuid }
+        user_id: { type: string, format: uuid }
+        auth_user_id: { type: string, format: uuid }
+        dealership_id: { type: string, format: uuid }
         name: { type: string }
         phone: { type: string, nullable: true }
         email: { type: string, format: email, nullable: true }
-        isActive: { type: boolean }
+        is_active: { type: boolean }
         role: { type: string, enum: [admin] }
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
     CreateDealershipRequest:
       type: object
       required: [name, code, address, timezone]
@@ -1388,54 +1462,54 @@ components:
         timezone: { type: string, minLength: 1, example: Asia/Ho_Chi_Minh }
     Dealership:
       type: object
-      required: [dealershipId, name, code, address, timezone, isActive, createdAt, updatedAt]
+      required: [dealership_id, name, code, address, timezone, is_active, created_at, updated_at]
       properties:
-        dealershipId: { type: string, format: uuid }
+        dealership_id: { type: string, format: uuid }
         name: { type: string }
         code: { type: string }
         address: { type: string }
         timezone: { type: string }
-        isActive: { type: boolean }
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
+        is_active: { type: boolean }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
     DealershipOperationTime:
       type: object
       required:
-        - operationTimeId
-        - dealershipId
-        - dayOfWeek
-        - opensAt
-        - closesAt
-        - createdAt
-        - updatedAt
+        - operation_time_id
+        - dealership_id
+        - day_of_week
+        - opens_at
+        - closes_at
+        - created_at
+        - updated_at
       properties:
-        operationTimeId: { type: string, format: uuid }
-        dealershipId: { type: string, format: uuid }
-        dayOfWeek: { type: integer, minimum: 1, maximum: 7 }
-        opensAt: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
-        closesAt: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
+        operation_time_id: { type: string, format: uuid }
+        dealership_id: { type: string, format: uuid }
+        day_of_week: { type: integer, minimum: 1, maximum: 7 }
+        opens_at: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
+        closes_at: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
     CreateDealershipOperationTimeRequest:
       type: object
-      required: [dayOfWeek, opensAt, closesAt]
+      required: [day_of_week, opens_at, closes_at]
       properties:
-        dayOfWeek: { type: integer, minimum: 1, maximum: 7 }
-        opensAt: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
-        closesAt: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
+        day_of_week: { type: integer, minimum: 1, maximum: 7 }
+        opens_at: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
+        closes_at: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
     UpdateDealershipOperationTimeRequest:
       type: object
       properties:
-        dayOfWeek: { type: integer, minimum: 1, maximum: 7 }
-        opensAt: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
-        closesAt: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
+        day_of_week: { type: integer, minimum: 1, maximum: 7 }
+        opens_at: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
+        closes_at: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
     ErrorDetail:
       type: object
-      required: [entityType, entityId, errorSlug, message]
+      required: [entity_type, entity_id, error_slug, message]
       properties:
-        entityType: { type: string }
-        entityId: { type: string }
-        errorSlug: { type: string }
+        entity_type: { type: string }
+        entity_id: { type: string }
+        error_slug: { type: string }
         message: { type: string }
     ErrorResponse:
       type: object
@@ -1608,6 +1682,11 @@ components:
     TechnicianTimeOffListed:
       description: Technician time off ordered by start time
       content: { application/json: { schema: { $ref: "#/components/schemas/TechnicianTimeOffPage" } } }
+    TechnicianSchedulesListed:
+      description: Active dealership technician schedules for one local calendar date
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/TechnicianScheduleResponse" }
     ServiceTypeCreated:
       description: Service type created
       content:

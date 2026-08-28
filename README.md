@@ -58,7 +58,10 @@ duplicating rows. It creates 80 auth accounts, from `abc1@email.com` through
 `abc80@email.com`; their default development password is `Abc@6789`. Set
 `SEED_PASSWORD` to use a different password before the
 first seed run. The scheduler login-capable employees use auth accounts
-`abc6@email.com` through `abc30@email.com`.
+`abc6@email.com` through `abc80@email.com`. Accounts `abc6@email.com`
+through `abc30@email.com` are dealership administrators, staff, and dealers;
+`abc31@email.com` through `abc80@email.com` are technicians. Every seeded
+technician has the scheduler `technician` role and can log in.
 
 `/health` returns `204 No Content`. Interactive auth API documentation is
 available at [http://localhost:9999/auth/docs/](http://localhost:9999/auth/docs/).

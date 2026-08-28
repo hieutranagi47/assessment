@@ -17,8 +17,9 @@ var (
 	ErrTechnicianEmailInvalid   = errors.New("technician email is invalid")
 )
 
-// Technician is a non-login dealership employee. Its user identity is
-// deliberately immutable: a technician can be edited but never repointed.
+// Technician is a dealership employee with technical qualifications. Its user
+// identity is deliberately immutable: a technician can be edited but never
+// repointed.
 type Technician struct {
 	id, userID           uuid.UUID
 	name, phone          string

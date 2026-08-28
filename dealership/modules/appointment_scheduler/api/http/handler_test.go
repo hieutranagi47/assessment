@@ -41,11 +41,11 @@ func TestServiceBayHTTPAuthorizationOwnershipValidationAndConflict(t *testing.T)
 		wantStatus int
 		wantSlug   string
 	}{
-		{name: "admin may create", auth: authStub{identity: client.Identity{UserID: actor}}, repository: &serviceBayHTTPRepositoryStub{repositoryStub: repositoryStub{isActiveSchedulerAdmin: true}}, method: stdhttp.MethodPost, path: "/v1/dealerships/" + dealershipID.String() + "/service-bays", body: `{"code":" B-01 ","name":" Main bay "}`, wantStatus: stdhttp.StatusCreated},
-		{name: "non admin is forbidden", auth: authStub{identity: client.Identity{UserID: actor}}, repository: &serviceBayHTTPRepositoryStub{}, method: stdhttp.MethodPost, path: "/v1/dealerships/" + dealershipID.String() + "/service-bays", body: `{"code":"B-01","name":"Main bay"}`, wantStatus: stdhttp.StatusForbidden, wantSlug: "service_bay_access_forbidden"},
-		{name: "blank code is invalid", auth: authStub{identity: client.Identity{UserID: actor}}, repository: &serviceBayHTTPRepositoryStub{repositoryStub: repositoryStub{isActiveSchedulerAdmin: true}}, method: stdhttp.MethodPost, path: "/v1/dealerships/" + dealershipID.String() + "/service-bays", body: `{"code":" ","name":"Main bay"}`, wantStatus: stdhttp.StatusBadRequest, wantSlug: "invalid_service_bay"},
-		{name: "outside dealership is scoped not found", auth: authStub{identity: client.Identity{UserID: actor}}, repository: &serviceBayHTTPRepositoryStub{repositoryStub: repositoryStub{isActiveSchedulerAdmin: true}, serviceBay: serviceBay}, method: stdhttp.MethodGet, path: "/v1/dealerships/" + otherDealershipID.String() + "/service-bays/" + serviceBay.ID().String(), wantStatus: stdhttp.StatusNotFound, wantSlug: "service_bay_not_found"},
-		{name: "assigned bay delete conflicts", auth: authStub{identity: client.Identity{UserID: actor}}, repository: &serviceBayHTTPRepositoryStub{repositoryStub: repositoryStub{isActiveSchedulerAdmin: true}, deleteErr: app.ErrServiceBayInUse}, method: stdhttp.MethodDelete, path: "/v1/dealerships/" + dealershipID.String() + "/service-bays/" + serviceBay.ID().String(), wantStatus: stdhttp.StatusConflict, wantSlug: "service_bay_in_use"},
+		{name: "admin may create", auth: authStub{identity: client.Identity{UserID: actor}}, repository: &serviceBayHTTPRepositoryStub{repositoryStub: repositoryStub{isActiveSchedulerAdmin: true}}, method: stdhttp.MethodPost, path: "/appointment-scheduler/v1/dealerships/" + dealershipID.String() + "/service-bays", body: `{"code":" B-01 ","name":" Main bay "}`, wantStatus: stdhttp.StatusCreated},
+		{name: "non admin is forbidden", auth: authStub{identity: client.Identity{UserID: actor}}, repository: &serviceBayHTTPRepositoryStub{}, method: stdhttp.MethodPost, path: "/appointment-scheduler/v1/dealerships/" + dealershipID.String() + "/service-bays", body: `{"code":"B-01","name":"Main bay"}`, wantStatus: stdhttp.StatusForbidden, wantSlug: "service_bay_access_forbidden"},
+		{name: "blank code is invalid", auth: authStub{identity: client.Identity{UserID: actor}}, repository: &serviceBayHTTPRepositoryStub{repositoryStub: repositoryStub{isActiveSchedulerAdmin: true}}, method: stdhttp.MethodPost, path: "/appointment-scheduler/v1/dealerships/" + dealershipID.String() + "/service-bays", body: `{"code":" ","name":"Main bay"}`, wantStatus: stdhttp.StatusBadRequest, wantSlug: "invalid_service_bay"},
+		{name: "outside dealership is scoped not found", auth: authStub{identity: client.Identity{UserID: actor}}, repository: &serviceBayHTTPRepositoryStub{repositoryStub: repositoryStub{isActiveSchedulerAdmin: true}, serviceBay: serviceBay}, method: stdhttp.MethodGet, path: "/appointment-scheduler/v1/dealerships/" + otherDealershipID.String() + "/service-bays/" + serviceBay.ID().String(), wantStatus: stdhttp.StatusNotFound, wantSlug: "service_bay_not_found"},
+		{name: "assigned bay delete conflicts", auth: authStub{identity: client.Identity{UserID: actor}}, repository: &serviceBayHTTPRepositoryStub{repositoryStub: repositoryStub{isActiveSchedulerAdmin: true}, deleteErr: app.ErrServiceBayInUse}, method: stdhttp.MethodDelete, path: "/appointment-scheduler/v1/dealerships/" + dealershipID.String() + "/service-bays/" + serviceBay.ID().String(), wantStatus: stdhttp.StatusConflict, wantSlug: "service_bay_in_use"},
 	}
 
 	for _, test := range tests {
@@ -161,7 +161,7 @@ func TestVehicleCreateHTTPAuthorizationAndNormalization(t *testing.T) {
 			service := app.NewService(test.repository, auth)
 			router := common.NewEcho(common.EchoConfig{})
 			Register(context.Background(), router, NewHandler(service, auth))
-			request := httptest.NewRequest(stdhttp.MethodPost, "/v1/customers/"+customerID.String()+"/vehicles", bytes.NewBufferString(`{"vin":" 1hgcm82633a004352 ","make":"Toyota","model":"Camry"}`))
+			request := httptest.NewRequest(stdhttp.MethodPost, "/appointment-scheduler/v1/customers/"+customerID.String()+"/vehicles", bytes.NewBufferString(`{"vin":" 1hgcm82633a004352 ","make":"Toyota","model":"Camry"}`))
 			request.Header.Set("Authorization", "Bearer access-token")
 			request.Header.Set("Content-Type", "application/json")
 			recorder := httptest.NewRecorder()
@@ -223,18 +223,18 @@ func TestDealershipOperationTimeHTTPAuthorizationAndValidation(t *testing.T) {
 		wantStatus int
 		wantSlug   string
 	}{
-		{"admin may create", `{"dayOfWeek":1,"opensAt":"08:00","closesAt":"12:00"}`, authStub{identity: client.Identity{UserID: actor}}, &operationTimeHTTPRepositoryStub{repositoryStub: repositoryStub{isActiveSchedulerAdmin: true}, active: true}, stdhttp.StatusCreated, ""},
-		{"staff is denied", `{"dayOfWeek":1,"opensAt":"08:00","closesAt":"12:00"}`, authStub{identity: client.Identity{UserID: actor}}, &operationTimeHTTPRepositoryStub{active: true}, stdhttp.StatusForbidden, "operation_time_access_forbidden"},
-		{"unauthenticated is denied", `{"dayOfWeek":1,"opensAt":"08:00","closesAt":"12:00"}`, authStub{authErr: errors.New("bad token")}, &operationTimeHTTPRepositoryStub{active: true}, stdhttp.StatusUnauthorized, "authentication_required"},
-		{"invalid clock is rejected", `{"dayOfWeek":1,"opensAt":"8:00","closesAt":"12:00"}`, authStub{identity: client.Identity{UserID: actor}}, &operationTimeHTTPRepositoryStub{repositoryStub: repositoryStub{isActiveSchedulerAdmin: true}, active: true}, stdhttp.StatusBadRequest, "invalid_operation_time"},
-		{"equal clock values are rejected", `{"dayOfWeek":1,"opensAt":"08:00","closesAt":"08:00"}`, authStub{identity: client.Identity{UserID: actor}}, &operationTimeHTTPRepositoryStub{repositoryStub: repositoryStub{isActiveSchedulerAdmin: true}, active: true}, 422, "invalid_operation_time"},
+		{"admin may create", `{"day_of_week":1,"opens_at":"08:00","closes_at":"12:00"}`, authStub{identity: client.Identity{UserID: actor}}, &operationTimeHTTPRepositoryStub{repositoryStub: repositoryStub{isActiveSchedulerAdmin: true}, active: true}, stdhttp.StatusCreated, ""},
+		{"staff is denied", `{"day_of_week":1,"opens_at":"08:00","closes_at":"12:00"}`, authStub{identity: client.Identity{UserID: actor}}, &operationTimeHTTPRepositoryStub{active: true}, stdhttp.StatusForbidden, "operation_time_access_forbidden"},
+		{"unauthenticated is denied", `{"day_of_week":1,"opens_at":"08:00","closes_at":"12:00"}`, authStub{authErr: errors.New("bad token")}, &operationTimeHTTPRepositoryStub{active: true}, stdhttp.StatusUnauthorized, "authentication_required"},
+		{"invalid clock is rejected", `{"day_of_week":1,"opens_at":"8:00","closes_at":"12:00"}`, authStub{identity: client.Identity{UserID: actor}}, &operationTimeHTTPRepositoryStub{repositoryStub: repositoryStub{isActiveSchedulerAdmin: true}, active: true}, stdhttp.StatusBadRequest, "invalid_operation_time"},
+		{"equal clock values are rejected", `{"day_of_week":1,"opens_at":"08:00","closes_at":"08:00"}`, authStub{identity: client.Identity{UserID: actor}}, &operationTimeHTTPRepositoryStub{repositoryStub: repositoryStub{isActiveSchedulerAdmin: true}, active: true}, 422, "invalid_operation_time"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			service := app.NewService(test.repository, test.auth)
 			router := common.NewEcho(common.EchoConfig{})
 			Register(context.Background(), router, NewHandler(service, test.auth))
-			request := httptest.NewRequest(stdhttp.MethodPost, "/v1/dealerships/"+dealershipID.String()+"/operation-times", bytes.NewBufferString(test.body))
+			request := httptest.NewRequest(stdhttp.MethodPost, "/appointment-scheduler/v1/dealerships/"+dealershipID.String()+"/operation-times", bytes.NewBufferString(test.body))
 			request.Header.Set("Authorization", "Bearer access-token")
 			request.Header.Set("Content-Type", "application/json")
 			recorder := httptest.NewRecorder()
@@ -332,7 +332,7 @@ func TestCreateDealershipHTTPErrorMapping(t *testing.T) {
 			service := app.NewService(test.repository, test.auth)
 			router := common.NewEcho(common.EchoConfig{})
 			Register(context.Background(), router, NewHandler(service, test.auth))
-			request := httptest.NewRequest(stdhttp.MethodPost, "/dealerships", bytes.NewBufferString(test.body))
+			request := httptest.NewRequest(stdhttp.MethodPost, "/appointment-scheduler/v1/dealerships", bytes.NewBufferString(test.body))
 			request.Header.Set("Authorization", "Bearer access-token")
 			request.Header.Set("Content-Type", "application/json")
 			recorder := httptest.NewRecorder()
@@ -353,8 +353,8 @@ func TestCreateDealershipAdminResponseSerialization(t *testing.T) {
 	service := app.NewService(repository, auth)
 	router := common.NewEcho(common.EchoConfig{})
 	Register(context.Background(), router, NewHandler(service, auth))
-	body := `{"dealershipId":"` + dealershipID.String() + `","name":" Jane Doe ","phone":" +84901234567 ","email":" Jane@Example.com "}`
-	request := httptest.NewRequest(stdhttp.MethodPost, "/dealership-users/admins", bytes.NewBufferString(body))
+	body := `{"dealership_id":"` + dealershipID.String() + `","name":" Jane Doe ","phone":" +84901234567 ","email":" Jane@Example.com "}`
+	request := httptest.NewRequest(stdhttp.MethodPost, "/appointment-scheduler/v1/dealership-users/admins", bytes.NewBufferString(body))
 	request.Header.Set("Authorization", "Bearer access-token")
 	request.Header.Set("Content-Type", "application/json")
 	recorder := httptest.NewRecorder()
@@ -363,16 +363,16 @@ func TestCreateDealershipAdminResponseSerialization(t *testing.T) {
 	require.Equal(t, stdhttp.StatusCreated, recorder.Code, recorder.Body.String())
 	var response map[string]any
 	require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &response))
-	require.Equal(t, target.String(), response["authUserId"])
-	require.Equal(t, dealershipID.String(), response["dealershipId"])
+	require.Equal(t, target.String(), response["auth_user_id"])
+	require.Equal(t, dealershipID.String(), response["dealership_id"])
 	require.Equal(t, "Jane Doe", response["name"])
 	require.Equal(t, "+84901234567", response["phone"])
 	require.Equal(t, "jane@example.com", response["email"])
-	require.Equal(t, true, response["isActive"])
+	require.Equal(t, true, response["is_active"])
 	require.Equal(t, "admin", response["role"])
-	require.NotEmpty(t, response["userId"])
-	require.NotEmpty(t, response["createdAt"])
-	require.NotEmpty(t, response["updatedAt"])
+	require.NotEmpty(t, response["user_id"])
+	require.NotEmpty(t, response["created_at"])
+	require.NotEmpty(t, response["updated_at"])
 	require.NotEqual(t, uuid.Nil, repository.created.ID())
 }
 
@@ -381,7 +381,7 @@ func TestCreateDealershipUserHTTPErrorMapping(t *testing.T) {
 	actor := uuid.New()
 	target := uuid.New()
 	dealershipID := uuid.New()
-	body := `{"dealershipId":"` + dealershipID.String() + `","email":"target@example.com","role":"staff"}`
+	body := `{"dealership_id":"` + dealershipID.String() + `","email":"target@example.com","role":"staff"}`
 	tests := []struct {
 		name       string
 		auth       dealershipUserAuthStub
@@ -391,8 +391,8 @@ func TestCreateDealershipUserHTTPErrorMapping(t *testing.T) {
 		wantSlug   string
 	}{
 		{name: "created", auth: dealershipUserAuthStub{actor: actor, target: target}, body: body, wantStatus: stdhttp.StatusCreated},
-		{name: "technician role is created", auth: dealershipUserAuthStub{actor: actor, target: target}, body: `{"dealershipId":"` + dealershipID.String() + `","email":"target@example.com","role":"technician"}`, wantStatus: stdhttp.StatusCreated},
-		{name: "invalid role", auth: dealershipUserAuthStub{actor: actor, target: target}, body: `{"dealershipId":"` + dealershipID.String() + `","email":"target@example.com","role":"owner"}`, wantStatus: stdhttp.StatusBadRequest, wantSlug: "invalid_dealership_user"},
+		{name: "technician role is created", auth: dealershipUserAuthStub{actor: actor, target: target}, body: `{"dealership_id":"` + dealershipID.String() + `","email":"target@example.com","role":"technician"}`, wantStatus: stdhttp.StatusCreated},
+		{name: "invalid role", auth: dealershipUserAuthStub{actor: actor, target: target}, body: `{"dealership_id":"` + dealershipID.String() + `","email":"target@example.com","role":"owner"}`, wantStatus: stdhttp.StatusBadRequest, wantSlug: "invalid_dealership_user"},
 		{name: "forbidden", auth: dealershipUserAuthStub{actor: actor, target: target, role: "user"}, body: body, wantStatus: stdhttp.StatusForbidden, wantSlug: "dealership_user_create_forbidden"},
 		{name: "not found", auth: dealershipUserAuthStub{actor: actor, target: target}, repository: dealershipUserHTTPRepositoryStub{err: app.ErrDealershipNotFound}, body: body, wantStatus: stdhttp.StatusNotFound, wantSlug: "dealership_not_found"},
 		{name: "conflict", auth: dealershipUserAuthStub{actor: actor, target: target}, repository: dealershipUserHTTPRepositoryStub{err: app.ErrAuthUserAlreadyAssigned}, body: body, wantStatus: stdhttp.StatusConflict, wantSlug: "auth_user_already_assigned"},
@@ -402,7 +402,7 @@ func TestCreateDealershipUserHTTPErrorMapping(t *testing.T) {
 			service := app.NewService(test.repository, test.auth)
 			router := common.NewEcho(common.EchoConfig{})
 			Register(context.Background(), router, NewHandler(service, test.auth))
-			request := httptest.NewRequest(stdhttp.MethodPost, "/dealership-users", bytes.NewBufferString(test.body))
+			request := httptest.NewRequest(stdhttp.MethodPost, "/appointment-scheduler/v1/dealership-users", bytes.NewBufferString(test.body))
 			request.Header.Set("Authorization", "Bearer access-token")
 			request.Header.Set("Content-Type", "application/json")
 			recorder := httptest.NewRecorder()
@@ -423,7 +423,7 @@ func TestSearchAuthUserByEmailResponseSerialization(t *testing.T) {
 	service := app.NewService(repositoryStub{}, auth)
 	router := common.NewEcho(common.EchoConfig{})
 	Register(context.Background(), router, NewHandler(service, auth))
-	request := httptest.NewRequest(stdhttp.MethodGet, "/dealership-users/search?email=jane@example.com", nil)
+	request := httptest.NewRequest(stdhttp.MethodGet, "/appointment-scheduler/v1/dealership-users/search?email=jane@example.com", nil)
 	request.Header.Set("Authorization", "Bearer access-token")
 	recorder := httptest.NewRecorder()
 	router.ServeHTTP(recorder, request)
@@ -431,9 +431,9 @@ func TestSearchAuthUserByEmailResponseSerialization(t *testing.T) {
 	require.Equal(t, stdhttp.StatusOK, recorder.Code, recorder.Body.String())
 	var response map[string]any
 	require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &response))
-	require.Equal(t, target.String(), response["userId"])
+	require.Equal(t, target.String(), response["user_id"])
 	require.Equal(t, "jane@example.com", response["email"])
-	require.Equal(t, "Jane Doe", response["fullName"])
+	require.Equal(t, "Jane Doe", response["full_name"])
 	require.Equal(t, "active", response["status"])
 	require.Equal(t, "user", response["role"])
 }
@@ -460,7 +460,7 @@ func TestSearchAuthUserByEmailAuthorization(t *testing.T) {
 			service := app.NewService(test.repository, test.auth)
 			router := common.NewEcho(common.EchoConfig{})
 			Register(context.Background(), router, NewHandler(service, test.auth))
-			request := httptest.NewRequest(stdhttp.MethodGet, "/dealership-users/search?email=jane@example.com", nil)
+			request := httptest.NewRequest(stdhttp.MethodGet, "/appointment-scheduler/v1/dealership-users/search?email=jane@example.com", nil)
 			request.Header.Set("Authorization", "Bearer access-token")
 			recorder := httptest.NewRecorder()
 			router.ServeHTTP(recorder, request)

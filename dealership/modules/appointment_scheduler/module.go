@@ -41,6 +41,7 @@ func (m *Module) RegisterContracts(_ context.Context, c *contracts.Contracts) er
 	}
 	repository := db.NewDealershipRepository(m.database)
 	service := app.NewService(repository, c.Auth)
-	m.handler = appointmenthttp.NewHandler(service, c.Auth)
+	scheduleQuery := app.NewTechnicianScheduleQuery(repository)
+	m.handler = appointmenthttp.NewHandler(service, c.Auth, scheduleQuery)
 	return nil
 }

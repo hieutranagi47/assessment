@@ -267,6 +267,14 @@ CREATE TABLE appointment_scheduler.technician_time_off (
     ) WHERE (deleted_at IS NULL)
 );
 
+CREATE INDEX technician_shifts_active_technician_day_starts_at_idx
+  ON appointment_scheduler.technician_shifts (technician_id, day_of_week, starts_at)
+  WHERE deleted_at IS NULL;
+
+CREATE INDEX technician_time_off_active_technician_starts_at_idx
+  ON appointment_scheduler.technician_time_off (technician_id, starts_at)
+  WHERE deleted_at IS NULL;
+
 CREATE TABLE appointment_scheduler.appointments (
   appointment_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   reference_code VARCHAR(50) NOT NULL UNIQUE,
@@ -373,72 +381,6 @@ CREATE TABLE appointment_scheduler.appointment_resource_reservations (
 
 CREATE INDEX appointment_resource_reservations_appointment_id_idx
   ON appointment_scheduler.appointment_resource_reservations (appointment_id, assigned_at);
-
-CREATE UNIQUE INDEX technicians_dealership_phone_unique
-  ON appointment_scheduler.users (dealership_id, phone)
-  WHERE auth_user_id = '00000000-0000-0000-0000-000000000000'
-    AND phone IS NOT NULL
-    AND deleted_at IS NULL;
-
-CREATE UNIQUE INDEX technicians_dealership_email_unique
-  ON appointment_scheduler.users (dealership_id, lower(email))
-  WHERE auth_user_id = '00000000-0000-0000-0000-000000000000'
-    AND email IS NOT NULL
-    AND deleted_at IS NULL;
-
-CREATE OR REPLACE FUNCTION appointment_scheduler.enforce_technician_row_integrity()
-RETURNS trigger LANGUAGE plpgsql AS $$
-BEGIN
-  IF EXISTS (
-    SELECT 1 FROM appointment_scheduler.users
-    WHERE user_id = NEW.user_id
-      AND auth_user_id <> '00000000-0000-0000-0000-000000000000'
-  ) THEN
-    RAISE EXCEPTION 'technician users cannot have a login identity';
-  END IF;
-  IF EXISTS (SELECT 1 FROM appointment_scheduler.user_roles WHERE user_id = NEW.user_id) THEN
-    RAISE EXCEPTION 'technician users cannot have roles';
-  END IF;
-  RETURN NEW;
-END;
-$$;
-
-CREATE OR REPLACE FUNCTION appointment_scheduler.enforce_user_role_integrity()
-RETURNS trigger LANGUAGE plpgsql AS $$
-BEGIN
-  IF EXISTS (
-    SELECT 1 FROM appointment_scheduler.technicians
-    WHERE user_id = NEW.user_id AND deleted_at IS NULL
-  ) THEN
-    RAISE EXCEPTION 'technician users cannot have roles';
-  END IF;
-  RETURN NEW;
-END;
-$$;
-
-CREATE OR REPLACE FUNCTION appointment_scheduler.enforce_user_login_integrity()
-RETURNS trigger LANGUAGE plpgsql AS $$
-BEGIN
-  IF NEW.auth_user_id <> '00000000-0000-0000-0000-000000000000'
-     AND EXISTS (
-       SELECT 1 FROM appointment_scheduler.technicians
-       WHERE user_id = NEW.user_id AND deleted_at IS NULL
-     ) THEN
-    RAISE EXCEPTION 'technician users cannot have a login identity';
-  END IF;
-  RETURN NEW;
-END;
-$$;
-
-CREATE TRIGGER technicians_enforce_user_integrity
-  BEFORE INSERT OR UPDATE OF user_id ON appointment_scheduler.technicians
-  FOR EACH ROW EXECUTE FUNCTION appointment_scheduler.enforce_technician_row_integrity();
-CREATE TRIGGER user_roles_enforce_technician_integrity
-  BEFORE INSERT OR UPDATE OF user_id ON appointment_scheduler.user_roles
-  FOR EACH ROW EXECUTE FUNCTION appointment_scheduler.enforce_user_role_integrity();
-CREATE TRIGGER users_enforce_technician_integrity
-  BEFORE UPDATE OF auth_user_id ON appointment_scheduler.users
-  FOR EACH ROW EXECUTE FUNCTION appointment_scheduler.enforce_user_login_integrity();
 
 CREATE OR REPLACE FUNCTION appointment_scheduler.reject_appointment_during_time_off()
 RETURNS trigger LANGUAGE plpgsql AS $$

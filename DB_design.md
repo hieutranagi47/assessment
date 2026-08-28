@@ -75,6 +75,7 @@ Create these fixed system records in the initial migration:
 | `admin` | Full dealership configuration; creates users/technicians; manages all resources and schedules. |
 | `staff` | Manages technician shifts, time off, and permitted technician details. |
 | `dealer` | Creates customers and vehicles; searches availability; creates and manages appointments. |
+| `technician` | Manages customers and vehicles for their dealership. |
 
 ### `user_roles`
 
@@ -196,7 +197,7 @@ Constraint: `UNIQUE (service_bay_id, capability_code)`.
 
 ### `technicians`
 
-A technician is a staff member with technical qualifications. Their name and contact information belong to `users`.
+A technician is a staff member with technical qualifications. Their name and contact information belong to `users`, and their dealership user must have the `technician` role in `user_roles`. Technicians are login-capable when `users.auth_user_id` references an active account in `auth.users`.
 
 | Column | Type | Rules |
 |---|---|---|

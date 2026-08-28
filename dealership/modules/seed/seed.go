@@ -21,8 +21,6 @@ import (
 
 const defaultPassword = "Abc@6789"
 
-var zeroUUID = uuid.Nil
-
 type fixtureCrypto struct {
 	block     cipher.AEAD
 	lookupKey []byte
@@ -237,19 +235,18 @@ func seedDealership(ctx context.Context, tx pgx.Tx, d int, spec struct{ code, na
 }
 func seedEmployee(ctx context.Context, tx pgx.Tx, d, e int, dealershipID uuid.UUID) error {
 	uid := fixtureID("scheduler-user", fmt.Sprint(d), fmt.Sprint(e))
-	authID := zeroUUID
-	role := ""
+	role := "technician"
+	authIndex := 30 + d*10 + (e - 5)
 	if e < 5 {
-		authID = fixtureID("auth-user", fmt.Sprint(5+d*5+e))
+		authIndex = 5 + d*5 + e
 		role = []string{"admin", "staff", "staff", "dealer", "dealer"}[e]
 	}
-	if err := exec(ctx, tx, `INSERT INTO appointment_scheduler.users (user_id,auth_user_id,name,phone,email,dealership_id,is_active,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,true,$7,$7) ON CONFLICT (user_id) DO NOTHING`, uid, authID, fmt.Sprintf("%s employee %02d", dealershipSpecs[d].code, e+1), fmt.Sprintf("+1555%02d%07d", d, e+1), fmt.Sprintf("employee.%d.%d@example.test", d+1, e+1), dealershipID, seedTime); err != nil {
+	authID := fixtureID("auth-user", fmt.Sprint(authIndex))
+	if err := exec(ctx, tx, `INSERT INTO appointment_scheduler.users (user_id,auth_user_id,name,phone,email,dealership_id,is_active,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,true,$7,$7) ON CONFLICT (user_id) DO UPDATE SET auth_user_id = EXCLUDED.auth_user_id, name = EXCLUDED.name, phone = EXCLUDED.phone, email = EXCLUDED.email, dealership_id = EXCLUDED.dealership_id, is_active = EXCLUDED.is_active, deleted_at = NULL, updated_at = EXCLUDED.updated_at`, uid, authID, fmt.Sprintf("%s employee %02d", dealershipSpecs[d].code, e+1), fmt.Sprintf("+1555%02d%07d", d, e+1), fmt.Sprintf("employee.%d.%d@example.test", d+1, e+1), dealershipID, seedTime); err != nil {
 		return err
 	}
-	if role != "" {
-		if err := exec(ctx, tx, `INSERT INTO appointment_scheduler.user_roles (user_role_id,user_id,role_id,created_at) VALUES ($1,$2,(SELECT role_id FROM appointment_scheduler.roles WHERE code=$3),$4) ON CONFLICT (user_role_id) DO NOTHING`, fixtureID("user-role", fmt.Sprint(d), fmt.Sprint(e)), uid, role, seedTime); err != nil {
-			return err
-		}
+	if err := exec(ctx, tx, `INSERT INTO appointment_scheduler.user_roles (user_role_id,user_id,role_id,created_at) VALUES ($1,$2,(SELECT role_id FROM appointment_scheduler.roles WHERE code=$3),$4) ON CONFLICT (user_role_id) DO UPDATE SET role_id = EXCLUDED.role_id, deleted_at = NULL`, fixtureID("user-role", fmt.Sprint(d), fmt.Sprint(e)), uid, role, seedTime); err != nil {
+		return err
 	}
 	if e < 5 {
 		return nil

@@ -21,20 +21,30 @@ import (
 type identityKey struct{}
 
 type Handler struct {
-	service *app.Service
-	auth    client.Authenticator
+	service   *app.Service
+	auth      client.Authenticator
+	schedules TechnicianScheduleLister
 }
 
-func NewHandler(service *app.Service, auth client.Authenticator) *Handler {
+type TechnicianScheduleLister interface {
+	List(context.Context, app.ListTechnicianSchedulesInput) (app.TechnicianScheduleResult, error)
+}
+
+func NewHandler(service *app.Service, auth client.Authenticator, schedules ...TechnicianScheduleLister) *Handler {
 	if service == nil || auth == nil {
 		panic("dealership HTTP dependencies are required")
 	}
-	return &Handler{service: service, auth: auth}
+	handler := &Handler{service: service, auth: auth}
+	if len(schedules) > 0 {
+		handler.schedules = schedules[0]
+	}
+	return handler
 }
 
 func Register(_ context.Context, router common.EchoRouter, handler *Handler) error {
-	RegisterHandlersWithOptions(router, NewStrictHandler(handler, nil), RegisterHandlersOptions{
+	options := RegisterHandlersOptions{
 		OperationMiddlewares: map[string][]echo.MiddlewareFunc{
+			"listTechnicianSchedules":                {handler.requireIdentity},
 			"scheduleAppointment":                    {handler.requireIdentity},
 			"checkInAppointment":                     {handler.requireIdentity},
 			"startAppointment":                       {handler.requireIdentity},
@@ -98,8 +108,103 @@ func Register(_ context.Context, router common.EchoRouter, handler *Handler) err
 			"updateTechnicianTimeOff":                {handler.requireIdentity},
 			"deleteTechnicianTimeOff":                {handler.requireIdentity},
 		},
-	})
+	}
+	strictHandler := NewStrictHandler(handler, nil)
+	options.BaseURL = "/appointment-scheduler/v1"
+	RegisterHandlersWithOptions(router, strictHandler, options)
+	RegisterDocs(router)
 	return nil
+}
+
+func (h *Handler) ListTechnicianSchedules(ctx context.Context, request ListTechnicianSchedulesRequestObject) (ListTechnicianSchedulesResponseObject, error) {
+	if h.schedules == nil {
+		return listTechnicianSchedulesErrorResponse(common.Error{PublicError: "internal server error", ErrorSlug: "internal_server_error"})
+	}
+	var technicianID *uuid.UUID
+	if request.Params.TechnicianId != nil {
+		parsed, err := uuid.Parse(*request.Params.TechnicianId)
+		if err != nil {
+			return listTechnicianSchedulesErrorResponse(common.NewInvalidInputError("invalid_technician_id", "technician_id must be a valid UUID"))
+		}
+		technicianID = &parsed
+	}
+	includes := make([]string, 0)
+	if request.Params.Include != nil {
+		includes = make([]string, 0, len(*request.Params.Include))
+		for _, include := range *request.Params.Include {
+			includes = append(includes, string(include))
+		}
+	}
+	result, err := h.schedules.List(ctx, app.ListTechnicianSchedulesInput{
+		ActorUserID:  identityFrom(ctx),
+		DealershipID: uuid.UUID(request.DealershipId),
+		Date:         request.Params.Date.String(),
+		TechnicianID: technicianID,
+		Include:      includes,
+	})
+	if err != nil {
+		return listTechnicianSchedulesErrorResponse(err)
+	}
+	return ListTechnicianSchedules200JSONResponse{TechnicianSchedulesListedJSONResponse: TechnicianSchedulesListedJSONResponse(technicianScheduleResponse(result))}, nil
+}
+
+func technicianScheduleResponse(result app.TechnicianScheduleResult) TechnicianScheduleResponse {
+	technicians := make([]TechnicianSchedule, 0, len(result.Technicians))
+	for _, technician := range result.Technicians {
+		shifts := make([]TechnicianScheduleShift, 0, len(technician.Shifts))
+		for _, shift := range technician.Shifts {
+			shifts = append(shifts, TechnicianScheduleShift{StartsAt: shift.StartsAt.UTC(), EndsAt: shift.EndsAt.UTC()})
+		}
+		occupiedSlots := make([]TechnicianOccupiedSlot, 0, len(technician.OccupiedSlots))
+		for _, slot := range technician.OccupiedSlots {
+			occupiedSlots = append(occupiedSlots, technicianOccupiedSlotResponse(slot))
+		}
+		technicians = append(technicians, TechnicianSchedule{TechnicianId: openapi_types.UUID(technician.TechnicianID), UserId: openapi_types.UUID(technician.UserID), Name: technician.Name, Shifts: shifts, OccupiedSlots: occupiedSlots})
+	}
+	return TechnicianScheduleResponse{DealershipId: openapi_types.UUID(result.DealershipID), Timezone: result.Timezone, Date: openapi_types.Date{Time: result.Date}, PeriodStartsAt: result.PeriodStartsAt.UTC(), PeriodEndsAt: result.PeriodEndsAt.UTC(), Technicians: technicians}
+}
+
+func technicianOccupiedSlotResponse(slot app.TechnicianScheduleResultOccupiedSlot) TechnicianOccupiedSlot {
+	response := TechnicianOccupiedSlot{Kind: TechnicianOccupiedSlotKind(slot.Kind), StartsAt: slot.StartsAt.UTC(), EndsAt: slot.EndsAt.UTC()}
+	if slot.AppointmentID != nil {
+		value := openapi_types.UUID(*slot.AppointmentID)
+		response.AppointmentId = &value
+	}
+	if slot.ReferenceCode != nil {
+		response.ReferenceCode = slot.ReferenceCode
+	}
+	if slot.Status != nil {
+		value := TechnicianOccupiedSlotStatus(*slot.Status)
+		response.Status = &value
+	}
+	if slot.ServiceTypeName != nil {
+		response.ServiceTypeName = slot.ServiceTypeName
+	}
+	if slot.ServiceBayID != nil {
+		value := openapi_types.UUID(*slot.ServiceBayID)
+		response.ServiceBayId = &value
+	}
+	if slot.ServiceBayCode != nil {
+		response.ServiceBayCode = slot.ServiceBayCode
+	}
+	return response
+}
+
+func listTechnicianSchedulesErrorResponse(err error) (ListTechnicianSchedulesResponseObject, error) {
+	structured := operationTimeProblem(err)
+	response := errorResponse(structured)
+	switch structured.HttpErrorCode {
+	case stdhttp.StatusBadRequest:
+		return ListTechnicianSchedules400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(response)}, nil
+	case stdhttp.StatusUnauthorized:
+		return ListTechnicianSchedules401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case stdhttp.StatusForbidden:
+		return ListTechnicianSchedules403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case stdhttp.StatusNotFound:
+		return ListTechnicianSchedules404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	default:
+		return ListTechnicianSchedules500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
 }
 
 func (h *Handler) ScheduleAppointment(ctx context.Context, request ScheduleAppointmentRequestObject) (ScheduleAppointmentResponseObject, error) {

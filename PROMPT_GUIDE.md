@@ -60,7 +60,7 @@ Identity and role model:
   - admin: all dealership configuration, create users/technicians, manage all resources.
   - staff: manage permitted technician information, shifts, and time off.
   - dealer: create/find customers and vehicles; search availability; create/manage appointments.
-- Technicians are users linked by technicians.user_id, with zero auth_user_id and no user_roles record; they cannot log in.
+- Technicians are users linked by technicians.user_id, with an active auth_user_id and the technician role in user_roles; they can log in.
 - Customer phone is required and unique. Email is nullable but case-insensitively unique when supplied. Normalize phone numbers to E.164 before storage.
 
 Appointments contain:
