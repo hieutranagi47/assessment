@@ -16,6 +16,33 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Defines values for AppointmentStatus.
+const (
+	Cancelled  AppointmentStatus = "cancelled"
+	CheckedIn  AppointmentStatus = "checked_in"
+	Completed  AppointmentStatus = "completed"
+	InProgress AppointmentStatus = "in_progress"
+	Requested  AppointmentStatus = "requested"
+)
+
+// Valid indicates whether the value is a known member of the AppointmentStatus enum.
+func (e AppointmentStatus) Valid() bool {
+	switch e {
+	case Cancelled:
+		return true
+	case CheckedIn:
+		return true
+	case Completed:
+		return true
+	case InProgress:
+		return true
+	case Requested:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for CreateDealershipUserRequestRole.
 const (
 	CreateDealershipUserRequestRoleAdmin  CreateDealershipUserRequestRole = "admin"
@@ -73,6 +100,34 @@ func (e DealershipUserRole) Valid() bool {
 	}
 }
 
+// Appointment defines model for Appointment.
+type Appointment struct {
+	ActualEndsAt           *time.Time          `json:"actualEndsAt,omitempty"`
+	AppointmentId          openapi_types.UUID  `json:"appointmentId"`
+	CreatedAt              time.Time           `json:"createdAt"`
+	CustomerId             *openapi_types.UUID `json:"customerId,omitempty"`
+	DealershipId           openapi_types.UUID  `json:"dealershipId"`
+	EndsAt                 time.Time           `json:"endsAt"`
+	Notes                  *string             `json:"notes,omitempty"`
+	PlannedDurationMinutes int                 `json:"plannedDurationMinutes"`
+	ReferenceCode          string              `json:"referenceCode"`
+	ServiceBayId           *openapi_types.UUID `json:"serviceBayId,omitempty"`
+	ServiceTypeId          *openapi_types.UUID `json:"serviceTypeId,omitempty"`
+	StartsAt               time.Time           `json:"startsAt"`
+	Status                 AppointmentStatus   `json:"status"`
+	TechnicianId           *openapi_types.UUID `json:"technicianId,omitempty"`
+	UpdatedAt              time.Time           `json:"updatedAt"`
+	VehicleId              *openapi_types.UUID `json:"vehicleId,omitempty"`
+}
+
+// AppointmentStatus defines model for Appointment.Status.
+type AppointmentStatus string
+
+// AppointmentNoteRequest defines model for AppointmentNoteRequest.
+type AppointmentNoteRequest struct {
+	Note *string `json:"note,omitempty"`
+}
+
 // AuthUser defines model for AuthUser.
 type AuthUser struct {
 	Email    openapi_types.Email `json:"email"`
@@ -87,6 +142,18 @@ type BayCapability struct {
 	BayCapabilityId openapi_types.UUID `json:"bayCapabilityId"`
 	Code            string             `json:"code"`
 	Name            string             `json:"name"`
+}
+
+// CancelAppointmentRequest defines model for CancelAppointmentRequest.
+type CancelAppointmentRequest struct {
+	CancellationReason string  `json:"cancellationReason"`
+	Note               *string `json:"note,omitempty"`
+}
+
+// CompleteAppointmentRequest defines model for CompleteAppointmentRequest.
+type CompleteAppointmentRequest struct {
+	ActualEndsAt *time.Time `json:"actualEndsAt,omitempty"`
+	Note         *string    `json:"note,omitempty"`
 }
 
 // CreateCustomerRequest defines model for CreateCustomerRequest.
@@ -294,6 +361,20 @@ type ErrorResponse struct {
 	Status  int            `json:"status"`
 	Title   string         `json:"title"`
 	Type    string         `json:"type"`
+}
+
+// ScheduleAppointmentRequest defines model for ScheduleAppointmentRequest.
+type ScheduleAppointmentRequest struct {
+	CustomerId             openapi_types.UUID `json:"customerId"`
+	Notes                  *string            `json:"notes,omitempty"`
+	PlannedDurationMinutes *int               `json:"plannedDurationMinutes,omitempty"`
+	ServiceBayId           openapi_types.UUID `json:"serviceBayId"`
+	ServiceTypeId          openapi_types.UUID `json:"serviceTypeId"`
+
+	// StartsAt UTC instant
+	StartsAt     time.Time          `json:"startsAt"`
+	TechnicianId openapi_types.UUID `json:"technicianId"`
+	VehicleId    openapi_types.UUID `json:"vehicleId"`
 }
 
 // ServiceBay defines model for ServiceBay.
@@ -518,6 +599,9 @@ type VehicleListResponse struct {
 	Items []Vehicle `json:"items"`
 }
 
+// AppointmentId defines model for AppointmentId.
+type AppointmentId = openapi_types.UUID
+
 // CustomerId defines model for CustomerId.
 type CustomerId = openapi_types.UUID
 
@@ -559,6 +643,9 @@ type TechnicianSkillId = openapi_types.UUID
 
 // VehicleId defines model for VehicleId.
 type VehicleId = openapi_types.UUID
+
+// AppointmentScheduled defines model for AppointmentScheduled.
+type AppointmentScheduled = Appointment
 
 // AuthUserFound defines model for AuthUserFound.
 type AuthUserFound = AuthUser
@@ -761,6 +848,21 @@ type CreateDealershipAdminJSONRequestBody = CreateDealershipAdminRequest
 // CreateDealershipJSONRequestBody defines body for CreateDealership for application/json ContentType.
 type CreateDealershipJSONRequestBody = CreateDealershipRequest
 
+// ScheduleAppointmentJSONRequestBody defines body for ScheduleAppointment for application/json ContentType.
+type ScheduleAppointmentJSONRequestBody = ScheduleAppointmentRequest
+
+// CancelAppointmentJSONRequestBody defines body for CancelAppointment for application/json ContentType.
+type CancelAppointmentJSONRequestBody = CancelAppointmentRequest
+
+// CheckInAppointmentJSONRequestBody defines body for CheckInAppointment for application/json ContentType.
+type CheckInAppointmentJSONRequestBody = AppointmentNoteRequest
+
+// CompleteAppointmentJSONRequestBody defines body for CompleteAppointment for application/json ContentType.
+type CompleteAppointmentJSONRequestBody = CompleteAppointmentRequest
+
+// StartAppointmentJSONRequestBody defines body for StartAppointment for application/json ContentType.
+type StartAppointmentJSONRequestBody = AppointmentNoteRequest
+
 // CreateCustomerJSONRequestBody defines body for CreateCustomer for application/json ContentType.
 type CreateCustomerJSONRequestBody = CreateCustomerRequest
 
@@ -847,6 +949,21 @@ type ServerInterface interface {
 	// CreateDealership Create a dealership
 	// (POST /dealerships)
 	CreateDealership(ctx *echo.Context) error
+
+	// (POST /v1/appointments)
+	ScheduleAppointment(ctx *echo.Context) error
+
+	// (POST /v1/appointments/{appointmentId}/cancel)
+	CancelAppointment(ctx *echo.Context, appointmentId AppointmentId) error
+
+	// (POST /v1/appointments/{appointmentId}/check-in)
+	CheckInAppointment(ctx *echo.Context, appointmentId AppointmentId) error
+
+	// (POST /v1/appointments/{appointmentId}/complete)
+	CompleteAppointment(ctx *echo.Context, appointmentId AppointmentId) error
+
+	// (POST /v1/appointments/{appointmentId}/start)
+	StartAppointment(ctx *echo.Context, appointmentId AppointmentId) error
 	// CreateCustomer Create a global customer record
 	// (POST /v1/customers)
 	CreateCustomer(ctx *echo.Context) error
@@ -1055,6 +1172,79 @@ func (w *ServerInterfaceWrapper) CreateDealership(ctx *echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.CreateDealership(ctx)
+	return err
+}
+
+// ScheduleAppointment converts echo context to params.
+func (w *ServerInterfaceWrapper) ScheduleAppointment(ctx *echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ScheduleAppointment(ctx)
+	return err
+}
+
+// CancelAppointment converts echo context to params.
+func (w *ServerInterfaceWrapper) CancelAppointment(ctx *echo.Context) error {
+	var err error
+	// ------------- Path parameter "appointmentId" -------------
+	var appointmentId AppointmentId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "appointmentId", ctx.Param("appointmentId"), &appointmentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter appointmentId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CancelAppointment(ctx, appointmentId)
+	return err
+}
+
+// CheckInAppointment converts echo context to params.
+func (w *ServerInterfaceWrapper) CheckInAppointment(ctx *echo.Context) error {
+	var err error
+	// ------------- Path parameter "appointmentId" -------------
+	var appointmentId AppointmentId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "appointmentId", ctx.Param("appointmentId"), &appointmentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter appointmentId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CheckInAppointment(ctx, appointmentId)
+	return err
+}
+
+// CompleteAppointment converts echo context to params.
+func (w *ServerInterfaceWrapper) CompleteAppointment(ctx *echo.Context) error {
+	var err error
+	// ------------- Path parameter "appointmentId" -------------
+	var appointmentId AppointmentId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "appointmentId", ctx.Param("appointmentId"), &appointmentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter appointmentId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CompleteAppointment(ctx, appointmentId)
+	return err
+}
+
+// StartAppointment converts echo context to params.
+func (w *ServerInterfaceWrapper) StartAppointment(ctx *echo.Context) error {
+	var err error
+	// ------------- Path parameter "appointmentId" -------------
+	var appointmentId AppointmentId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "appointmentId", ctx.Param("appointmentId"), &appointmentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter appointmentId: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.StartAppointment(ctx, appointmentId)
 	return err
 }
 
@@ -2281,6 +2471,11 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 		Handler: si,
 	}
 
+	router.POST(options.BaseURL+"/v1/appointments", wrapper.ScheduleAppointment, options.OperationMiddlewares["scheduleAppointment"]...)
+	router.POST(options.BaseURL+"/v1/appointments/:appointmentId/check-in", wrapper.CheckInAppointment, options.OperationMiddlewares["checkInAppointment"]...)
+	router.POST(options.BaseURL+"/v1/appointments/:appointmentId/start", wrapper.StartAppointment, options.OperationMiddlewares["startAppointment"]...)
+	router.POST(options.BaseURL+"/v1/appointments/:appointmentId/complete", wrapper.CompleteAppointment, options.OperationMiddlewares["completeAppointment"]...)
+	router.POST(options.BaseURL+"/v1/appointments/:appointmentId/cancel", wrapper.CancelAppointment, options.OperationMiddlewares["cancelAppointment"]...)
 	router.GET(options.BaseURL+"/v1/dealerships/:dealershipId/operation-times", wrapper.ListDealershipOperationTimes, options.OperationMiddlewares["listDealershipOperationTimes"]...)
 	router.POST(options.BaseURL+"/v1/dealerships/:dealershipId/operation-times", wrapper.CreateDealershipOperationTime, options.OperationMiddlewares["createDealershipOperationTime"]...)
 	router.DELETE(options.BaseURL+"/v1/dealerships/:dealershipId/operation-times/:operationTimeId", wrapper.DeleteDealershipOperationTime, options.OperationMiddlewares["deleteDealershipOperationTime"]...)
@@ -2340,6 +2535,8 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.PATCH(options.BaseURL+"/v1/vehicles/:vehicleId", wrapper.UpdateVehicle, options.OperationMiddlewares["updateVehicle"]...)
 
 }
+
+type AppointmentScheduledJSONResponse Appointment
 
 type AuthUserFoundJSONResponse AuthUser
 
@@ -2851,6 +3048,488 @@ type CreateDealership500JSONResponse struct {
 }
 
 func (response CreateDealership500JSONResponse) VisitCreateDealershipResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ScheduleAppointmentRequestObject struct {
+	Body *ScheduleAppointmentJSONRequestBody
+}
+
+type ScheduleAppointmentResponseObject interface {
+	VisitScheduleAppointmentResponse(w http.ResponseWriter) error
+}
+
+type ScheduleAppointment201JSONResponse struct {
+	AppointmentScheduledJSONResponse
+}
+
+func (response ScheduleAppointment201JSONResponse) VisitScheduleAppointmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ScheduleAppointment400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ScheduleAppointment400JSONResponse) VisitScheduleAppointmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ScheduleAppointment401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ScheduleAppointment401JSONResponse) VisitScheduleAppointmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ScheduleAppointment403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ScheduleAppointment403JSONResponse) VisitScheduleAppointmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ScheduleAppointment404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ScheduleAppointment404JSONResponse) VisitScheduleAppointmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ScheduleAppointment409JSONResponse struct{ ConflictJSONResponse }
+
+func (response ScheduleAppointment409JSONResponse) VisitScheduleAppointmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ScheduleAppointment422JSONResponse struct {
+	UnprocessableEntityJSONResponse
+}
+
+func (response ScheduleAppointment422JSONResponse) VisitScheduleAppointmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ScheduleAppointment500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ScheduleAppointment500JSONResponse) VisitScheduleAppointmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelAppointmentRequestObject struct {
+	AppointmentId AppointmentId `json:"appointmentId"`
+	Body          *CancelAppointmentJSONRequestBody
+}
+
+type CancelAppointmentResponseObject interface {
+	VisitCancelAppointmentResponse(w http.ResponseWriter) error
+}
+
+type CancelAppointment204Response struct {
+}
+
+func (response CancelAppointment204Response) VisitCancelAppointmentResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type CancelAppointment400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CancelAppointment400JSONResponse) VisitCancelAppointmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelAppointment403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response CancelAppointment403JSONResponse) VisitCancelAppointmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelAppointment404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response CancelAppointment404JSONResponse) VisitCancelAppointmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelAppointment409JSONResponse struct{ ConflictJSONResponse }
+
+func (response CancelAppointment409JSONResponse) VisitCancelAppointmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelAppointment500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response CancelAppointment500JSONResponse) VisitCancelAppointmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CheckInAppointmentRequestObject struct {
+	AppointmentId AppointmentId `json:"appointmentId"`
+	Body          *CheckInAppointmentJSONRequestBody
+}
+
+type CheckInAppointmentResponseObject interface {
+	VisitCheckInAppointmentResponse(w http.ResponseWriter) error
+}
+
+type CheckInAppointment204Response struct {
+}
+
+func (response CheckInAppointment204Response) VisitCheckInAppointmentResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type CheckInAppointment400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CheckInAppointment400JSONResponse) VisitCheckInAppointmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CheckInAppointment403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response CheckInAppointment403JSONResponse) VisitCheckInAppointmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CheckInAppointment404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response CheckInAppointment404JSONResponse) VisitCheckInAppointmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CheckInAppointment409JSONResponse struct{ ConflictJSONResponse }
+
+func (response CheckInAppointment409JSONResponse) VisitCheckInAppointmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CheckInAppointment500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response CheckInAppointment500JSONResponse) VisitCheckInAppointmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CompleteAppointmentRequestObject struct {
+	AppointmentId AppointmentId `json:"appointmentId"`
+	Body          *CompleteAppointmentJSONRequestBody
+}
+
+type CompleteAppointmentResponseObject interface {
+	VisitCompleteAppointmentResponse(w http.ResponseWriter) error
+}
+
+type CompleteAppointment204Response struct {
+}
+
+func (response CompleteAppointment204Response) VisitCompleteAppointmentResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type CompleteAppointment400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CompleteAppointment400JSONResponse) VisitCompleteAppointmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CompleteAppointment403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response CompleteAppointment403JSONResponse) VisitCompleteAppointmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CompleteAppointment404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response CompleteAppointment404JSONResponse) VisitCompleteAppointmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CompleteAppointment409JSONResponse struct{ ConflictJSONResponse }
+
+func (response CompleteAppointment409JSONResponse) VisitCompleteAppointmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CompleteAppointment500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response CompleteAppointment500JSONResponse) VisitCompleteAppointmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartAppointmentRequestObject struct {
+	AppointmentId AppointmentId `json:"appointmentId"`
+	Body          *StartAppointmentJSONRequestBody
+}
+
+type StartAppointmentResponseObject interface {
+	VisitStartAppointmentResponse(w http.ResponseWriter) error
+}
+
+type StartAppointment204Response struct {
+}
+
+func (response StartAppointment204Response) VisitStartAppointmentResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type StartAppointment400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response StartAppointment400JSONResponse) VisitStartAppointmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartAppointment403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response StartAppointment403JSONResponse) VisitStartAppointmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartAppointment404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response StartAppointment404JSONResponse) VisitStartAppointmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartAppointment409JSONResponse struct{ ConflictJSONResponse }
+
+func (response StartAppointment409JSONResponse) VisitStartAppointmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartAppointment500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response StartAppointment500JSONResponse) VisitStartAppointmentResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -7934,6 +8613,21 @@ type StrictServerInterface interface {
 	// CreateDealership Create a dealership
 	// (POST /dealerships)
 	CreateDealership(ctx context.Context, request CreateDealershipRequestObject) (CreateDealershipResponseObject, error)
+
+	// (POST /v1/appointments)
+	ScheduleAppointment(ctx context.Context, request ScheduleAppointmentRequestObject) (ScheduleAppointmentResponseObject, error)
+
+	// (POST /v1/appointments/{appointmentId}/cancel)
+	CancelAppointment(ctx context.Context, request CancelAppointmentRequestObject) (CancelAppointmentResponseObject, error)
+
+	// (POST /v1/appointments/{appointmentId}/check-in)
+	CheckInAppointment(ctx context.Context, request CheckInAppointmentRequestObject) (CheckInAppointmentResponseObject, error)
+
+	// (POST /v1/appointments/{appointmentId}/complete)
+	CompleteAppointment(ctx context.Context, request CompleteAppointmentRequestObject) (CompleteAppointmentResponseObject, error)
+
+	// (POST /v1/appointments/{appointmentId}/start)
+	StartAppointment(ctx context.Context, request StartAppointmentRequestObject) (StartAppointmentResponseObject, error)
 	// CreateCustomer Create a global customer record
 	// (POST /v1/customers)
 	CreateCustomer(ctx context.Context, request CreateCustomerRequestObject) (CreateCustomerResponseObject, error)
@@ -8243,6 +8937,209 @@ func (sh *strictHandler) CreateDealership(ctx *echo.Context) error {
 		return err
 	} else if validResponse, ok := response.(CreateDealershipResponseObject); ok {
 		return validResponse.VisitCreateDealershipResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ScheduleAppointment operation middleware
+func (sh *strictHandler) ScheduleAppointment(ctx *echo.Context) error {
+	var request ScheduleAppointmentRequestObject
+
+	var body ScheduleAppointmentJSONRequestBody
+	var err error
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+		// Bind only the request body, so that path and query parameters
+		// are not also bound into the body struct.
+		err = echo.BindBody(ctx, &body)
+	} else {
+		// A custom binder is installed on the Echo instance; defer to it
+		// entirely, since echo.Binder does not expose body-only binding.
+		err = ctx.Bind(&body)
+	}
+	if err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ScheduleAppointment(ctx.Request().Context(), request.(ScheduleAppointmentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ScheduleAppointment")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ScheduleAppointmentResponseObject); ok {
+		return validResponse.VisitScheduleAppointmentResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CancelAppointment operation middleware
+func (sh *strictHandler) CancelAppointment(ctx *echo.Context, appointmentId AppointmentId) error {
+	var request CancelAppointmentRequestObject
+
+	request.AppointmentId = appointmentId
+
+	var body CancelAppointmentJSONRequestBody
+	var err error
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+		// Bind only the request body, so that path and query parameters
+		// are not also bound into the body struct.
+		err = echo.BindBody(ctx, &body)
+	} else {
+		// A custom binder is installed on the Echo instance; defer to it
+		// entirely, since echo.Binder does not expose body-only binding.
+		err = ctx.Bind(&body)
+	}
+	if err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CancelAppointment(ctx.Request().Context(), request.(CancelAppointmentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CancelAppointment")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CancelAppointmentResponseObject); ok {
+		return validResponse.VisitCancelAppointmentResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CheckInAppointment operation middleware
+func (sh *strictHandler) CheckInAppointment(ctx *echo.Context, appointmentId AppointmentId) error {
+	var request CheckInAppointmentRequestObject
+
+	request.AppointmentId = appointmentId
+
+	var body CheckInAppointmentJSONRequestBody
+	var err error
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+		// Bind only the request body, so that path and query parameters
+		// are not also bound into the body struct.
+		err = echo.BindBody(ctx, &body)
+	} else {
+		// A custom binder is installed on the Echo instance; defer to it
+		// entirely, since echo.Binder does not expose body-only binding.
+		err = ctx.Bind(&body)
+	}
+	if err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CheckInAppointment(ctx.Request().Context(), request.(CheckInAppointmentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CheckInAppointment")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CheckInAppointmentResponseObject); ok {
+		return validResponse.VisitCheckInAppointmentResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// CompleteAppointment operation middleware
+func (sh *strictHandler) CompleteAppointment(ctx *echo.Context, appointmentId AppointmentId) error {
+	var request CompleteAppointmentRequestObject
+
+	request.AppointmentId = appointmentId
+
+	var body CompleteAppointmentJSONRequestBody
+	var err error
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+		// Bind only the request body, so that path and query parameters
+		// are not also bound into the body struct.
+		err = echo.BindBody(ctx, &body)
+	} else {
+		// A custom binder is installed on the Echo instance; defer to it
+		// entirely, since echo.Binder does not expose body-only binding.
+		err = ctx.Bind(&body)
+	}
+	if err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CompleteAppointment(ctx.Request().Context(), request.(CompleteAppointmentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CompleteAppointment")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CompleteAppointmentResponseObject); ok {
+		return validResponse.VisitCompleteAppointmentResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// StartAppointment operation middleware
+func (sh *strictHandler) StartAppointment(ctx *echo.Context, appointmentId AppointmentId) error {
+	var request StartAppointmentRequestObject
+
+	request.AppointmentId = appointmentId
+
+	var body StartAppointmentJSONRequestBody
+	var err error
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+		// Bind only the request body, so that path and query parameters
+		// are not also bound into the body struct.
+		err = echo.BindBody(ctx, &body)
+	} else {
+		// A custom binder is installed on the Echo instance; defer to it
+		// entirely, since echo.Binder does not expose body-only binding.
+		err = ctx.Bind(&body)
+	}
+	if err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.StartAppointment(ctx.Request().Context(), request.(StartAppointmentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "StartAppointment")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(StartAppointmentResponseObject); ok {
+		return validResponse.VisitStartAppointmentResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

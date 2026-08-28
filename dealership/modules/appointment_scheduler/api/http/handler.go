@@ -35,6 +35,11 @@ func NewHandler(service *app.Service, auth client.Authenticator) *Handler {
 func Register(_ context.Context, router common.EchoRouter, handler *Handler) error {
 	RegisterHandlersWithOptions(router, NewStrictHandler(handler, nil), RegisterHandlersOptions{
 		OperationMiddlewares: map[string][]echo.MiddlewareFunc{
+			"scheduleAppointment":                    {handler.requireIdentity},
+			"checkInAppointment":                     {handler.requireIdentity},
+			"startAppointment":                       {handler.requireIdentity},
+			"completeAppointment":                    {handler.requireIdentity},
+			"cancelAppointment":                      {handler.requireIdentity},
 			"createDealershipOperationTime":          {handler.requireIdentity},
 			"listDealershipOperationTimes":           {handler.requireIdentity},
 			"updateDealershipOperationTime":          {handler.requireIdentity},
@@ -95,6 +100,159 @@ func Register(_ context.Context, router common.EchoRouter, handler *Handler) err
 		},
 	})
 	return nil
+}
+
+func (h *Handler) ScheduleAppointment(ctx context.Context, request ScheduleAppointmentRequestObject) (ScheduleAppointmentResponseObject, error) {
+	if request.Body == nil {
+		response := errorResponse(common.NewInvalidInputError("validation_error", "request body is required"))
+		return ScheduleAppointment400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(response)}, nil
+	}
+	record, err := h.service.ScheduleAppointment(ctx, identityFrom(ctx), app.ScheduleAppointmentInput{
+		CustomerID:             uuid.UUID(request.Body.CustomerId),
+		VehicleID:              uuid.UUID(request.Body.VehicleId),
+		ServiceTypeID:          uuid.UUID(request.Body.ServiceTypeId),
+		StartsAt:               request.Body.StartsAt,
+		TechnicianID:           uuid.UUID(request.Body.TechnicianId),
+		ServiceBayID:           uuid.UUID(request.Body.ServiceBayId),
+		PlannedDurationMinutes: request.Body.PlannedDurationMinutes,
+		Notes:                  request.Body.Notes,
+	})
+	if err != nil {
+		return scheduleAppointmentErrorResponse(err)
+	}
+	return ScheduleAppointment201JSONResponse{AppointmentScheduledJSONResponse: AppointmentScheduledJSONResponse(Appointment{
+		AppointmentId: record.AppointmentID, ReferenceCode: record.ReferenceCode,
+		DealershipId: record.DealershipID, CustomerId: &record.CustomerID, VehicleId: &record.VehicleID,
+		ServiceTypeId: &record.ServiceTypeID, TechnicianId: &record.TechnicianID, ServiceBayId: &record.ServiceBayID,
+		StartsAt: record.StartsAt, EndsAt: record.EndsAt, PlannedDurationMinutes: record.PlannedDurationMinutes,
+		Status: "requested", Notes: record.Notes, CreatedAt: record.CreatedAt, UpdatedAt: record.UpdatedAt,
+	})}, nil
+}
+
+func scheduleAppointmentErrorResponse(err error) (ScheduleAppointmentResponseObject, error) {
+	structured := operationTimeProblem(err)
+	response := errorResponse(structured)
+	switch structured.HttpErrorCode {
+	case stdhttp.StatusBadRequest:
+		return ScheduleAppointment400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(response)}, nil
+	case stdhttp.StatusUnauthorized:
+		return ScheduleAppointment401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case stdhttp.StatusForbidden:
+		return ScheduleAppointment403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case stdhttp.StatusNotFound:
+		return ScheduleAppointment404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	case stdhttp.StatusConflict:
+		return ScheduleAppointment409JSONResponse{ConflictJSONResponse: ConflictJSONResponse(response)}, nil
+	case 422:
+		return ScheduleAppointment422JSONResponse{UnprocessableEntityJSONResponse: UnprocessableEntityJSONResponse(response)}, nil
+	default:
+		return ScheduleAppointment500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
+}
+
+func (h *Handler) CheckInAppointment(ctx context.Context, request CheckInAppointmentRequestObject) (CheckInAppointmentResponseObject, error) {
+	var note *string
+	if request.Body != nil {
+		note = request.Body.Note
+	}
+	err := h.service.ChangeAppointmentStatus(ctx, identityFrom(ctx), uuid.UUID(request.AppointmentId), domain.AppointmentRequested, domain.AppointmentCheckedIn, nil, nil, note)
+	if err == nil {
+		return CheckInAppointment204Response{}, nil
+	}
+	status, response := appointmentStatusProblem(err)
+	if status == 400 {
+		return CheckInAppointment400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(response)}, nil
+	}
+	if status == 403 {
+		return CheckInAppointment403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	}
+	if status == 404 {
+		return CheckInAppointment404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	}
+	if status == 409 {
+		return CheckInAppointment409JSONResponse{ConflictJSONResponse: ConflictJSONResponse(response)}, nil
+	}
+	return CheckInAppointment500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+}
+
+func (h *Handler) StartAppointment(ctx context.Context, request StartAppointmentRequestObject) (StartAppointmentResponseObject, error) {
+	var note *string
+	if request.Body != nil {
+		note = request.Body.Note
+	}
+	err := h.service.ChangeAppointmentStatus(ctx, identityFrom(ctx), uuid.UUID(request.AppointmentId), domain.AppointmentCheckedIn, domain.AppointmentInProgress, nil, nil, note)
+	if err == nil {
+		return StartAppointment204Response{}, nil
+	}
+	status, response := appointmentStatusProblem(err)
+	if status == 400 {
+		return StartAppointment400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(response)}, nil
+	}
+	if status == 403 {
+		return StartAppointment403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	}
+	if status == 404 {
+		return StartAppointment404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	}
+	if status == 409 {
+		return StartAppointment409JSONResponse{ConflictJSONResponse: ConflictJSONResponse(response)}, nil
+	}
+	return StartAppointment500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+}
+
+func (h *Handler) CompleteAppointment(ctx context.Context, request CompleteAppointmentRequestObject) (CompleteAppointmentResponseObject, error) {
+	var actualEndsAt *time.Time
+	var note *string
+	if request.Body != nil {
+		actualEndsAt, note = request.Body.ActualEndsAt, request.Body.Note
+	}
+	err := h.service.ChangeAppointmentStatus(ctx, identityFrom(ctx), uuid.UUID(request.AppointmentId), domain.AppointmentInProgress, domain.AppointmentCompleted, actualEndsAt, nil, note)
+	if err == nil {
+		return CompleteAppointment204Response{}, nil
+	}
+	status, response := appointmentStatusProblem(err)
+	if status == 400 {
+		return CompleteAppointment400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(response)}, nil
+	}
+	if status == 403 {
+		return CompleteAppointment403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	}
+	if status == 404 {
+		return CompleteAppointment404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	}
+	if status == 409 {
+		return CompleteAppointment409JSONResponse{ConflictJSONResponse: ConflictJSONResponse(response)}, nil
+	}
+	return CompleteAppointment500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+}
+
+func (h *Handler) CancelAppointment(ctx context.Context, request CancelAppointmentRequestObject) (CancelAppointmentResponseObject, error) {
+	if request.Body == nil {
+		return CancelAppointment400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(errorResponse(common.NewInvalidInputError("validation_error", "request body is required")))}, nil
+	}
+	err := h.service.ChangeAppointmentStatus(ctx, identityFrom(ctx), uuid.UUID(request.AppointmentId), "", domain.AppointmentCancelled, nil, &request.Body.CancellationReason, request.Body.Note)
+	if err == nil {
+		return CancelAppointment204Response{}, nil
+	}
+	status, response := appointmentStatusProblem(err)
+	if status == 400 {
+		return CancelAppointment400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(response)}, nil
+	}
+	if status == 403 {
+		return CancelAppointment403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	}
+	if status == 404 {
+		return CancelAppointment404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	}
+	if status == 409 {
+		return CancelAppointment409JSONResponse{ConflictJSONResponse: ConflictJSONResponse(response)}, nil
+	}
+	return CancelAppointment500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+}
+
+func appointmentStatusProblem(err error) (int, ErrorResponse) {
+	structured := operationTimeProblem(err)
+	return structured.HttpErrorCode, errorResponse(structured)
 }
 
 func (h *Handler) CreateDealershipOperationTime(ctx context.Context, request CreateDealershipOperationTimeRequestObject) (CreateDealershipOperationTimeResponseObject, error) {

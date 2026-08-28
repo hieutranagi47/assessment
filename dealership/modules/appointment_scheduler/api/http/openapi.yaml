@@ -4,6 +4,53 @@ info:
   version: "1.0.0"
   description: Dealership administration endpoints.
 paths:
+  /v1/appointments:
+    post:
+      operationId: scheduleAppointment
+      tags: [Appointments]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ScheduleAppointmentRequest" }
+      responses:
+        "201": { $ref: "#/components/responses/AppointmentScheduled" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/UnprocessableEntity" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /v1/appointments/{appointmentId}/check-in:
+    parameters: [{ $ref: "#/components/parameters/AppointmentId" }]
+    post:
+      operationId: checkInAppointment
+      security: [{ bearerAuth: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/AppointmentNoteRequest" } } } }
+      responses: { "204": { description: Appointment checked in }, "400": { $ref: "#/components/responses/BadRequest" }, "403": { $ref: "#/components/responses/Forbidden" }, "404": { $ref: "#/components/responses/NotFound" }, "409": { $ref: "#/components/responses/Conflict" }, "500": { $ref: "#/components/responses/InternalServerError" } }
+  /v1/appointments/{appointmentId}/start:
+    parameters: [{ $ref: "#/components/parameters/AppointmentId" }]
+    post:
+      operationId: startAppointment
+      security: [{ bearerAuth: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/AppointmentNoteRequest" } } } }
+      responses: { "204": { description: Appointment started }, "400": { $ref: "#/components/responses/BadRequest" }, "403": { $ref: "#/components/responses/Forbidden" }, "404": { $ref: "#/components/responses/NotFound" }, "409": { $ref: "#/components/responses/Conflict" }, "500": { $ref: "#/components/responses/InternalServerError" } }
+  /v1/appointments/{appointmentId}/complete:
+    parameters: [{ $ref: "#/components/parameters/AppointmentId" }]
+    post:
+      operationId: completeAppointment
+      security: [{ bearerAuth: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/CompleteAppointmentRequest" } } } }
+      responses: { "204": { description: Appointment completed }, "400": { $ref: "#/components/responses/BadRequest" }, "403": { $ref: "#/components/responses/Forbidden" }, "404": { $ref: "#/components/responses/NotFound" }, "409": { $ref: "#/components/responses/Conflict" }, "500": { $ref: "#/components/responses/InternalServerError" } }
+  /v1/appointments/{appointmentId}/cancel:
+    parameters: [{ $ref: "#/components/parameters/AppointmentId" }]
+    post:
+      operationId: cancelAppointment
+      security: [{ bearerAuth: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/CancelAppointmentRequest" } } } }
+      responses: { "204": { description: Appointment cancelled }, "400": { $ref: "#/components/responses/BadRequest" }, "403": { $ref: "#/components/responses/Forbidden" }, "404": { $ref: "#/components/responses/NotFound" }, "409": { $ref: "#/components/responses/Conflict" }, "500": { $ref: "#/components/responses/InternalServerError" } }
   /v1/dealerships/{dealershipId}/operation-times:
     parameters:
       - $ref: "#/components/parameters/DealershipId"
@@ -904,6 +951,52 @@ components:
   securitySchemes:
     bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
   schemas:
+    AppointmentNoteRequest:
+      type: object
+      properties: { note: { type: string, nullable: true } }
+    CompleteAppointmentRequest:
+      type: object
+      properties:
+        actualEndsAt: { type: string, format: date-time, nullable: true }
+        note: { type: string, nullable: true }
+    CancelAppointmentRequest:
+      type: object
+      required: [cancellationReason]
+      properties:
+        cancellationReason: { type: string, minLength: 1 }
+        note: { type: string, nullable: true }
+    ScheduleAppointmentRequest:
+      type: object
+      required: [customerId, vehicleId, serviceTypeId, startsAt, technicianId, serviceBayId]
+      properties:
+        customerId: { type: string, format: uuid }
+        vehicleId: { type: string, format: uuid }
+        serviceTypeId: { type: string, format: uuid }
+        startsAt: { type: string, format: date-time, description: UTC instant }
+        technicianId: { type: string, format: uuid }
+        serviceBayId: { type: string, format: uuid }
+        plannedDurationMinutes: { type: integer, minimum: 1 }
+        notes: { type: string, nullable: true }
+    Appointment:
+      type: object
+      required: [appointmentId, referenceCode, dealershipId, startsAt, endsAt, plannedDurationMinutes, status, createdAt, updatedAt]
+      properties:
+        appointmentId: { type: string, format: uuid }
+        referenceCode: { type: string }
+        dealershipId: { type: string, format: uuid }
+        customerId: { type: string, format: uuid }
+        vehicleId: { type: string, format: uuid }
+        serviceTypeId: { type: string, format: uuid }
+        technicianId: { type: string, format: uuid }
+        serviceBayId: { type: string, format: uuid }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
+        actualEndsAt: { type: string, format: date-time, nullable: true }
+        plannedDurationMinutes: { type: integer }
+        status: { type: string, enum: [requested, checked_in, in_progress, completed, cancelled] }
+        notes: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
     CreateTechnicianRequest:
       type: object
       required: [name, phone]
@@ -1361,6 +1454,11 @@ components:
           type: array
           items: { $ref: "#/components/schemas/ErrorDetail" }
   responses:
+    AppointmentScheduled:
+      description: Appointment scheduled and capacity reserved
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Appointment" }
     OperationTimeCreated:
       description: Operation time created
       content:
@@ -1637,6 +1735,11 @@ components:
         application/json:
           schema: { $ref: "#/components/schemas/ErrorResponse" }
   parameters:
+    AppointmentId:
+      name: appointmentId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
     Limit:
       name: limit
       in: query

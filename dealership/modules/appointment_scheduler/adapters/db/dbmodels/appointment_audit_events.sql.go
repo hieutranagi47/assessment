@@ -13,6 +13,7 @@ import (
 )
 
 const createAppointmentAuditEvents = `-- name: CreateAppointmentAuditEvents :exec
+
 INSERT INTO appointment_scheduler.appointment_audit_events (appointment_audit_event_id, appointment_id, actor_user_id, event_type, before_data, after_data, occurred_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
 `
@@ -27,6 +28,8 @@ type CreateAppointmentAuditEventsParams struct {
 	OccurredAt              time.Time
 }
 
+// Appointment audit events are append-only. Only creation and read projection
+// queries belong here; updates and deletes are intentionally not generated.
 func (q *Queries) CreateAppointmentAuditEvents(ctx context.Context, arg CreateAppointmentAuditEventsParams) error {
 	_, err := q.db.Exec(ctx, createAppointmentAuditEvents,
 		arg.AppointmentAuditEventID,
@@ -38,79 +41,4 @@ func (q *Queries) CreateAppointmentAuditEvents(ctx context.Context, arg CreateAp
 		arg.OccurredAt,
 	)
 	return err
-}
-
-const deleteAppointmentAuditEvents = `-- name: DeleteAppointmentAuditEvents :execrows
-UPDATE appointment_scheduler.appointment_audit_events
-SET deleted_at = $1::timestamptz
-WHERE appointment_audit_event_id = $2 AND deleted_at IS NULL
-`
-
-type DeleteAppointmentAuditEventsParams struct {
-	DeletedAt               time.Time
-	AppointmentAuditEventID pgtype.UUID
-}
-
-func (q *Queries) DeleteAppointmentAuditEvents(ctx context.Context, arg DeleteAppointmentAuditEventsParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteAppointmentAuditEvents, arg.DeletedAt, arg.AppointmentAuditEventID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
-}
-
-const getAppointmentAuditEvents = `-- name: GetAppointmentAuditEvents :one
-
-SELECT appointment_audit_event_id, appointment_id, actor_user_id, event_type, before_data, after_data, occurred_at, deleted_at
-FROM appointment_scheduler.appointment_audit_events
-WHERE appointment_audit_event_id = $1 AND deleted_at IS NULL
-`
-
-// appointment audit events CRUD queries.
-func (q *Queries) GetAppointmentAuditEvents(ctx context.Context, appointmentAuditEventID pgtype.UUID) (AppointmentSchedulerAppointmentAuditEvent, error) {
-	row := q.db.QueryRow(ctx, getAppointmentAuditEvents, appointmentAuditEventID)
-	var i AppointmentSchedulerAppointmentAuditEvent
-	err := row.Scan(
-		&i.AppointmentAuditEventID,
-		&i.AppointmentID,
-		&i.ActorUserID,
-		&i.EventType,
-		&i.BeforeData,
-		&i.AfterData,
-		&i.OccurredAt,
-		&i.DeletedAt,
-	)
-	return i, err
-}
-
-const updateAppointmentAuditEvents = `-- name: UpdateAppointmentAuditEvents :execrows
-UPDATE appointment_scheduler.appointment_audit_events
-SET appointment_id = $1, actor_user_id = $2, event_type = $3, before_data = $4, after_data = $5, occurred_at = $6
-WHERE appointment_audit_event_id = $7 AND deleted_at IS NULL
-`
-
-type UpdateAppointmentAuditEventsParams struct {
-	AppointmentID           pgtype.UUID
-	ActorUserID             pgtype.UUID
-	EventType               string
-	BeforeData              []byte
-	AfterData               []byte
-	OccurredAt              time.Time
-	AppointmentAuditEventID pgtype.UUID
-}
-
-func (q *Queries) UpdateAppointmentAuditEvents(ctx context.Context, arg UpdateAppointmentAuditEventsParams) (int64, error) {
-	result, err := q.db.Exec(ctx, updateAppointmentAuditEvents,
-		arg.AppointmentID,
-		arg.ActorUserID,
-		arg.EventType,
-		arg.BeforeData,
-		arg.AfterData,
-		arg.OccurredAt,
-		arg.AppointmentAuditEventID,
-	)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
 }

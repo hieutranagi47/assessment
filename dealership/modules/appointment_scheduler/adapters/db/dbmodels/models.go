@@ -11,28 +11,31 @@ import (
 )
 
 type AppointmentSchedulerAppointment struct {
-	AppointmentID      pgtype.UUID
-	ReferenceCode      string
-	CustomerID         pgtype.UUID
-	VehicleID          pgtype.UUID
-	DealershipID       pgtype.UUID
-	ServiceTypeID      pgtype.UUID
-	TechnicianID       pgtype.UUID
-	ServiceBayID       pgtype.UUID
-	StartsAt           time.Time
-	EndsAt             time.Time
-	Status             string
-	Notes              *string
-	CreatedByUserID    pgtype.UUID
-	CancelledByUserID  pgtype.UUID
-	CancellationReason *string
-	CreatedAt          time.Time
-	DeletedAt          pgtype.Timestamptz
-	UpdatedAt          time.Time
-	CancelledAt        pgtype.Timestamptz
-	CheckedInAt        pgtype.Timestamptz
-	StartedAt          pgtype.Timestamptz
-	CompletedAt        pgtype.Timestamptz
+	AppointmentID          pgtype.UUID
+	ReferenceCode          string
+	CustomerID             pgtype.UUID
+	VehicleID              pgtype.UUID
+	DealershipID           pgtype.UUID
+	ServiceTypeID          pgtype.UUID
+	TechnicianID           pgtype.UUID
+	ServiceBayID           pgtype.UUID
+	StartsAt               time.Time
+	EndsAt                 time.Time
+	Status                 string
+	Notes                  *string
+	CreatedByUserID        pgtype.UUID
+	CancelledByUserID      pgtype.UUID
+	CancellationReason     *string
+	CreatedAt              time.Time
+	DeletedAt              pgtype.Timestamptz
+	UpdatedAt              time.Time
+	CancelledAt            pgtype.Timestamptz
+	CheckedInAt            pgtype.Timestamptz
+	StartedAt              pgtype.Timestamptz
+	CompletedAt            pgtype.Timestamptz
+	PlannedDurationMinutes *int32
+	ActualEndsAt           pgtype.Timestamptz
+	InProgressAt           pgtype.Timestamptz
 }
 
 type AppointmentSchedulerAppointmentAuditEvent struct {
@@ -43,7 +46,6 @@ type AppointmentSchedulerAppointmentAuditEvent struct {
 	BeforeData              []byte
 	AfterData               []byte
 	OccurredAt              time.Time
-	DeletedAt               pgtype.Timestamptz
 }
 
 type AppointmentSchedulerAppointmentIdempotency struct {
@@ -51,6 +53,20 @@ type AppointmentSchedulerAppointmentIdempotency struct {
 	AppointmentID  pgtype.UUID
 	CreatedAt      time.Time
 	DeletedAt      pgtype.Timestamptz
+}
+
+type AppointmentSchedulerAppointmentResourceReservation struct {
+	AppointmentResourceReservationID pgtype.UUID
+	AppointmentID                    pgtype.UUID
+	ResourceType                     string
+	ResourceID                       pgtype.UUID
+	ReservedStartsAt                 time.Time
+	ReservedEndsAt                   time.Time
+	Status                           string
+	AssignedAt                       time.Time
+	ReleasedAt                       pgtype.Timestamptz
+	AssignedByUserID                 pgtype.UUID
+	Reason                           *string
 }
 
 type AppointmentSchedulerBayCapability struct {
