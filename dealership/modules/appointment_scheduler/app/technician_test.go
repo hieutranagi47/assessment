@@ -16,10 +16,13 @@ type technicianRepositoryStub struct {
 	dealershipID         uuid.UUID
 	technician           domain.Technician
 	technicianSkill      domain.TechnicianSkill
+	technicianShift      domain.TechnicianShift
 	createErr            error
 	skillCreateErr       error
+	shiftCreateErr       error
 	schedulerAdmin       bool
 	hasFutureAppointment bool
+	shiftInvalidates     bool
 }
 
 func (*technicianRepositoryStub) Create(context.Context, domain.Dealership) error { return nil }
@@ -87,6 +90,51 @@ func (r *technicianRepositoryStub) DeleteTechnicianSkill(_ context.Context, tech
 	}
 	r.technicianSkill = domain.TechnicianSkill{}
 	return nil
+}
+
+func (r *technicianRepositoryStub) CreateTechnicianShift(_ context.Context, shift domain.TechnicianShift) error {
+	if r.shiftCreateErr != nil {
+		return r.shiftCreateErr
+	}
+	r.technicianShift = shift
+	return nil
+}
+
+func (r *technicianRepositoryStub) GetTechnicianShift(_ context.Context, dealershipID, technicianID, shiftID uuid.UUID) (domain.TechnicianShift, error) {
+	if dealershipID != r.dealershipID || r.technicianShift.ID() != shiftID || r.technicianShift.TechnicianID() != technicianID {
+		return domain.TechnicianShift{}, ErrTechnicianShiftNotFound
+	}
+	return r.technicianShift, nil
+}
+
+func (r *technicianRepositoryStub) ListTechnicianShifts(_ context.Context, dealershipID, technicianID uuid.UUID) ([]domain.TechnicianShift, error) {
+	if dealershipID != r.dealershipID || r.technician.ID() != technicianID {
+		return nil, ErrTechnicianNotFound
+	}
+	if r.technicianShift.ID() == uuid.Nil {
+		return []domain.TechnicianShift{}, nil
+	}
+	return []domain.TechnicianShift{r.technicianShift}, nil
+}
+
+func (r *technicianRepositoryStub) UpdateTechnicianShift(_ context.Context, dealershipID uuid.UUID, shift domain.TechnicianShift) error {
+	if dealershipID != r.dealershipID || r.technicianShift.ID() != shift.ID() {
+		return ErrTechnicianShiftNotFound
+	}
+	r.technicianShift = shift
+	return nil
+}
+
+func (r *technicianRepositoryStub) DeleteTechnicianShift(_ context.Context, dealershipID, technicianID, shiftID uuid.UUID, _ time.Time) error {
+	if dealershipID != r.dealershipID || r.technicianShift.ID() != shiftID || r.technicianShift.TechnicianID() != technicianID {
+		return ErrTechnicianShiftNotFound
+	}
+	r.technicianShift = domain.TechnicianShift{}
+	return nil
+}
+
+func (r *technicianRepositoryStub) HasFutureAppointmentsOutsideTechnicianShift(_ context.Context, _ uuid.UUID, _ domain.TechnicianShift, _ uuid.UUID, _ time.Time) (bool, error) {
+	return r.shiftInvalidates, nil
 }
 
 func TestTechnicianAuthorizationValidationDuplicatesAndFutureAppointments(t *testing.T) {
@@ -170,4 +218,40 @@ func TestTechnicianSkillsAuthorizationOwnershipAndMutations(t *testing.T) {
 		err = service.DeleteTechnicianSkill(context.Background(), actor, technicianID, created.ID())
 		require.ErrorContains(t, err, "technician_skill_not_found")
 	})
+}
+
+func TestTechnicianShiftsAuthorizationValidationAndAppointmentProtection(t *testing.T) {
+	actor, dealershipID := uuid.New(), uuid.New()
+	technician, err := domain.NewTechnician(uuid.New(), uuid.New(), "Ada", "+84901234567", nil, true, time.Now())
+	require.NoError(t, err)
+	repository := &technicianRepositoryStub{dealershipID: dealershipID, technician: technician}
+	admin := userInfoStub{info: client.UserInfo{UserID: actor.String(), Status: "active", Role: "admin"}}
+	service := NewService(repository, admin)
+	service.newID = uuid.New
+
+	_, err = service.CreateTechnicianShift(context.Background(), uuid.Nil, technician.ID(), CreateTechnicianShiftInput{DayOfWeek: 1, StartsAt: 8 * time.Hour, EndsAt: 17 * time.Hour})
+	require.ErrorContains(t, err, "unauthenticated")
+
+	service.users = userInfoStub{info: client.UserInfo{UserID: actor.String(), Status: "active", Role: "staff"}}
+	_, err = service.CreateTechnicianShift(context.Background(), actor, technician.ID(), CreateTechnicianShiftInput{DayOfWeek: 1, StartsAt: 8 * time.Hour, EndsAt: 17 * time.Hour})
+	require.ErrorContains(t, err, "forbidden")
+	service.users = admin
+
+	_, err = service.CreateTechnicianShift(context.Background(), actor, technician.ID(), CreateTechnicianShiftInput{DayOfWeek: 1, StartsAt: 17 * time.Hour, EndsAt: 8 * time.Hour})
+	require.ErrorContains(t, err, "validation_failed")
+
+	created, err := service.CreateTechnicianShift(context.Background(), actor, technician.ID(), CreateTechnicianShiftInput{DayOfWeek: 1, StartsAt: 8 * time.Hour, EndsAt: 17 * time.Hour})
+	require.NoError(t, err)
+	require.Equal(t, technician.ID(), created.TechnicianID())
+
+	repository.shiftCreateErr = ErrTechnicianShiftOverlaps
+	_, err = service.CreateTechnicianShift(context.Background(), actor, technician.ID(), CreateTechnicianShiftInput{DayOfWeek: 1, StartsAt: 9 * time.Hour, EndsAt: 10 * time.Hour})
+	require.ErrorContains(t, err, "shift_overlap")
+	repository.shiftCreateErr = nil
+
+	repository.shiftInvalidates = true
+	_, err = service.UpdateTechnicianShift(context.Background(), actor, technician.ID(), created.ID(), UpdateTechnicianShiftInput{})
+	require.ErrorContains(t, err, "appointment_schedule_conflict")
+	err = service.DeleteTechnicianShift(context.Background(), actor, technician.ID(), created.ID())
+	require.ErrorContains(t, err, "appointment_schedule_conflict")
 }

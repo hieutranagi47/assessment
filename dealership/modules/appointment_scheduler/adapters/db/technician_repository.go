@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -117,6 +118,108 @@ func (r *DealershipRepository) DeactivateTechnician(ctx context.Context, dealers
 		return app.ErrTechnicianNotFound
 	}
 	return nil
+}
+
+func (r *DealershipRepository) CreateTechnicianShift(ctx context.Context, shift domain.TechnicianShift) error {
+	err := r.queries.CreateTechnicianShift(ctx, dbmodels.CreateTechnicianShiftParams{
+		TechnicianShiftID: toPGUUID(shift.ID()),
+		TechnicianID:      toPGUUID(shift.TechnicianID()),
+		DayOfWeek:         int16(shift.DayOfWeek()),
+		StartsAt:          toPGTime(shift.StartsAt()),
+		EndsAt:            toPGTime(shift.EndsAt()),
+		CreatedAt:         shift.CreatedAt(),
+		UpdatedAt:         shift.UpdatedAt(),
+	})
+	return technicianShiftWriteError(err)
+}
+
+func (r *DealershipRepository) GetTechnicianShift(ctx context.Context, dealershipID, technicianID, shiftID uuid.UUID) (domain.TechnicianShift, error) {
+	row, err := r.queries.GetTechnicianShiftForDealership(ctx, dbmodels.GetTechnicianShiftForDealershipParams{
+		TechnicianShiftID: toPGUUID(shiftID),
+		TechnicianID:      toPGUUID(technicianID),
+		DealershipID:      toPGUUID(dealershipID),
+	})
+	return technicianShiftFromRow(row.TechnicianShiftID, row.TechnicianID, row.DayOfWeek, row.StartsAt, row.EndsAt, row.CreatedAt, row.UpdatedAt, err)
+}
+
+func (r *DealershipRepository) ListTechnicianShifts(ctx context.Context, dealershipID, technicianID uuid.UUID) ([]domain.TechnicianShift, error) {
+	rows, err := r.queries.ListTechnicianShiftsForDealership(ctx, dbmodels.ListTechnicianShiftsForDealershipParams{TechnicianID: toPGUUID(technicianID), DealershipID: toPGUUID(dealershipID)})
+	if err != nil {
+		return nil, err
+	}
+	shifts := make([]domain.TechnicianShift, 0, len(rows))
+	for _, row := range rows {
+		shift, err := technicianShiftFromRow(row.TechnicianShiftID, row.TechnicianID, row.DayOfWeek, row.StartsAt, row.EndsAt, row.CreatedAt, row.UpdatedAt, nil)
+		if err != nil {
+			return nil, err
+		}
+		shifts = append(shifts, shift)
+	}
+	return shifts, nil
+}
+
+func (r *DealershipRepository) UpdateTechnicianShift(ctx context.Context, dealershipID uuid.UUID, shift domain.TechnicianShift) error {
+	rows, err := r.queries.UpdateTechnicianShiftForDealership(ctx, dbmodels.UpdateTechnicianShiftForDealershipParams{
+		DayOfWeek:         int16(shift.DayOfWeek()),
+		StartsAt:          toPGTime(shift.StartsAt()),
+		EndsAt:            toPGTime(shift.EndsAt()),
+		UpdatedAt:         shift.UpdatedAt(),
+		TechnicianShiftID: toPGUUID(shift.ID()),
+		TechnicianID:      toPGUUID(shift.TechnicianID()),
+		DealershipID:      toPGUUID(dealershipID),
+	})
+	if err = technicianShiftWriteError(err); err != nil {
+		return err
+	}
+	if rows == 0 {
+		return app.ErrTechnicianShiftNotFound
+	}
+	return nil
+}
+
+func (r *DealershipRepository) DeleteTechnicianShift(ctx context.Context, dealershipID, technicianID, shiftID uuid.UUID, now time.Time) error {
+	rows, err := r.queries.DeleteTechnicianShiftForDealership(ctx, dbmodels.DeleteTechnicianShiftForDealershipParams{
+		DeletedAt:         pgtype.Timestamptz{Time: now.UTC(), Valid: true},
+		TechnicianShiftID: toPGUUID(shiftID),
+		TechnicianID:      toPGUUID(technicianID),
+		DealershipID:      toPGUUID(dealershipID),
+	})
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return app.ErrTechnicianShiftNotFound
+	}
+	return nil
+}
+
+func (r *DealershipRepository) HasFutureAppointmentsOutsideTechnicianShift(ctx context.Context, technicianID uuid.UUID, candidate domain.TechnicianShift, excludedShiftID uuid.UUID, now time.Time) (bool, error) {
+	return r.queries.HasFutureAppointmentsOutsideTechnicianShift(ctx, dbmodels.HasFutureAppointmentsOutsideTechnicianShiftParams{
+		TechnicianID:       toPGUUID(technicianID),
+		Now:                now.UTC(),
+		ExcludedShiftID:    toPGUUID(excludedShiftID),
+		CandidateDayOfWeek: int16(candidate.DayOfWeek()),
+		CandidateStartsAt:  toPGTime(candidate.StartsAt()),
+		CandidateEndsAt:    toPGTime(candidate.EndsAt()),
+	})
+}
+
+func technicianShiftFromRow(id, technicianID pgtype.UUID, dayOfWeek int16, startsAt, endsAt pgtype.Time, createdAt, updatedAt time.Time, err error) (domain.TechnicianShift, error) {
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.TechnicianShift{}, app.ErrTechnicianShiftNotFound
+	}
+	if err != nil {
+		return domain.TechnicianShift{}, err
+	}
+	return domain.RehydrateTechnicianShift(fromPGUUID(id), fromPGUUID(technicianID), int(dayOfWeek), time.Duration(startsAt.Microseconds)*time.Microsecond, time.Duration(endsAt.Microseconds)*time.Microsecond, createdAt, updatedAt)
+}
+
+func technicianShiftWriteError(err error) error {
+	var postgresErr *pgconn.PgError
+	if errors.As(err, &postgresErr) && postgresErr.Code == "23P01" && postgresErr.ConstraintName == "technician_shifts_no_overlap" {
+		return app.ErrTechnicianShiftOverlaps
+	}
+	return err
 }
 
 func (r *DealershipRepository) CreateTechnicianSkill(ctx context.Context, technicianSkill domain.TechnicianSkill) (domain.TechnicianSkill, error) {

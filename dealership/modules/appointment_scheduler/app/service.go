@@ -45,6 +45,8 @@ var (
 	ErrTechnicianHasFutureAppointments          = errors.New("technician has future active appointments")
 	ErrTechnicianSkillNotFound                  = errors.New("technician skill not found")
 	ErrTechnicianSkillTaken                     = errors.New("technician already has this skill")
+	ErrTechnicianShiftNotFound                  = errors.New("technician shift not found")
+	ErrTechnicianShiftOverlaps                  = errors.New("technician shift overlaps an existing shift")
 	ErrDealershipOperationTimeNotFound          = errors.New("dealership operation time not found")
 	ErrDealershipOperationTimeOverlaps          = errors.New("dealership operation time overlaps an existing interval")
 )
@@ -142,6 +144,20 @@ type TechnicianRepository interface {
 	UpdateTechnician(context.Context, uuid.UUID, domain.Technician) (domain.Technician, error)
 	HasFutureActiveTechnicianAppointments(context.Context, uuid.UUID, time.Time) (bool, error)
 	DeactivateTechnician(context.Context, uuid.UUID, uuid.UUID, time.Time) error
+}
+
+// TechnicianShiftRepository keeps schedule management scoped to the admin's
+// dealership and exposes the appointment protection check as one atomic view
+// of persisted shifts and future appointments.
+type TechnicianShiftRepository interface {
+	GetGlobalAdminDealership(context.Context, uuid.UUID) (uuid.UUID, error)
+	GetTechnician(context.Context, uuid.UUID, uuid.UUID) (domain.Technician, error)
+	CreateTechnicianShift(context.Context, domain.TechnicianShift) error
+	GetTechnicianShift(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) (domain.TechnicianShift, error)
+	ListTechnicianShifts(context.Context, uuid.UUID, uuid.UUID) ([]domain.TechnicianShift, error)
+	UpdateTechnicianShift(context.Context, uuid.UUID, domain.TechnicianShift) error
+	DeleteTechnicianShift(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, time.Time) error
+	HasFutureAppointmentsOutsideTechnicianShift(context.Context, uuid.UUID, domain.TechnicianShift, uuid.UUID, time.Time) (bool, error)
 }
 
 // TechnicianSkillRepository uses a global scheduler-admin role check because
@@ -311,6 +327,18 @@ type UpdateTechnicianInput struct {
 	Email        *string
 	EmailPresent bool
 	IsActive     *bool
+}
+
+type CreateTechnicianShiftInput struct {
+	DayOfWeek int
+	StartsAt  time.Duration
+	EndsAt    time.Duration
+}
+
+type UpdateTechnicianShiftInput struct {
+	DayOfWeek *int
+	StartsAt  *time.Duration
+	EndsAt    *time.Duration
 }
 
 type CreateTechnicianSkillInput struct{ SkillID uuid.UUID }
@@ -1591,6 +1619,141 @@ func invalidTechnicianInput(err error) common.Error {
 		return common.Error{HttpErrorCode: 422, PublicError: err.Error(), ErrorSlug: "invalid_technician_details"}
 	}
 	return common.NewInvalidInputError("invalid_technician_details", "%s", err)
+}
+
+func (s *Service) CreateTechnicianShift(ctx context.Context, actorID, technicianID uuid.UUID, input CreateTechnicianShiftInput) (domain.TechnicianShift, error) {
+	repository, dealershipID, err := s.authorizeTechnicianShifts(ctx, actorID)
+	if err != nil {
+		return domain.TechnicianShift{}, err
+	}
+	technician, err := repository.GetTechnician(ctx, dealershipID, technicianID)
+	if err != nil {
+		return domain.TechnicianShift{}, technicianShiftError(err)
+	}
+	if !technician.IsActive() {
+		return domain.TechnicianShift{}, common.NewNotFoundError("technician_not_found", "technician was not found")
+	}
+	shift, err := domain.NewTechnicianShift(s.newID(), technicianID, input.DayOfWeek, input.StartsAt, input.EndsAt, s.now())
+	if err != nil {
+		return domain.TechnicianShift{}, invalidTechnicianShiftInput(err)
+	}
+	if err := repository.CreateTechnicianShift(ctx, shift); err != nil {
+		return domain.TechnicianShift{}, technicianShiftError(err)
+	}
+	return shift, nil
+}
+
+func (s *Service) ListTechnicianShifts(ctx context.Context, actorID, technicianID uuid.UUID) ([]domain.TechnicianShift, error) {
+	repository, dealershipID, err := s.authorizeTechnicianShifts(ctx, actorID)
+	if err != nil {
+		return nil, err
+	}
+	technician, err := repository.GetTechnician(ctx, dealershipID, technicianID)
+	if err != nil {
+		return nil, technicianShiftError(err)
+	}
+	if !technician.IsActive() {
+		return nil, common.NewNotFoundError("technician_not_found", "technician was not found")
+	}
+	return repository.ListTechnicianShifts(ctx, dealershipID, technicianID)
+}
+
+func (s *Service) UpdateTechnicianShift(ctx context.Context, actorID, technicianID, shiftID uuid.UUID, input UpdateTechnicianShiftInput) (domain.TechnicianShift, error) {
+	repository, dealershipID, err := s.authorizeTechnicianShifts(ctx, actorID)
+	if err != nil {
+		return domain.TechnicianShift{}, err
+	}
+	technician, err := repository.GetTechnician(ctx, dealershipID, technicianID)
+	if err != nil {
+		return domain.TechnicianShift{}, technicianShiftError(err)
+	}
+	if !technician.IsActive() {
+		return domain.TechnicianShift{}, common.NewNotFoundError("technician_not_found", "technician was not found")
+	}
+	current, err := repository.GetTechnicianShift(ctx, dealershipID, technicianID, shiftID)
+	if err != nil {
+		return domain.TechnicianShift{}, technicianShiftError(err)
+	}
+	updated, err := current.Update(valueOr(input.DayOfWeek, current.DayOfWeek()), valueOr(input.StartsAt, current.StartsAt()), valueOr(input.EndsAt, current.EndsAt()), s.now())
+	if err != nil {
+		return domain.TechnicianShift{}, invalidTechnicianShiftInput(err)
+	}
+	invalid, err := repository.HasFutureAppointmentsOutsideTechnicianShift(ctx, technicianID, updated, shiftID, s.now())
+	if err != nil {
+		return domain.TechnicianShift{}, err
+	}
+	if invalid {
+		return domain.TechnicianShift{}, common.NewConflictError("appointment_schedule_conflict", "the shift change would invalidate future active appointments")
+	}
+	if err := repository.UpdateTechnicianShift(ctx, dealershipID, updated); err != nil {
+		return domain.TechnicianShift{}, technicianShiftError(err)
+	}
+	return updated, nil
+}
+
+func (s *Service) DeleteTechnicianShift(ctx context.Context, actorID, technicianID, shiftID uuid.UUID) error {
+	repository, dealershipID, err := s.authorizeTechnicianShifts(ctx, actorID)
+	if err != nil {
+		return err
+	}
+	technician, err := repository.GetTechnician(ctx, dealershipID, technicianID)
+	if err != nil {
+		return technicianShiftError(err)
+	}
+	if !technician.IsActive() {
+		return common.NewNotFoundError("technician_not_found", "technician was not found")
+	}
+	shift, err := repository.GetTechnicianShift(ctx, dealershipID, technicianID, shiftID)
+	if err != nil {
+		return technicianShiftError(err)
+	}
+	invalid, err := repository.HasFutureAppointmentsOutsideTechnicianShift(ctx, technicianID, domain.TechnicianShift{}, shift.ID(), s.now())
+	if err != nil {
+		return err
+	}
+	if invalid {
+		return common.NewConflictError("appointment_schedule_conflict", "deleting the shift would invalidate future active appointments")
+	}
+	return technicianShiftError(repository.DeleteTechnicianShift(ctx, dealershipID, technicianID, shiftID, s.now()))
+}
+
+func (s *Service) authorizeTechnicianShifts(ctx context.Context, actorID uuid.UUID) (TechnicianShiftRepository, uuid.UUID, error) {
+	if actorID == uuid.Nil {
+		return nil, uuid.Nil, common.NewUnauthorizedError("unauthenticated", "authentication required")
+	}
+	user, err := s.users.GetUserInfo(ctx, actorID)
+	if err != nil || user.UserID != actorID.String() || user.Status != "active" || user.Role != "admin" {
+		return nil, uuid.Nil, common.NewForbiddenError("forbidden", "you are not allowed to manage technician shifts")
+	}
+	repository, ok := s.repository.(TechnicianShiftRepository)
+	if !ok {
+		return nil, uuid.Nil, errors.New("technician shift repository is not configured")
+	}
+	dealershipID, err := repository.GetGlobalAdminDealership(ctx, actorID)
+	if errors.Is(err, ErrTechnicianNotFound) {
+		return nil, uuid.Nil, common.NewForbiddenError("forbidden", "you are not allowed to manage technician shifts")
+	}
+	if err != nil {
+		return nil, uuid.Nil, err
+	}
+	return repository, dealershipID, nil
+}
+
+func technicianShiftError(err error) error {
+	switch {
+	case errors.Is(err, ErrTechnicianNotFound):
+		return common.NewNotFoundError("technician_not_found", "technician was not found")
+	case errors.Is(err, ErrTechnicianShiftNotFound):
+		return common.NewNotFoundError("shift_not_found", "technician shift was not found")
+	case errors.Is(err, ErrTechnicianShiftOverlaps):
+		return common.NewConflictError("shift_overlap", "shift overlaps an existing shift")
+	default:
+		return err
+	}
+}
+
+func invalidTechnicianShiftInput(err error) common.Error {
+	return common.Error{HttpErrorCode: 422, PublicError: err.Error(), ErrorSlug: "validation_failed"}
 }
 
 func (s *Service) CreateTechnicianSkill(ctx context.Context, actorID, technicianID uuid.UUID, input CreateTechnicianSkillInput) (domain.TechnicianSkill, error) {

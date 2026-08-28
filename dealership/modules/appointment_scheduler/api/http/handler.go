@@ -83,6 +83,10 @@ func Register(_ context.Context, router common.EchoRouter, handler *Handler) err
 			"listTechnicianSkills":                   {handler.requireIdentity},
 			"updateTechnicianSkill":                  {handler.requireIdentity},
 			"deleteTechnicianSkill":                  {handler.requireIdentity},
+			"createTechnicianShift":                  {handler.requireIdentity},
+			"listTechnicianShifts":                   {handler.requireIdentity},
+			"updateTechnicianShift":                  {handler.requireIdentity},
+			"deleteTechnicianShift":                  {handler.requireIdentity},
 		},
 	})
 	return nil
@@ -722,6 +726,82 @@ func technicianSkillResponse(skill domain.TechnicianSkill) TechnicianSkill {
 	return TechnicianSkill{TechnicianSkillId: skill.ID(), TechnicianId: skill.TechnicianID(), SkillId: skill.SkillID(), CreatedAt: skill.CreatedAt(), UpdatedAt: skill.UpdatedAt()}
 }
 
+func (h *Handler) CreateTechnicianShift(ctx context.Context, request CreateTechnicianShiftRequestObject) (CreateTechnicianShiftResponseObject, error) {
+	if request.Body == nil {
+		return createTechnicianShiftErrorResponse(common.NewInvalidInputError("validation_failed", "request body is required"))
+	}
+	startsAt, err := parseShiftTime(request.Body.StartsAt)
+	if err != nil {
+		return createTechnicianShiftErrorResponse(err)
+	}
+	endsAt, err := parseShiftTime(request.Body.EndsAt)
+	if err != nil {
+		return createTechnicianShiftErrorResponse(err)
+	}
+	shift, err := h.service.CreateTechnicianShift(ctx, identityFrom(ctx), uuid.UUID(request.TechnicianId), app.CreateTechnicianShiftInput{DayOfWeek: request.Body.DayOfWeek, StartsAt: startsAt, EndsAt: endsAt})
+	if err != nil {
+		return createTechnicianShiftErrorResponse(err)
+	}
+	return CreateTechnicianShift201JSONResponse{TechnicianShiftCreatedJSONResponse: TechnicianShiftCreatedJSONResponse(technicianShiftResponse(shift))}, nil
+}
+
+func (h *Handler) ListTechnicianShifts(ctx context.Context, request ListTechnicianShiftsRequestObject) (ListTechnicianShiftsResponseObject, error) {
+	shifts, err := h.service.ListTechnicianShifts(ctx, identityFrom(ctx), uuid.UUID(request.TechnicianId))
+	if err != nil {
+		return listTechnicianShiftErrorResponse(err)
+	}
+	response := make(TechnicianShiftsListedJSONResponse, 0, len(shifts))
+	for _, shift := range shifts {
+		response = append(response, technicianShiftResponse(shift))
+	}
+	return ListTechnicianShifts200JSONResponse{TechnicianShiftsListedJSONResponse: response}, nil
+}
+
+func (h *Handler) UpdateTechnicianShift(ctx context.Context, request UpdateTechnicianShiftRequestObject) (UpdateTechnicianShiftResponseObject, error) {
+	if request.Body == nil || (request.Body.DayOfWeek == nil && request.Body.StartsAt == nil && request.Body.EndsAt == nil) {
+		return updateTechnicianShiftErrorResponse(common.NewInvalidInputError("validation_failed", "at least one field is required"))
+	}
+	input := app.UpdateTechnicianShiftInput{DayOfWeek: request.Body.DayOfWeek}
+	if request.Body.StartsAt != nil {
+		value, err := parseShiftTime(*request.Body.StartsAt)
+		if err != nil {
+			return updateTechnicianShiftErrorResponse(err)
+		}
+		input.StartsAt = &value
+	}
+	if request.Body.EndsAt != nil {
+		value, err := parseShiftTime(*request.Body.EndsAt)
+		if err != nil {
+			return updateTechnicianShiftErrorResponse(err)
+		}
+		input.EndsAt = &value
+	}
+	shift, err := h.service.UpdateTechnicianShift(ctx, identityFrom(ctx), uuid.UUID(request.TechnicianId), uuid.UUID(request.ShiftId), input)
+	if err != nil {
+		return updateTechnicianShiftErrorResponse(err)
+	}
+	return UpdateTechnicianShift200JSONResponse{TechnicianShiftUpdatedJSONResponse: TechnicianShiftUpdatedJSONResponse(technicianShiftResponse(shift))}, nil
+}
+
+func (h *Handler) DeleteTechnicianShift(ctx context.Context, request DeleteTechnicianShiftRequestObject) (DeleteTechnicianShiftResponseObject, error) {
+	if err := h.service.DeleteTechnicianShift(ctx, identityFrom(ctx), uuid.UUID(request.TechnicianId), uuid.UUID(request.ShiftId)); err != nil {
+		return deleteTechnicianShiftErrorResponse(err)
+	}
+	return DeleteTechnicianShift204Response{}, nil
+}
+
+func parseShiftTime(value string) (time.Duration, error) {
+	parsed, err := time.Parse("15:04", value)
+	if err != nil || len(value) != 5 || parsed.Format("15:04") != value {
+		return 0, common.NewInvalidInputError("validation_failed", "time must use HH:MM format")
+	}
+	return time.Duration(parsed.Hour())*time.Hour + time.Duration(parsed.Minute())*time.Minute, nil
+}
+
+func technicianShiftResponse(shift domain.TechnicianShift) TechnicianShift {
+	return TechnicianShift{TechnicianShiftId: shift.ID(), TechnicianId: shift.TechnicianID(), DayOfWeek: shift.DayOfWeek(), StartsAt: formatOperationTime(shift.StartsAt()), EndsAt: formatOperationTime(shift.EndsAt()), CreatedAt: shift.CreatedAt(), UpdatedAt: shift.UpdatedAt()}
+}
+
 func (h *Handler) CreateCustomer(ctx context.Context, request CreateCustomerRequestObject) (CreateCustomerResponseObject, error) {
 	if request.Body == nil {
 		return CreateCustomer400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(errorResponse(common.NewInvalidInputError("invalid_request", "request body is required")))}, nil
@@ -1081,6 +1161,76 @@ func deleteTechnicianSkillErrorResponse(err error) (DeleteTechnicianSkillRespons
 		return DeleteTechnicianSkill404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
 	default:
 		return DeleteTechnicianSkill500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
+}
+
+func createTechnicianShiftErrorResponse(err error) (CreateTechnicianShiftResponseObject, error) {
+	structured, response := technicianProblem(err), errorResponse(technicianProblem(err))
+	switch structured.HttpErrorCode {
+	case 400:
+		return CreateTechnicianShift422JSONResponse{UnprocessableEntityJSONResponse: UnprocessableEntityJSONResponse(response)}, nil
+	case 401:
+		return CreateTechnicianShift401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case 403:
+		return CreateTechnicianShift403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case 404:
+		return CreateTechnicianShift404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	case 409:
+		return CreateTechnicianShift409JSONResponse{ConflictJSONResponse: ConflictJSONResponse(response)}, nil
+	case 422:
+		return CreateTechnicianShift422JSONResponse{UnprocessableEntityJSONResponse: UnprocessableEntityJSONResponse(response)}, nil
+	default:
+		return CreateTechnicianShift500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
+}
+
+func listTechnicianShiftErrorResponse(err error) (ListTechnicianShiftsResponseObject, error) {
+	structured, response := technicianProblem(err), errorResponse(technicianProblem(err))
+	switch structured.HttpErrorCode {
+	case 401:
+		return ListTechnicianShifts401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case 403:
+		return ListTechnicianShifts403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case 404:
+		return ListTechnicianShifts404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	default:
+		return ListTechnicianShifts500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
+}
+
+func updateTechnicianShiftErrorResponse(err error) (UpdateTechnicianShiftResponseObject, error) {
+	structured, response := technicianProblem(err), errorResponse(technicianProblem(err))
+	switch structured.HttpErrorCode {
+	case 400:
+		return UpdateTechnicianShift422JSONResponse{UnprocessableEntityJSONResponse: UnprocessableEntityJSONResponse(response)}, nil
+	case 401:
+		return UpdateTechnicianShift401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case 403:
+		return UpdateTechnicianShift403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case 404:
+		return UpdateTechnicianShift404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	case 409:
+		return UpdateTechnicianShift409JSONResponse{ConflictJSONResponse: ConflictJSONResponse(response)}, nil
+	case 422:
+		return UpdateTechnicianShift422JSONResponse{UnprocessableEntityJSONResponse: UnprocessableEntityJSONResponse(response)}, nil
+	default:
+		return UpdateTechnicianShift500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
+}
+
+func deleteTechnicianShiftErrorResponse(err error) (DeleteTechnicianShiftResponseObject, error) {
+	structured, response := technicianProblem(err), errorResponse(technicianProblem(err))
+	switch structured.HttpErrorCode {
+	case 401:
+		return DeleteTechnicianShift401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case 403:
+		return DeleteTechnicianShift403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case 404:
+		return DeleteTechnicianShift404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	case 409:
+		return DeleteTechnicianShift409JSONResponse{ConflictJSONResponse: ConflictJSONResponse(response)}, nil
+	default:
+		return DeleteTechnicianShift500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
 	}
 }
 
@@ -1723,7 +1873,23 @@ func errorResponse(err common.Error) ErrorResponse {
 			Message:    detail.Message,
 		})
 	}
-	return ErrorResponse{Message: err.PublicError, Slug: err.ErrorSlug, Details: details}
+	status := err.HttpErrorCode
+	if status == 0 {
+		status = stdhttp.StatusInternalServerError
+	}
+	message := err.PublicError
+	slug := err.ErrorSlug
+	return ErrorResponse{
+		Type:    "about:blank",
+		Title:   stdhttp.StatusText(status),
+		Status:  status,
+		Detail:  message,
+		Code:    slug,
+		Errors:  &details,
+		Message: &message,
+		Slug:    &slug,
+		Details: &details,
+	}
 }
 
 func operationTimeProblem(err error) common.Error {

@@ -12,12 +12,12 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const createTechnicianShifts = `-- name: CreateTechnicianShifts :exec
+const createTechnicianShift = `-- name: CreateTechnicianShift :exec
 INSERT INTO appointment_scheduler.technician_shifts (technician_shift_id, technician_id, day_of_week, starts_at, ends_at, created_at, updated_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
 `
 
-type CreateTechnicianShiftsParams struct {
+type CreateTechnicianShiftParams struct {
 	TechnicianShiftID pgtype.UUID
 	TechnicianID      pgtype.UUID
 	DayOfWeek         int16
@@ -27,8 +27,8 @@ type CreateTechnicianShiftsParams struct {
 	UpdatedAt         time.Time
 }
 
-func (q *Queries) CreateTechnicianShifts(ctx context.Context, arg CreateTechnicianShiftsParams) error {
-	_, err := q.db.Exec(ctx, createTechnicianShifts,
+func (q *Queries) CreateTechnicianShift(ctx context.Context, arg CreateTechnicianShiftParams) error {
+	_, err := q.db.Exec(ctx, createTechnicianShift,
 		arg.TechnicianShiftID,
 		arg.TechnicianID,
 		arg.DayOfWeek,
@@ -40,33 +40,51 @@ func (q *Queries) CreateTechnicianShifts(ctx context.Context, arg CreateTechnici
 	return err
 }
 
-const deleteTechnicianShifts = `-- name: DeleteTechnicianShifts :execrows
-UPDATE appointment_scheduler.technician_shifts
-SET deleted_at = $1::timestamptz
-WHERE technician_shift_id = $2 AND deleted_at IS NULL
+const deleteTechnicianShiftForDealership = `-- name: DeleteTechnicianShiftForDealership :execrows
+UPDATE appointment_scheduler.technician_shifts AS shifts
+SET deleted_at = $1, updated_at = $1
+WHERE shifts.technician_shift_id = $2 AND shifts.technician_id = $3 AND shifts.deleted_at IS NULL
+  AND EXISTS (SELECT 1 FROM appointment_scheduler.technicians AS technicians JOIN appointment_scheduler.users AS users ON users.user_id = technicians.user_id WHERE technicians.technician_id = shifts.technician_id AND users.dealership_id = $4 AND technicians.deleted_at IS NULL AND users.deleted_at IS NULL)
 `
 
-type DeleteTechnicianShiftsParams struct {
-	DeletedAt         time.Time
+type DeleteTechnicianShiftForDealershipParams struct {
+	DeletedAt         pgtype.Timestamptz
 	TechnicianShiftID pgtype.UUID
+	TechnicianID      pgtype.UUID
+	DealershipID      pgtype.UUID
 }
 
-func (q *Queries) DeleteTechnicianShifts(ctx context.Context, arg DeleteTechnicianShiftsParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteTechnicianShifts, arg.DeletedAt, arg.TechnicianShiftID)
+func (q *Queries) DeleteTechnicianShiftForDealership(ctx context.Context, arg DeleteTechnicianShiftForDealershipParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteTechnicianShiftForDealership,
+		arg.DeletedAt,
+		arg.TechnicianShiftID,
+		arg.TechnicianID,
+		arg.DealershipID,
+	)
 	if err != nil {
 		return 0, err
 	}
 	return result.RowsAffected(), nil
 }
 
-const getTechnicianShifts = `-- name: GetTechnicianShifts :one
+const getTechnicianShiftForDealership = `-- name: GetTechnicianShiftForDealership :one
 
-SELECT technician_shift_id, technician_id, day_of_week, starts_at, ends_at, created_at, updated_at, deleted_at
-FROM appointment_scheduler.technician_shifts
-WHERE technician_shift_id = $1 AND deleted_at IS NULL
+SELECT shifts.technician_shift_id, shifts.technician_id, shifts.day_of_week, shifts.starts_at, shifts.ends_at, shifts.created_at, shifts.updated_at
+FROM appointment_scheduler.technician_shifts AS shifts
+JOIN appointment_scheduler.technicians AS technicians ON technicians.technician_id = shifts.technician_id
+JOIN appointment_scheduler.users AS users ON users.user_id = technicians.user_id
+WHERE shifts.technician_shift_id = $1 AND shifts.technician_id = $2
+  AND users.dealership_id = $3
+  AND shifts.deleted_at IS NULL AND technicians.deleted_at IS NULL AND users.deleted_at IS NULL
 `
 
-type GetTechnicianShiftsRow struct {
+type GetTechnicianShiftForDealershipParams struct {
+	TechnicianShiftID pgtype.UUID
+	TechnicianID      pgtype.UUID
+	DealershipID      pgtype.UUID
+}
+
+type GetTechnicianShiftForDealershipRow struct {
 	TechnicianShiftID pgtype.UUID
 	TechnicianID      pgtype.UUID
 	DayOfWeek         int16
@@ -74,13 +92,12 @@ type GetTechnicianShiftsRow struct {
 	EndsAt            pgtype.Time
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
-	DeletedAt         pgtype.Timestamptz
 }
 
-// technician shifts CRUD queries.
-func (q *Queries) GetTechnicianShifts(ctx context.Context, technicianShiftID pgtype.UUID) (GetTechnicianShiftsRow, error) {
-	row := q.db.QueryRow(ctx, getTechnicianShifts, technicianShiftID)
-	var i GetTechnicianShiftsRow
+// Technician shift persistence is scoped through the technician's dealership.
+func (q *Queries) GetTechnicianShiftForDealership(ctx context.Context, arg GetTechnicianShiftForDealershipParams) (GetTechnicianShiftForDealershipRow, error) {
+	row := q.db.QueryRow(ctx, getTechnicianShiftForDealership, arg.TechnicianShiftID, arg.TechnicianID, arg.DealershipID)
+	var i GetTechnicianShiftForDealershipRow
 	err := row.Scan(
 		&i.TechnicianShiftID,
 		&i.TechnicianID,
@@ -89,34 +106,135 @@ func (q *Queries) GetTechnicianShifts(ctx context.Context, technicianShiftID pgt
 		&i.EndsAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.DeletedAt,
 	)
 	return i, err
 }
 
-const updateTechnicianShifts = `-- name: UpdateTechnicianShifts :execrows
-UPDATE appointment_scheduler.technician_shifts
-SET technician_id = $1, day_of_week = $2, starts_at = $3, ends_at = $4, updated_at = $5
-WHERE technician_shift_id = $6 AND deleted_at IS NULL
+const hasFutureAppointmentsOutsideTechnicianShift = `-- name: HasFutureAppointmentsOutsideTechnicianShift :one
+SELECT EXISTS (
+  SELECT 1 FROM appointment_scheduler.appointments AS appointments
+  JOIN appointment_scheduler.technicians AS technicians ON technicians.technician_id = appointments.technician_id
+  JOIN appointment_scheduler.users AS users ON users.user_id = technicians.user_id
+  WHERE appointments.technician_id = $1 AND appointments.deleted_at IS NULL
+    AND appointments.status IN ('requested', 'checked_in', 'in_progress') AND appointments.ends_at > $2
+    AND NOT EXISTS (
+      SELECT 1 FROM appointment_scheduler.technician_shifts AS shifts
+      WHERE shifts.technician_id = appointments.technician_id AND shifts.deleted_at IS NULL AND shifts.technician_shift_id <> $3
+        AND shifts.day_of_week = EXTRACT(ISODOW FROM appointments.starts_at AT TIME ZONE users.timezone)
+        AND (appointments.starts_at AT TIME ZONE users.timezone)::time >= shifts.starts_at
+        AND (appointments.ends_at AT TIME ZONE users.timezone)::time <= shifts.ends_at
+        AND (appointments.starts_at AT TIME ZONE users.timezone)::date = (appointments.ends_at AT TIME ZONE users.timezone)::date
+      UNION ALL SELECT 1
+      WHERE $4::smallint = EXTRACT(ISODOW FROM appointments.starts_at AT TIME ZONE users.timezone)
+        AND (appointments.starts_at AT TIME ZONE users.timezone)::time >= $5::time
+        AND (appointments.ends_at AT TIME ZONE users.timezone)::time <= $6::time
+        AND (appointments.starts_at AT TIME ZONE users.timezone)::date = (appointments.ends_at AT TIME ZONE users.timezone)::date
+    )
+)
 `
 
-type UpdateTechnicianShiftsParams struct {
+type HasFutureAppointmentsOutsideTechnicianShiftParams struct {
+	TechnicianID       pgtype.UUID
+	Now                time.Time
+	ExcludedShiftID    pgtype.UUID
+	CandidateDayOfWeek int16
+	CandidateStartsAt  pgtype.Time
+	CandidateEndsAt    pgtype.Time
+}
+
+func (q *Queries) HasFutureAppointmentsOutsideTechnicianShift(ctx context.Context, arg HasFutureAppointmentsOutsideTechnicianShiftParams) (bool, error) {
+	row := q.db.QueryRow(ctx, hasFutureAppointmentsOutsideTechnicianShift,
+		arg.TechnicianID,
+		arg.Now,
+		arg.ExcludedShiftID,
+		arg.CandidateDayOfWeek,
+		arg.CandidateStartsAt,
+		arg.CandidateEndsAt,
+	)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const listTechnicianShiftsForDealership = `-- name: ListTechnicianShiftsForDealership :many
+SELECT shifts.technician_shift_id, shifts.technician_id, shifts.day_of_week, shifts.starts_at, shifts.ends_at, shifts.created_at, shifts.updated_at
+FROM appointment_scheduler.technician_shifts AS shifts
+JOIN appointment_scheduler.technicians AS technicians ON technicians.technician_id = shifts.technician_id
+JOIN appointment_scheduler.users AS users ON users.user_id = technicians.user_id
+WHERE shifts.technician_id = $1 AND users.dealership_id = $2
+  AND shifts.deleted_at IS NULL AND technicians.deleted_at IS NULL AND users.deleted_at IS NULL
+ORDER BY shifts.day_of_week, shifts.starts_at
+`
+
+type ListTechnicianShiftsForDealershipParams struct {
+	TechnicianID pgtype.UUID
+	DealershipID pgtype.UUID
+}
+
+type ListTechnicianShiftsForDealershipRow struct {
+	TechnicianShiftID pgtype.UUID
 	TechnicianID      pgtype.UUID
+	DayOfWeek         int16
+	StartsAt          pgtype.Time
+	EndsAt            pgtype.Time
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+}
+
+func (q *Queries) ListTechnicianShiftsForDealership(ctx context.Context, arg ListTechnicianShiftsForDealershipParams) ([]ListTechnicianShiftsForDealershipRow, error) {
+	rows, err := q.db.Query(ctx, listTechnicianShiftsForDealership, arg.TechnicianID, arg.DealershipID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListTechnicianShiftsForDealershipRow{}
+	for rows.Next() {
+		var i ListTechnicianShiftsForDealershipRow
+		if err := rows.Scan(
+			&i.TechnicianShiftID,
+			&i.TechnicianID,
+			&i.DayOfWeek,
+			&i.StartsAt,
+			&i.EndsAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateTechnicianShiftForDealership = `-- name: UpdateTechnicianShiftForDealership :execrows
+UPDATE appointment_scheduler.technician_shifts AS shifts
+SET day_of_week = $1, starts_at = $2, ends_at = $3, updated_at = $4
+WHERE shifts.technician_shift_id = $5 AND shifts.technician_id = $6 AND shifts.deleted_at IS NULL
+  AND EXISTS (SELECT 1 FROM appointment_scheduler.technicians AS technicians JOIN appointment_scheduler.users AS users ON users.user_id = technicians.user_id WHERE technicians.technician_id = shifts.technician_id AND users.dealership_id = $7 AND technicians.deleted_at IS NULL AND users.deleted_at IS NULL)
+`
+
+type UpdateTechnicianShiftForDealershipParams struct {
 	DayOfWeek         int16
 	StartsAt          pgtype.Time
 	EndsAt            pgtype.Time
 	UpdatedAt         time.Time
 	TechnicianShiftID pgtype.UUID
+	TechnicianID      pgtype.UUID
+	DealershipID      pgtype.UUID
 }
 
-func (q *Queries) UpdateTechnicianShifts(ctx context.Context, arg UpdateTechnicianShiftsParams) (int64, error) {
-	result, err := q.db.Exec(ctx, updateTechnicianShifts,
-		arg.TechnicianID,
+func (q *Queries) UpdateTechnicianShiftForDealership(ctx context.Context, arg UpdateTechnicianShiftForDealershipParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateTechnicianShiftForDealership,
 		arg.DayOfWeek,
 		arg.StartsAt,
 		arg.EndsAt,
 		arg.UpdatedAt,
 		arg.TechnicianShiftID,
+		arg.TechnicianID,
+		arg.DealershipID,
 	)
 	if err != nil {
 		return 0, err
