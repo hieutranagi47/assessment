@@ -581,6 +581,86 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
         "500": { $ref: "#/components/responses/InternalServerError" }
+  /v1/technicians:
+    post:
+      operationId: createTechnician
+      tags: [Technicians]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateTechnicianRequest" }
+      responses:
+        "201": { $ref: "#/components/responses/TechnicianCreated" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/UnprocessableEntity" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    get:
+      operationId: listTechnicians
+      tags: [Technicians]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: isActive
+          in: query
+          schema: { type: boolean }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 25 }
+        - name: offset
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+      responses:
+        "200": { $ref: "#/components/responses/TechniciansListed" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+  /v1/technicians/{technicianId}:
+    parameters:
+      - $ref: "#/components/parameters/TechnicianId"
+    get:
+      operationId: getTechnician
+      tags: [Technicians]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/TechnicianFound" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    patch:
+      operationId: updateTechnician
+      tags: [Technicians]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateTechnicianRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/TechnicianUpdated" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/UnprocessableEntity" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    delete:
+      operationId: deleteTechnician
+      tags: [Technicians]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "204": { description: Technician deactivated }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /v1/vehicles/{vehicleId}:
     parameters:
       - $ref: "#/components/parameters/VehicleId"
@@ -627,6 +707,45 @@ components:
   securitySchemes:
     bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
   schemas:
+    CreateTechnicianRequest:
+      type: object
+      required: [name, phone]
+      properties:
+        name: { type: string, minLength: 1 }
+        phone: { type: string, minLength: 1 }
+        email: { type: string, format: email, nullable: true }
+        isActive: { type: boolean, default: true }
+    UpdateTechnicianRequest:
+      type: object
+      minProperties: 1
+      properties:
+        name: { type: string, minLength: 1 }
+        phone: { type: string, minLength: 1 }
+        email:
+          nullable: true
+          x-go-type: OptionalNullableString
+        isActive: { type: boolean }
+    Technician:
+      type: object
+      required: [technicianId, userId, name, phone, isActive, createdAt, updatedAt]
+      properties:
+        technicianId: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
+        name: { type: string }
+        phone: { type: string }
+        email: { type: string, format: email, nullable: true }
+        isActive: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    TechnicianPage:
+      type: object
+      required: [items, limit, offset]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Technician" }
+        limit: { type: integer }
+        offset: { type: integer }
     CreateCustomerRequest:
       type: object
       required: [name, phone]
@@ -1040,6 +1159,26 @@ components:
       content:
         application/json:
           schema: { $ref: "#/components/schemas/ServiceBayPage" }
+    TechnicianCreated:
+      description: Technician created
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Technician" }
+    TechnicianFound:
+      description: Technician found
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Technician" }
+    TechnicianUpdated:
+      description: Technician updated
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Technician" }
+    TechniciansListed:
+      description: Technicians for the authenticated administrator's dealership
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/TechnicianPage" }
     ServiceTypeCreated:
       description: Service type created
       content:
@@ -1169,6 +1308,11 @@ components:
         application/json:
           schema: { $ref: "#/components/schemas/ErrorResponse" }
   parameters:
+    TechnicianId:
+      name: technicianId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
     CustomerId:
       name: customerId
       in: path

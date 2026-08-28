@@ -39,6 +39,10 @@ var (
 	ErrVehicleNotFound                          = errors.New("vehicle not found")
 	ErrVehicleVINTaken                          = errors.New("vehicle VIN already exists")
 	ErrVehicleCustomerForbidden                 = errors.New("vehicle customer belongs to another dealership")
+	ErrTechnicianNotFound                       = errors.New("technician not found")
+	ErrTechnicianPhoneTaken                     = errors.New("technician phone already exists")
+	ErrTechnicianEmailTaken                     = errors.New("technician email already exists")
+	ErrTechnicianHasFutureAppointments          = errors.New("technician has future active appointments")
 	ErrDealershipOperationTimeNotFound          = errors.New("dealership operation time not found")
 	ErrDealershipOperationTimeOverlaps          = errors.New("dealership operation time overlaps an existing interval")
 )
@@ -124,6 +128,18 @@ type DealershipOperationTimeRepository interface {
 	ListDealershipOperationTimes(context.Context, uuid.UUID) ([]domain.DealershipOperationTime, error)
 	UpdateDealershipOperationTime(context.Context, domain.DealershipOperationTime) error
 	DeleteDealershipOperationTime(context.Context, uuid.UUID, uuid.UUID) error
+}
+
+// TechnicianRepository keeps employee persistence dealership-scoped. The
+// actor's dealership is resolved separately so it is never client-controlled.
+type TechnicianRepository interface {
+	GetGlobalAdminDealership(context.Context, uuid.UUID) (uuid.UUID, error)
+	CreateTechnician(context.Context, uuid.UUID, domain.Technician) (domain.Technician, error)
+	GetTechnician(context.Context, uuid.UUID, uuid.UUID) (domain.Technician, error)
+	ListTechnicians(context.Context, uuid.UUID, *bool, int, int) ([]domain.Technician, error)
+	UpdateTechnician(context.Context, uuid.UUID, domain.Technician) (domain.Technician, error)
+	HasFutureActiveTechnicianAppointments(context.Context, uuid.UUID, time.Time) (bool, error)
+	DeactivateTechnician(context.Context, uuid.UUID, uuid.UUID, time.Time) error
 }
 
 // ServiceBayCapabilityRepository scopes every association through its owning
@@ -267,6 +283,21 @@ type UpdateVehicleInput struct {
 	Model                    *string
 	ModelYearPresent         bool
 	ModelYear                *int
+}
+
+type CreateTechnicianInput struct {
+	Name     string
+	Phone    string
+	Email    *string
+	IsActive bool
+}
+
+type UpdateTechnicianInput struct {
+	Name         *string
+	Phone        *string
+	Email        *string
+	EmailPresent bool
+	IsActive     *bool
 }
 
 type CreateServiceTypeRequiredSkillInput struct{ SkillID uuid.UUID }
@@ -1426,6 +1457,124 @@ func (s *Service) authorizeSearchAuthUser(ctx context.Context, actorID uuid.UUID
 		return common.NewForbiddenError("auth_user_search_forbidden", "you are not allowed to search auth users")
 	}
 	return nil
+}
+
+func (s *Service) CreateTechnician(ctx context.Context, actorID uuid.UUID, input CreateTechnicianInput) (domain.Technician, error) {
+	repository, dealershipID, err := s.authorizeTechnicians(ctx, actorID)
+	if err != nil {
+		return domain.Technician{}, err
+	}
+	technician, err := domain.NewTechnician(s.newID(), s.newID(), input.Name, input.Phone, input.Email, input.IsActive, s.now())
+	if err != nil {
+		return domain.Technician{}, invalidTechnicianInput(err)
+	}
+	result, err := repository.CreateTechnician(ctx, dealershipID, technician)
+	return result, technicianError(err)
+}
+
+func (s *Service) ListTechnicians(ctx context.Context, actorID uuid.UUID, isActive *bool, limit, offset int) ([]domain.Technician, error) {
+	repository, dealershipID, err := s.authorizeTechnicians(ctx, actorID)
+	if err != nil {
+		return nil, err
+	}
+	if limit < 1 || limit > 100 || offset < 0 {
+		return nil, common.NewInvalidInputError("invalid_pagination", "limit must be between 1 and 100 and offset cannot be negative")
+	}
+	return repository.ListTechnicians(ctx, dealershipID, isActive, limit, offset)
+}
+
+func (s *Service) GetTechnician(ctx context.Context, actorID, technicianID uuid.UUID) (domain.Technician, error) {
+	repository, dealershipID, err := s.authorizeTechnicians(ctx, actorID)
+	if err != nil {
+		return domain.Technician{}, err
+	}
+	result, err := repository.GetTechnician(ctx, dealershipID, technicianID)
+	return result, technicianError(err)
+}
+
+func (s *Service) UpdateTechnician(ctx context.Context, actorID, technicianID uuid.UUID, input UpdateTechnicianInput) (domain.Technician, error) {
+	repository, dealershipID, err := s.authorizeTechnicians(ctx, actorID)
+	if err != nil {
+		return domain.Technician{}, err
+	}
+	current, err := repository.GetTechnician(ctx, dealershipID, technicianID)
+	if err != nil {
+		return domain.Technician{}, technicianError(err)
+	}
+	email := current.Email()
+	if input.EmailPresent {
+		email = input.Email
+	}
+	updated, err := current.Update(valueOr(input.Name, current.Name()), valueOr(input.Phone, current.Phone()), email, valueOr(input.IsActive, current.IsActive()), s.now())
+	if err != nil {
+		return domain.Technician{}, invalidTechnicianInput(err)
+	}
+	result, err := repository.UpdateTechnician(ctx, dealershipID, updated)
+	return result, technicianError(err)
+}
+
+func (s *Service) DeactivateTechnician(ctx context.Context, actorID, technicianID uuid.UUID) error {
+	repository, dealershipID, err := s.authorizeTechnicians(ctx, actorID)
+	if err != nil {
+		return err
+	}
+	technician, err := repository.GetTechnician(ctx, dealershipID, technicianID)
+	if err != nil {
+		return technicianError(err)
+	}
+	if !technician.IsActive() {
+		return nil
+	}
+	hasAppointments, err := repository.HasFutureActiveTechnicianAppointments(ctx, technicianID, s.now())
+	if err != nil {
+		return err
+	}
+	if hasAppointments {
+		return common.NewConflictError("technician_future_active_appointments", "future active appointments must be reassigned or cancelled before deactivating this technician")
+	}
+	return technicianError(repository.DeactivateTechnician(ctx, dealershipID, technicianID, s.now()))
+}
+
+func (s *Service) authorizeTechnicians(ctx context.Context, actorID uuid.UUID) (TechnicianRepository, uuid.UUID, error) {
+	if actorID == uuid.Nil {
+		return nil, uuid.Nil, common.NewUnauthorizedError("authentication_required", "authentication required")
+	}
+	user, err := s.users.GetUserInfo(ctx, actorID)
+	if err != nil || user.UserID != actorID.String() || user.Status != "active" || user.Role != "admin" {
+		return nil, uuid.Nil, common.NewForbiddenError("technician_access_forbidden", "you are not allowed to manage technicians")
+	}
+	repository, ok := s.repository.(TechnicianRepository)
+	if !ok {
+		return nil, uuid.Nil, errors.New("technician repository is not configured")
+	}
+	dealershipID, err := repository.GetGlobalAdminDealership(ctx, actorID)
+	if errors.Is(err, ErrTechnicianNotFound) {
+		return nil, uuid.Nil, common.NewForbiddenError("technician_access_forbidden", "you are not allowed to manage technicians")
+	}
+	if err != nil {
+		return nil, uuid.Nil, err
+	}
+	return repository, dealershipID, nil
+}
+
+func technicianError(err error) error {
+	switch {
+	case errors.Is(err, ErrTechnicianNotFound):
+		return common.NewNotFoundError("technician_not_found", "technician was not found")
+	case errors.Is(err, ErrTechnicianPhoneTaken):
+		return common.NewConflictError("technician_phone_taken", "a technician with this phone already exists")
+	case errors.Is(err, ErrTechnicianEmailTaken):
+		return common.NewConflictError("technician_email_taken", "a technician with this email already exists")
+	default:
+		return err
+	}
+}
+
+func invalidTechnicianInput(err error) common.Error {
+	if errors.Is(err, domain.ErrTechnicianPhoneInvalid) || errors.Is(err, domain.ErrTechnicianEmailInvalid) {
+		return common.Error{HttpErrorCode: 422, PublicError: err.Error(), ErrorSlug: "invalid_technician_details"}
+	}
+	return common.NewInvalidInputError("invalid_technician_details", "%s", err)
 }
 
 type activeAuthUser struct {

@@ -46,3 +46,24 @@ func (request *UpdateCustomerRequest) UnmarshalJSON(data []byte) error {
 	}
 	return nil
 }
+
+func (request *UpdateTechnicianRequest) UnmarshalJSON(data []byte) error {
+	var decoded struct {
+		Name     *string         `json:"name"`
+		Phone    *string         `json:"phone"`
+		Email    json.RawMessage `json:"email"`
+		IsActive *bool           `json:"isActive"`
+	}
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+	request.Name, request.Phone, request.IsActive, request.Email = decoded.Name, decoded.Phone, decoded.IsActive, nil
+	if decoded.Email != nil {
+		value := OptionalNullableString{}
+		if err := value.UnmarshalJSON(decoded.Email); err != nil {
+			return err
+		}
+		request.Email = &value
+	}
+	return nil
+}

@@ -74,6 +74,11 @@ func Register(_ context.Context, router common.EchoRouter, handler *Handler) err
 			"listCustomerVehicles":                   {handler.requireIdentity},
 			"updateVehicle":                          {handler.requireIdentity},
 			"deleteVehicle":                          {handler.requireIdentity},
+			"createTechnician":                       {handler.requireIdentity},
+			"listTechnicians":                        {handler.requireIdentity},
+			"getTechnician":                          {handler.requireIdentity},
+			"updateTechnician":                       {handler.requireIdentity},
+			"deleteTechnician":                       {handler.requireIdentity},
 		},
 	})
 	return nil
@@ -586,6 +591,84 @@ func adminEmailPointer(value *string) *openapi_types.Email {
 	return &result
 }
 
+func (h *Handler) CreateTechnician(ctx context.Context, request CreateTechnicianRequestObject) (CreateTechnicianResponseObject, error) {
+	if request.Body == nil {
+		return CreateTechnician400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(errorResponse(common.NewInvalidInputError("request_body_required", "request body is required")))}, nil
+	}
+	var email *string
+	if request.Body.Email != nil {
+		value := string(*request.Body.Email)
+		email = &value
+	}
+	isActive := true
+	if request.Body.IsActive != nil {
+		isActive = *request.Body.IsActive
+	}
+	technician, err := h.service.CreateTechnician(ctx, identityFrom(ctx), app.CreateTechnicianInput{Name: request.Body.Name, Phone: request.Body.Phone, Email: email, IsActive: isActive})
+	if err != nil {
+		return createTechnicianErrorResponse(err)
+	}
+	return CreateTechnician201JSONResponse{TechnicianCreatedJSONResponse: TechnicianCreatedJSONResponse(technicianResponse(technician))}, nil
+}
+
+func (h *Handler) ListTechnicians(ctx context.Context, request ListTechniciansRequestObject) (ListTechniciansResponseObject, error) {
+	limit, offset := 25, 0
+	if request.Params.Limit != nil {
+		limit = *request.Params.Limit
+	}
+	if request.Params.Offset != nil {
+		offset = *request.Params.Offset
+	}
+	technicians, err := h.service.ListTechnicians(ctx, identityFrom(ctx), request.Params.IsActive, limit, offset)
+	if err != nil {
+		return listTechniciansErrorResponse(err)
+	}
+	items := make([]Technician, 0, len(technicians))
+	for _, technician := range technicians {
+		items = append(items, technicianResponse(technician))
+	}
+	return ListTechnicians200JSONResponse{TechniciansListedJSONResponse: TechniciansListedJSONResponse(TechnicianPage{Items: items, Limit: limit, Offset: offset})}, nil
+}
+
+func (h *Handler) GetTechnician(ctx context.Context, request GetTechnicianRequestObject) (GetTechnicianResponseObject, error) {
+	technician, err := h.service.GetTechnician(ctx, identityFrom(ctx), uuid.UUID(request.TechnicianId))
+	if err != nil {
+		return getTechnicianErrorResponse(err)
+	}
+	return GetTechnician200JSONResponse{TechnicianFoundJSONResponse: TechnicianFoundJSONResponse(technicianResponse(technician))}, nil
+}
+
+func (h *Handler) UpdateTechnician(ctx context.Context, request UpdateTechnicianRequestObject) (UpdateTechnicianResponseObject, error) {
+	if request.Body == nil || (request.Body.Name == nil && request.Body.Phone == nil && request.Body.Email == nil && request.Body.IsActive == nil) {
+		return UpdateTechnician400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(errorResponse(common.NewInvalidInputError("request_body_required", "at least one field is required")))}, nil
+	}
+	input := app.UpdateTechnicianInput{Name: request.Body.Name, Phone: request.Body.Phone, IsActive: request.Body.IsActive}
+	if request.Body.Email != nil {
+		input.EmailPresent, input.Email = request.Body.Email.Present, request.Body.Email.Value
+	}
+	technician, err := h.service.UpdateTechnician(ctx, identityFrom(ctx), uuid.UUID(request.TechnicianId), input)
+	if err != nil {
+		return updateTechnicianErrorResponse(err)
+	}
+	return UpdateTechnician200JSONResponse{TechnicianUpdatedJSONResponse: TechnicianUpdatedJSONResponse(technicianResponse(technician))}, nil
+}
+
+func (h *Handler) DeleteTechnician(ctx context.Context, request DeleteTechnicianRequestObject) (DeleteTechnicianResponseObject, error) {
+	if err := h.service.DeactivateTechnician(ctx, identityFrom(ctx), uuid.UUID(request.TechnicianId)); err != nil {
+		return deleteTechnicianErrorResponse(err)
+	}
+	return DeleteTechnician204Response{}, nil
+}
+
+func technicianResponse(technician domain.Technician) Technician {
+	var email *openapi_types.Email
+	if value := technician.Email(); value != nil {
+		result := openapi_types.Email(*value)
+		email = &result
+	}
+	return Technician{TechnicianId: technician.ID(), UserId: technician.UserID(), Name: technician.Name(), Phone: technician.Phone(), Email: email, IsActive: technician.IsActive(), CreatedAt: technician.CreatedAt(), UpdatedAt: technician.UpdatedAt()}
+}
+
 func (h *Handler) CreateCustomer(ctx context.Context, request CreateCustomerRequestObject) (CreateCustomerResponseObject, error) {
 	if request.Body == nil {
 		return CreateCustomer400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(errorResponse(common.NewInvalidInputError("invalid_request", "request body is required")))}, nil
@@ -790,6 +873,96 @@ func customerProblem(err error) common.Error {
 		return structured
 	}
 	return common.Error{PublicError: "internal server error", ErrorSlug: "internal_error"}
+}
+
+func technicianProblem(err error) common.Error {
+	var structured common.Error
+	if errors.As(err, &structured) {
+		return structured
+	}
+	return common.Error{PublicError: "internal server error", ErrorSlug: "internal_server_error"}
+}
+
+func createTechnicianErrorResponse(err error) (CreateTechnicianResponseObject, error) {
+	structured, response := technicianProblem(err), errorResponse(technicianProblem(err))
+	switch structured.HttpErrorCode {
+	case 400:
+		return CreateTechnician400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(response)}, nil
+	case 401:
+		return CreateTechnician401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case 403:
+		return CreateTechnician403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case 409:
+		return CreateTechnician409JSONResponse{ConflictJSONResponse: ConflictJSONResponse(response)}, nil
+	case 422:
+		return CreateTechnician422JSONResponse{UnprocessableEntityJSONResponse: UnprocessableEntityJSONResponse(response)}, nil
+	default:
+		return CreateTechnician500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
+}
+
+func listTechniciansErrorResponse(err error) (ListTechniciansResponseObject, error) {
+	structured, response := technicianProblem(err), errorResponse(technicianProblem(err))
+	switch structured.HttpErrorCode {
+	case 400:
+		return ListTechnicians400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(response)}, nil
+	case 401:
+		return ListTechnicians401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case 403:
+		return ListTechnicians403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	default:
+		return ListTechnicians500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
+}
+
+func getTechnicianErrorResponse(err error) (GetTechnicianResponseObject, error) {
+	structured, response := technicianProblem(err), errorResponse(technicianProblem(err))
+	switch structured.HttpErrorCode {
+	case 401:
+		return GetTechnician401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case 403:
+		return GetTechnician403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case 404:
+		return GetTechnician404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	default:
+		return GetTechnician500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
+}
+
+func updateTechnicianErrorResponse(err error) (UpdateTechnicianResponseObject, error) {
+	structured, response := technicianProblem(err), errorResponse(technicianProblem(err))
+	switch structured.HttpErrorCode {
+	case 400:
+		return UpdateTechnician400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(response)}, nil
+	case 401:
+		return UpdateTechnician401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case 403:
+		return UpdateTechnician403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case 404:
+		return UpdateTechnician404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	case 409:
+		return UpdateTechnician409JSONResponse{ConflictJSONResponse: ConflictJSONResponse(response)}, nil
+	case 422:
+		return UpdateTechnician422JSONResponse{UnprocessableEntityJSONResponse: UnprocessableEntityJSONResponse(response)}, nil
+	default:
+		return UpdateTechnician500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
+}
+
+func deleteTechnicianErrorResponse(err error) (DeleteTechnicianResponseObject, error) {
+	structured, response := technicianProblem(err), errorResponse(technicianProblem(err))
+	switch structured.HttpErrorCode {
+	case 401:
+		return DeleteTechnician401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case 403:
+		return DeleteTechnician403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case 404:
+		return DeleteTechnician404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	case 409:
+		return DeleteTechnician409JSONResponse{ConflictJSONResponse: ConflictJSONResponse(response)}, nil
+	default:
+		return DeleteTechnician500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
 }
 
 func createCustomerErrorResponse(err error) (CreateCustomerResponseObject, error) {
