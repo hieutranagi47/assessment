@@ -203,6 +203,13 @@ type AuthUser struct {
 	UserId   openapi_types.UUID  `json:"user_id"`
 }
 
+// AvailableServiceBaysResponse defines model for AvailableServiceBaysResponse.
+type AvailableServiceBaysResponse struct {
+	EndsAt   time.Time    `json:"ends_at"`
+	Items    []ServiceBay `json:"items"`
+	StartsAt time.Time    `json:"starts_at"`
+}
+
 // BayCapability defines model for BayCapability.
 type BayCapability struct {
 	BayCapabilityId openapi_types.UUID `json:"bay_capability_id"`
@@ -760,6 +767,9 @@ type AppointmentScheduled = Appointment
 // AuthUserFound defines model for AuthUserFound.
 type AuthUserFound = AuthUser
 
+// AvailableServiceBaysListed defines model for AvailableServiceBaysListed.
+type AvailableServiceBaysListed = AvailableServiceBaysResponse
+
 // BadRequest defines model for BadRequest.
 type BadRequest = ErrorResponse
 
@@ -935,6 +945,12 @@ type ListServiceBaysParams struct {
 	IsActive *bool `form:"isActive,omitempty" json:"isActive,omitempty"`
 	Limit    *int  `form:"limit,omitempty" json:"limit,omitempty"`
 	Offset   *int  `form:"offset,omitempty" json:"offset,omitempty"`
+}
+
+// ListAvailableServiceBaysParams defines parameters for ListAvailableServiceBays.
+type ListAvailableServiceBaysParams struct {
+	StartsAt time.Time `form:"starts_at" json:"starts_at"`
+	EndsAt   time.Time `form:"ends_at" json:"ends_at"`
 }
 
 // ListTechnicianSchedulesParams defines parameters for ListTechnicianSchedules.
@@ -1125,6 +1141,9 @@ type ServerInterface interface {
 
 	// (POST /dealerships/{dealershipId}/service-bays)
 	CreateServiceBay(ctx *echo.Context, dealershipId DealershipId) error
+
+	// (GET /dealerships/{dealershipId}/service-bays/available)
+	ListAvailableServiceBays(ctx *echo.Context, dealershipId DealershipId, params ListAvailableServiceBaysParams) error
 
 	// (DELETE /dealerships/{dealershipId}/service-bays/{serviceBayId})
 	DeleteServiceBay(ctx *echo.Context, dealershipId DealershipId, serviceBayId ServiceBayId) error
@@ -1606,6 +1625,38 @@ func (w *ServerInterfaceWrapper) CreateServiceBay(ctx *echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.CreateServiceBay(ctx, dealershipId)
+	return err
+}
+
+// ListAvailableServiceBays converts echo context to params.
+func (w *ServerInterfaceWrapper) ListAvailableServiceBays(ctx *echo.Context) error {
+	var err error
+	// ------------- Path parameter "dealershipId" -------------
+	var dealershipId DealershipId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "dealershipId", ctx.Param("dealershipId"), &dealershipId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter dealershipId: %s", err))
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListAvailableServiceBaysParams
+	// ------------- Required query parameter "starts_at" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "starts_at", ctx.QueryParams(), &params.StartsAt, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter starts_at: %s", err))
+	}
+
+	// ------------- Required query parameter "ends_at" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "ends_at", ctx.QueryParams(), &params.EndsAt, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter ends_at: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListAvailableServiceBays(ctx, dealershipId, params)
 	return err
 }
 
@@ -2638,6 +2689,7 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 		Handler: si,
 	}
 
+	router.GET(options.BaseURL+"/dealerships/:dealershipId/service-bays/available", wrapper.ListAvailableServiceBays, options.OperationMiddlewares["listAvailableServiceBays"]...)
 	router.GET(options.BaseURL+"/dealerships/:dealershipId/technician-schedules", wrapper.ListTechnicianSchedules, options.OperationMiddlewares["listTechnicianSchedules"]...)
 	router.POST(options.BaseURL+"/appointments", wrapper.ScheduleAppointment, options.OperationMiddlewares["scheduleAppointment"]...)
 	router.POST(options.BaseURL+"/appointments/:appointmentId/check-in", wrapper.CheckInAppointment, options.OperationMiddlewares["checkInAppointment"]...)
@@ -2707,6 +2759,8 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 type AppointmentScheduledJSONResponse Appointment
 
 type AuthUserFoundJSONResponse AuthUser
+
+type AvailableServiceBaysListedJSONResponse AvailableServiceBaysResponse
 
 type BadRequestJSONResponse ErrorResponse
 
@@ -4855,6 +4909,103 @@ type CreateServiceBay500JSONResponse struct {
 }
 
 func (response CreateServiceBay500JSONResponse) VisitCreateServiceBayResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAvailableServiceBaysRequestObject struct {
+	DealershipId DealershipId `json:"dealershipId"`
+	Params       ListAvailableServiceBaysParams
+}
+
+type ListAvailableServiceBaysResponseObject interface {
+	VisitListAvailableServiceBaysResponse(w http.ResponseWriter) error
+}
+
+type ListAvailableServiceBays200JSONResponse struct {
+	AvailableServiceBaysListedJSONResponse
+}
+
+func (response ListAvailableServiceBays200JSONResponse) VisitListAvailableServiceBaysResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAvailableServiceBays400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ListAvailableServiceBays400JSONResponse) VisitListAvailableServiceBaysResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAvailableServiceBays401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListAvailableServiceBays401JSONResponse) VisitListAvailableServiceBaysResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAvailableServiceBays403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListAvailableServiceBays403JSONResponse) VisitListAvailableServiceBaysResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAvailableServiceBays404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ListAvailableServiceBays404JSONResponse) VisitListAvailableServiceBaysResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAvailableServiceBays500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ListAvailableServiceBays500JSONResponse) VisitListAvailableServiceBaysResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -8932,6 +9083,9 @@ type StrictServerInterface interface {
 	// (POST /dealerships/{dealershipId}/service-bays)
 	CreateServiceBay(ctx context.Context, request CreateServiceBayRequestObject) (CreateServiceBayResponseObject, error)
 
+	// (GET /dealerships/{dealershipId}/service-bays/available)
+	ListAvailableServiceBays(ctx context.Context, request ListAvailableServiceBaysRequestObject) (ListAvailableServiceBaysResponseObject, error)
+
 	// (DELETE /dealerships/{dealershipId}/service-bays/{serviceBayId})
 	DeleteServiceBay(ctx context.Context, request DeleteServiceBayRequestObject) (DeleteServiceBayResponseObject, error)
 
@@ -9807,6 +9961,32 @@ func (sh *strictHandler) CreateServiceBay(ctx *echo.Context, dealershipId Dealer
 		return err
 	} else if validResponse, ok := response.(CreateServiceBayResponseObject); ok {
 		return validResponse.VisitCreateServiceBayResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListAvailableServiceBays operation middleware
+func (sh *strictHandler) ListAvailableServiceBays(ctx *echo.Context, dealershipId DealershipId, params ListAvailableServiceBaysParams) error {
+	var request ListAvailableServiceBaysRequestObject
+
+	request.DealershipId = dealershipId
+	request.Params = params
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListAvailableServiceBays(ctx.Request().Context(), request.(ListAvailableServiceBaysRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListAvailableServiceBays")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListAvailableServiceBaysResponseObject); ok {
+		return validResponse.VisitListAvailableServiceBaysResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

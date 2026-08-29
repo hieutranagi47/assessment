@@ -12,6 +12,36 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const canReadAvailableServiceBays = `-- name: CanReadAvailableServiceBays :one
+
+SELECT EXISTS (
+  SELECT 1
+  FROM appointment_scheduler.users AS users
+  JOIN appointment_scheduler.user_roles AS user_roles ON user_roles.user_id = users.user_id
+  JOIN appointment_scheduler.roles AS roles ON roles.role_id = user_roles.role_id
+  WHERE users.auth_user_id = $1
+    AND users.dealership_id = $2
+    AND users.is_active
+    AND users.deleted_at IS NULL
+    AND user_roles.deleted_at IS NULL
+    AND roles.deleted_at IS NULL
+    AND roles.code IN ('admin', 'staff', 'dealer')
+)
+`
+
+type CanReadAvailableServiceBaysParams struct {
+	AuthUserID   pgtype.UUID
+	DealershipID pgtype.UUID
+}
+
+// service bays CRUD queries.
+func (q *Queries) CanReadAvailableServiceBays(ctx context.Context, arg CanReadAvailableServiceBaysParams) (bool, error) {
+	row := q.db.QueryRow(ctx, canReadAvailableServiceBays, arg.AuthUserID, arg.DealershipID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const createServiceBay = `-- name: CreateServiceBay :exec
 INSERT INTO appointment_scheduler.service_bays (service_bay_id, dealership_id, code, name, is_active, created_at, updated_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -63,7 +93,6 @@ func (q *Queries) DeleteServiceBay(ctx context.Context, arg DeleteServiceBayPara
 }
 
 const getServiceBay = `-- name: GetServiceBay :one
-
 SELECT service_bay_id, dealership_id, code, name, is_active, created_at, updated_at
 FROM appointment_scheduler.service_bays
 WHERE service_bay_id = $1
@@ -86,7 +115,6 @@ type GetServiceBayRow struct {
 	UpdatedAt    time.Time
 }
 
-// service bays CRUD queries.
 func (q *Queries) GetServiceBay(ctx context.Context, arg GetServiceBayParams) (GetServiceBayRow, error) {
 	row := q.db.QueryRow(ctx, getServiceBay, arg.ServiceBayID, arg.DealershipID)
 	var i GetServiceBayRow
@@ -116,6 +144,68 @@ func (q *Queries) HasAppointmentsForServiceBay(ctx context.Context, serviceBayID
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
+}
+
+const listAvailableServiceBays = `-- name: ListAvailableServiceBays :many
+SELECT service_bay_id, dealership_id, code, name, is_active, created_at, updated_at
+FROM appointment_scheduler.service_bays AS service_bays
+WHERE service_bays.dealership_id = $1
+  AND is_active
+  AND deleted_at IS NULL
+  AND NOT EXISTS (
+    SELECT 1
+    FROM appointment_scheduler.appointments AS appointments
+    WHERE appointments.service_bay_id = service_bays.service_bay_id
+      AND appointments.deleted_at IS NULL
+      AND appointments.status IN ('requested', 'checked_in', 'in_progress')
+      AND appointments.starts_at < $2
+      AND appointments.ends_at > $3
+  )
+ORDER BY code, service_bay_id
+`
+
+type ListAvailableServiceBaysParams struct {
+	DealershipID pgtype.UUID
+	EndsAt       time.Time
+	StartsAt     time.Time
+}
+
+type ListAvailableServiceBaysRow struct {
+	ServiceBayID pgtype.UUID
+	DealershipID pgtype.UUID
+	Code         string
+	Name         string
+	IsActive     bool
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+}
+
+func (q *Queries) ListAvailableServiceBays(ctx context.Context, arg ListAvailableServiceBaysParams) ([]ListAvailableServiceBaysRow, error) {
+	rows, err := q.db.Query(ctx, listAvailableServiceBays, arg.DealershipID, arg.EndsAt, arg.StartsAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListAvailableServiceBaysRow{}
+	for rows.Next() {
+		var i ListAvailableServiceBaysRow
+		if err := rows.Scan(
+			&i.ServiceBayID,
+			&i.DealershipID,
+			&i.Code,
+			&i.Name,
+			&i.IsActive,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listServiceBays = `-- name: ListServiceBays :many

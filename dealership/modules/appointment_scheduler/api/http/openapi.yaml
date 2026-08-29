@@ -6,6 +6,29 @@ info:
 servers:
   - url: /appointment-scheduler/v1
 paths:
+  /dealerships/{dealershipId}/service-bays/available:
+    parameters:
+      - $ref: "#/components/parameters/DealershipId"
+    get:
+      operationId: listAvailableServiceBays
+      tags: [Service bays]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: starts_at
+          in: query
+          required: true
+          schema: { type: string, format: date-time }
+        - name: ends_at
+          in: query
+          required: true
+          schema: { type: string, format: date-time }
+      responses:
+        "200": { $ref: "#/components/responses/AvailableServiceBaysListed" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /dealerships/{dealershipId}/technician-schedules:
     parameters:
       - $ref: "#/components/parameters/DealershipId"
@@ -1189,6 +1212,15 @@ components:
         technicians:
           type: array
           items: { $ref: "#/components/schemas/TechnicianSchedule" }
+    AvailableServiceBaysResponse:
+      type: object
+      required: [starts_at, ends_at, items]
+      properties:
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time }
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/ServiceBay" }
     CreateCustomerRequest:
       type: object
       required: [name, phone]
@@ -1687,6 +1719,11 @@ components:
       content:
         application/json:
           schema: { $ref: "#/components/schemas/TechnicianScheduleResponse" }
+    AvailableServiceBaysListed:
+      description: Active service bays without an active appointment overlapping the requested interval
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/AvailableServiceBaysResponse" }
     ServiceTypeCreated:
       description: Service type created
       content:

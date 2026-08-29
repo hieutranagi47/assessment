@@ -47,6 +47,8 @@ func (m *Module) RegisterContracts(_ context.Context, c *contracts.Contracts) er
 	}
 	service := app.NewService(repository, c.Auth, telemetry)
 	scheduleQuery := app.NewTechnicianScheduleQuery(repository)
+	availableServiceBaysQuery := app.NewAvailableServiceBaysQuery(repository)
 	m.handler = appointmenthttp.NewHandler(service, c.Auth, scheduleQuery)
+	m.handler.SetAvailableServiceBayLister(availableServiceBaysQuery)
 	return nil
 }

@@ -137,19 +137,20 @@ code workflow, and development conventions.
 1. Open the appointment_scheduler.dealership to pick one dealership_id, see the dealership timezone.
 
 2. Get the employees of the dealership
+
 ```sql
 SELECT
-    u.user_id,
-	u.auth_user_id,
-    u.name,
-    u.email,
-    u.phone,
-    u.is_active,
-    u.dealership_id,
-    d.code AS dealership_code,
-    d.name AS dealership_name,
-    r.code AS role_code,
-    r.name AS role_name
+  u.user_id,
+  u.auth_user_id,
+  u.name,
+  u.email,
+  u.phone,
+  u.is_active,
+  u.dealership_id,
+  d.code AS dealership_code,
+  d.name AS dealership_name,
+  r.code AS role_code,
+  r.name AS role_name
 FROM appointment_scheduler.users AS u
 LEFT JOIN appointment_scheduler.dealerships AS d
     ON d.dealership_id = u.dealership_id
@@ -163,11 +164,13 @@ WHERE u.dealership_id = 'DEALERSHIP_ID'
   AND u.deleted_at IS NULL
 ORDER BY u.name, r.code;
 ```
+
 From the sql result, take an admin account and it its' `auth_user_id`
 
 3. Get the `auth.user_id` = the above `auth_user_id` to see it's email.
 
 4. Use Postman to signin with email is the above account email, password: `Abc@6789`
+
 ```json
 # [POST] localhost:9999/auth/v1/sign-in
 {
@@ -179,8 +182,15 @@ The API will response the access_token in the response body (There are a refresh
 Copy the `access_token` to test other apis.
 
 5. Get work schedule of all all employee of the above dealership by this api
+
 ```bash
 # [GET] http://localhost:9999/appointment-scheduler/v1/dealerships/<Dealership_id>/technician-schedules?date=2026-09-16
-
-
 ```
+
+6. Booking a service.
+
+## Tracing log
+
+Access the Jaeger at http://localhost:16686, select the `dealership` service to see it.
+
+![Jaeger screenshot](tracing.png)

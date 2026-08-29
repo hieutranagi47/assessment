@@ -71,6 +71,153 @@ func (r *DealershipRepository) IsActiveDealership(ctx context.Context, dealershi
 	return err == nil, err
 }
 
+func (r *DealershipRepository) CanReadAvailableServiceBays(ctx context.Context, authUserID, dealershipID uuid.UUID) (bool, error) {
+	return r.queries.CanReadAvailableServiceBays(ctx, dbmodels.CanReadAvailableServiceBaysParams{
+		AuthUserID:   toPGUUID(authUserID),
+		DealershipID: toPGUUID(dealershipID),
+	})
+}
+
+func (r *DealershipRepository) ListAvailableServiceBays(ctx context.Context, dealershipID uuid.UUID, startsAt, endsAt time.Time) ([]domain.ServiceBay, error) {
+	rows, err := r.queries.ListAvailableServiceBays(ctx, dbmodels.ListAvailableServiceBaysParams{
+		DealershipID: toPGUUID(dealershipID),
+		StartsAt:     startsAt,
+		EndsAt:       endsAt,
+	})
+	if err != nil {
+		return nil, err
+	}
+	items := make([]domain.ServiceBay, 0, len(rows))
+	for _, row := range rows {
+		serviceBay, err := domain.RehydrateServiceBay(
+			fromPGUUID(row.ServiceBayID),
+			fromPGUUID(row.DealershipID),
+			row.Code,
+			row.Name,
+			row.IsActive,
+			row.CreatedAt,
+			row.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, serviceBay)
+	}
+	return items, nil
+}
+
+var _ app.AvailableServiceBayRepository = (*DealershipRepository)(nil)
+
+func (r *DealershipRepository) CanReadTechnicianSchedules(ctx context.Context, authUserID, dealershipID uuid.UUID) (bool, error) {
+	return r.queries.CanReadTechnicianSchedules(ctx, dbmodels.CanReadTechnicianSchedulesParams{
+		AuthUserID:   toPGUUID(authUserID),
+		DealershipID: toPGUUID(dealershipID),
+	})
+}
+
+func (r *DealershipRepository) GetActiveTechnicianScheduleDealership(ctx context.Context, dealershipID uuid.UUID) (app.TechnicianScheduleDealership, error) {
+	row, err := r.queries.GetActiveTechnicianScheduleDealership(ctx, toPGUUID(dealershipID))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return app.TechnicianScheduleDealership{}, app.ErrTechnicianScheduleDealershipNotFound
+	}
+	if err != nil {
+		return app.TechnicianScheduleDealership{}, err
+	}
+	return app.TechnicianScheduleDealership{
+		ID:       fromPGUUID(row.DealershipID),
+		Timezone: row.Timezone,
+	}, nil
+}
+
+func (r *DealershipRepository) ListActiveTechniciansForSchedule(ctx context.Context, dealershipID uuid.UUID, technicianID *uuid.UUID) ([]app.TechnicianScheduleTechnician, error) {
+	rows, err := r.queries.ListActiveTechniciansForSchedule(ctx, dbmodels.ListActiveTechniciansForScheduleParams{
+		DealershipID: toPGUUID(dealershipID),
+		TechnicianID: nullablePGUUID(technicianID),
+	})
+	if err != nil {
+		return nil, err
+	}
+	items := make([]app.TechnicianScheduleTechnician, 0, len(rows))
+	for _, row := range rows {
+		items = append(items, app.TechnicianScheduleTechnician{
+			TechnicianID: fromPGUUID(row.TechnicianID),
+			UserID:       fromPGUUID(row.UserID),
+			Name:         row.Name,
+		})
+	}
+	return items, nil
+}
+
+func (r *DealershipRepository) ListTechnicianScheduleShifts(ctx context.Context, dealershipID uuid.UUID, technicianID *uuid.UUID, dayOfWeek int) ([]app.TechnicianScheduleShift, error) {
+	rows, err := r.queries.ListTechnicianScheduleShifts(ctx, dbmodels.ListTechnicianScheduleShiftsParams{
+		DealershipID: toPGUUID(dealershipID),
+		DayOfWeek:    int16(dayOfWeek),
+		TechnicianID: nullablePGUUID(technicianID),
+	})
+	if err != nil {
+		return nil, err
+	}
+	items := make([]app.TechnicianScheduleShift, 0, len(rows))
+	for _, row := range rows {
+		items = append(items, app.TechnicianScheduleShift{
+			TechnicianID: fromPGUUID(row.TechnicianID),
+			StartsAt:     time.Duration(row.StartsAt.Microseconds) * time.Microsecond,
+			EndsAt:       time.Duration(row.EndsAt.Microseconds) * time.Microsecond,
+		})
+	}
+	return items, nil
+}
+
+func (r *DealershipRepository) ListTechnicianScheduleAppointments(ctx context.Context, dealershipID uuid.UUID, technicianID *uuid.UUID, periodStartsAt, periodEndsAt time.Time) ([]app.TechnicianScheduleAppointment, error) {
+	rows, err := r.queries.ListTechnicianScheduleAppointments(ctx, dbmodels.ListTechnicianScheduleAppointmentsParams{
+		DealershipID:   toPGUUID(dealershipID),
+		PeriodStartsAt: periodStartsAt,
+		PeriodEndsAt:   periodEndsAt,
+		TechnicianID:   nullablePGUUID(technicianID),
+	})
+	if err != nil {
+		return nil, err
+	}
+	items := make([]app.TechnicianScheduleAppointment, 0, len(rows))
+	for _, row := range rows {
+		items = append(items, app.TechnicianScheduleAppointment{
+			TechnicianID:    fromPGUUID(row.TechnicianID),
+			AppointmentID:   fromPGUUID(row.AppointmentID),
+			ReferenceCode:   row.ReferenceCode,
+			StartsAt:        row.StartsAt,
+			EndsAt:          row.EndsAt,
+			Status:          row.Status,
+			ServiceTypeName: row.ServiceTypeName,
+			ServiceBayID:    fromPGUUID(row.ServiceBayID),
+			ServiceBayCode:  row.ServiceBayCode,
+		})
+	}
+	return items, nil
+}
+
+func (r *DealershipRepository) ListTechnicianScheduleTimeOff(ctx context.Context, dealershipID uuid.UUID, technicianID *uuid.UUID, periodStartsAt, periodEndsAt time.Time) ([]app.TechnicianScheduleTimeOff, error) {
+	rows, err := r.queries.ListTechnicianScheduleTimeOff(ctx, dbmodels.ListTechnicianScheduleTimeOffParams{
+		DealershipID:   toPGUUID(dealershipID),
+		PeriodStartsAt: periodStartsAt,
+		PeriodEndsAt:   periodEndsAt,
+		TechnicianID:   nullablePGUUID(technicianID),
+	})
+	if err != nil {
+		return nil, err
+	}
+	items := make([]app.TechnicianScheduleTimeOff, 0, len(rows))
+	for _, row := range rows {
+		items = append(items, app.TechnicianScheduleTimeOff{
+			TechnicianID: fromPGUUID(row.TechnicianID),
+			StartsAt:     row.StartsAt,
+			EndsAt:       row.EndsAt,
+		})
+	}
+	return items, nil
+}
+
+var _ app.TechnicianScheduleRepository = (*DealershipRepository)(nil)
+
 func (r *DealershipRepository) CreateDealershipOperationTime(ctx context.Context, operationTime domain.DealershipOperationTime) error {
 	err := r.queries.CreateDealershipOperationTime(ctx, dbmodels.CreateDealershipOperationTimeParams{
 		DealershipOperationTimeID: toPGUUID(operationTime.ID()),
@@ -959,6 +1106,13 @@ func fromPGUUID(value pgtype.UUID) uuid.UUID {
 		return uuid.Nil
 	}
 	return uuid.UUID(value.Bytes)
+}
+
+func nullablePGUUID(value *uuid.UUID) pgtype.UUID {
+	if value == nil {
+		return pgtype.UUID{}
+	}
+	return toPGUUID(*value)
 }
 
 func toPGInt16(value *int) *int16 {

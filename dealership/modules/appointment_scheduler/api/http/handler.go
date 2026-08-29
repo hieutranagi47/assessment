@@ -24,10 +24,15 @@ type Handler struct {
 	service   *app.Service
 	auth      client.Authenticator
 	schedules TechnicianScheduleLister
+	available AvailableServiceBayLister
 }
 
 type TechnicianScheduleLister interface {
 	List(context.Context, app.ListTechnicianSchedulesInput) (app.TechnicianScheduleResult, error)
+}
+
+type AvailableServiceBayLister interface {
+	List(context.Context, app.ListAvailableServiceBaysInput) ([]domain.ServiceBay, error)
 }
 
 func NewHandler(service *app.Service, auth client.Authenticator, schedules ...TechnicianScheduleLister) *Handler {
@@ -41,9 +46,14 @@ func NewHandler(service *app.Service, auth client.Authenticator, schedules ...Te
 	return handler
 }
 
+func (h *Handler) SetAvailableServiceBayLister(available AvailableServiceBayLister) {
+	h.available = available
+}
+
 func Register(_ context.Context, router common.EchoRouter, handler *Handler) error {
 	options := RegisterHandlersOptions{
 		OperationMiddlewares: map[string][]echo.MiddlewareFunc{
+			"listAvailableServiceBays":               {handler.requireIdentity},
 			"listTechnicianSchedules":                {handler.requireIdentity},
 			"scheduleAppointment":                    {handler.requireIdentity},
 			"checkInAppointment":                     {handler.requireIdentity},
@@ -114,6 +124,49 @@ func Register(_ context.Context, router common.EchoRouter, handler *Handler) err
 	RegisterHandlersWithOptions(router, strictHandler, options)
 	RegisterDocs(router)
 	return nil
+}
+
+func (h *Handler) ListAvailableServiceBays(ctx context.Context, request ListAvailableServiceBaysRequestObject) (ListAvailableServiceBaysResponseObject, error) {
+	if h.available == nil {
+		return listAvailableServiceBaysErrorResponse(common.Error{PublicError: "internal server error", ErrorSlug: "internal_server_error"})
+	}
+	serviceBays, err := h.available.List(ctx, app.ListAvailableServiceBaysInput{
+		ActorUserID:  identityFrom(ctx),
+		DealershipID: uuid.UUID(request.DealershipId),
+		StartsAt:     request.Params.StartsAt,
+		EndsAt:       request.Params.EndsAt,
+	})
+	if err != nil {
+		return listAvailableServiceBaysErrorResponse(err)
+	}
+	items := make([]ServiceBay, 0, len(serviceBays))
+	for _, serviceBay := range serviceBays {
+		items = append(items, serviceBayResponse(serviceBay))
+	}
+	return ListAvailableServiceBays200JSONResponse{
+		AvailableServiceBaysListedJSONResponse: AvailableServiceBaysListedJSONResponse{
+			StartsAt: request.Params.StartsAt.UTC(),
+			EndsAt:   request.Params.EndsAt.UTC(),
+			Items:    items,
+		},
+	}, nil
+}
+
+func listAvailableServiceBaysErrorResponse(err error) (ListAvailableServiceBaysResponseObject, error) {
+	structured := operationTimeProblem(err)
+	response := errorResponse(structured)
+	switch structured.HttpErrorCode {
+	case stdhttp.StatusBadRequest:
+		return ListAvailableServiceBays400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(response)}, nil
+	case stdhttp.StatusUnauthorized:
+		return ListAvailableServiceBays401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case stdhttp.StatusForbidden:
+		return ListAvailableServiceBays403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case stdhttp.StatusNotFound:
+		return ListAvailableServiceBays404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	default:
+		return ListAvailableServiceBays500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
 }
 
 func (h *Handler) ListTechnicianSchedules(ctx context.Context, request ListTechnicianSchedulesRequestObject) (ListTechnicianSchedulesResponseObject, error) {
