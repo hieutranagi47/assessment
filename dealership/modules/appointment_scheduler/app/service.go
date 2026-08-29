@@ -225,15 +225,20 @@ type UserInfoProvider interface {
 type Service struct {
 	repository Repository
 	users      UserInfoProvider
+	telemetry  AppointmentTelemetry
 	now        func() time.Time
 	newID      func() uuid.UUID
 }
 
-func NewService(repository Repository, users UserInfoProvider) *Service {
+func NewService(repository Repository, users UserInfoProvider, telemetry ...AppointmentTelemetry) *Service {
 	if repository == nil || users == nil {
 		panic("dealership dependencies are required")
 	}
-	return &Service{repository: repository, users: users, now: time.Now, newID: uuid.New}
+	observer := AppointmentTelemetry(noopAppointmentTelemetry{})
+	if len(telemetry) > 0 && telemetry[0] != nil {
+		observer = telemetry[0]
+	}
+	return &Service{repository: repository, users: users, telemetry: observer, now: time.Now, newID: uuid.New}
 }
 
 type CreateDealershipInput struct {

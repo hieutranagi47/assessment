@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/exporters/prometheus"
 	"go.opentelemetry.io/otel/propagation"
@@ -30,10 +31,16 @@ func Configure(
 	ctx context.Context,
 	serviceName string,
 	traceEndpoint string,
+	serviceVersion string,
+	environment string,
+	deploymentRegion string,
 ) (*Providers, error) {
 	resource := resource.NewWithAttributes(
 		semconv.SchemaURL,
 		semconv.ServiceName(serviceName),
+		semconv.ServiceVersion(serviceVersion),
+		attribute.String("deployment.environment.name", environment),
+		attribute.String("cloud.region", deploymentRegion),
 	)
 
 	metricExporter, err := prometheus.New()

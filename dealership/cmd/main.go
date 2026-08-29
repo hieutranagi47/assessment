@@ -32,6 +32,9 @@ func main() {
 		ctx,
 		config.OTELServiceName,
 		config.OTELTraceEndpoint,
+		config.ServiceVersion,
+		config.Environment,
+		config.DeploymentRegion,
 	)
 	if err != nil {
 		log.Fatal(err)

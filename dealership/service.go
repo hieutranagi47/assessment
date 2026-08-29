@@ -47,6 +47,14 @@ func New(ctx context.Context, database *pgxpool.Pool, config config.Config) (*Se
 		return nil, fmt.Errorf("configure HTTPS: %w", err)
 	}
 	router := commonHTTP.NewEcho()
+	router.GET("/readyz", func(c *echo.Context) error {
+		readinessContext, cancel := context.WithTimeout(c.Request().Context(), 2*time.Second)
+		defer cancel()
+		if err := database.Ping(readinessContext); err != nil {
+			return c.NoContent(http.StatusServiceUnavailable)
+		}
+		return c.NoContent(http.StatusNoContent)
+	})
 	modules := []module.Module{
 		auth.NewModule(database, auth.Config{EmailEncryptionKey: config.EmailEncryptionKey, EmailLookupKey: config.EmailLookupKey, JWTPrivateKeyPEM: []byte(config.JWTPrivateKeyPEM), JWTPublicKeyPEM: []byte(config.JWTPublicKeyPEM)}),
 		appointment_scheduler.NewModule(database),

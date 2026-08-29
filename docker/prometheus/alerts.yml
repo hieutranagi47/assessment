@@ -1,0 +1,19 @@
+groups:
+  - name: dealership-service
+    rules:
+      - alert: DealershipTargetDown
+        expr: up{job="dealership"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: Dealership service is not being scraped by Prometheus
+          runbook: Check the service readiness endpoint, container health, and network path to /metrics.
+      - alert: AppointmentBookingErrors
+        expr: sum(increase(appointment_booking_total{outcome="error"}[5m])) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Appointment booking errors are occurring
+          runbook: Inspect correlated traces in Jaeger and request logs using the correlation ID or trace ID.

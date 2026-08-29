@@ -56,7 +56,10 @@ type ScheduleAppointmentRecord struct {
 	Notes                                                             *string
 }
 
-func (s *Service) ScheduleAppointment(ctx context.Context, actorID uuid.UUID, input ScheduleAppointmentInput) (ScheduleAppointmentRecord, error) {
+func (s *Service) ScheduleAppointment(ctx context.Context, actorID uuid.UUID, input ScheduleAppointmentInput) (record ScheduleAppointmentRecord, err error) {
+	ctx, complete := s.telemetry.StartScheduleAppointment(ctx)
+	defer func() { complete(appointmentOutcome(err)) }()
+
 	repository, ok := s.repository.(AppointmentRepository)
 	if !ok {
 		return ScheduleAppointmentRecord{}, errors.New("appointment repository is not configured")
@@ -79,7 +82,7 @@ func (s *Service) ScheduleAppointment(ctx context.Context, actorID uuid.UUID, in
 		return ScheduleAppointmentRecord{}, common.NewForbiddenError("forbidden", "appointment access is not permitted")
 	}
 	now := s.now().UTC()
-	record := ScheduleAppointmentRecord{
+	record = ScheduleAppointmentRecord{
 		AppointmentID: s.newID(), CustomerID: input.CustomerID, VehicleID: input.VehicleID,
 		DealershipID: dealershipID, ServiceTypeID: input.ServiceTypeID,
 		TechnicianID: input.TechnicianID, ServiceBayID: input.ServiceBayID,
@@ -99,7 +102,10 @@ func (s *Service) ScheduleAppointment(ctx context.Context, actorID uuid.UUID, in
 	return record, nil
 }
 
-func (s *Service) ChangeAppointmentStatus(ctx context.Context, actorID, appointmentID uuid.UUID, from, to domain.AppointmentStatus, actualEndsAt *time.Time, cancellationReason, note *string) error {
+func (s *Service) ChangeAppointmentStatus(ctx context.Context, actorID, appointmentID uuid.UUID, from, to domain.AppointmentStatus, actualEndsAt *time.Time, cancellationReason, note *string) (err error) {
+	ctx, complete := s.telemetry.StartAppointmentTransition(ctx, from, to)
+	defer func() { complete(appointmentOutcome(err)) }()
+
 	if actorID == uuid.Nil || appointmentID == uuid.Nil {
 		return common.NewInvalidInputError("validation_error", "appointment and actor IDs are required")
 	}

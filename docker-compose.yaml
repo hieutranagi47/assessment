@@ -23,13 +23,23 @@ services:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
     volumes:
-      - ./docker/grafana:/etc/grafana/provisioning/datasources
+      - ./docker/grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml:ro
+      - ./docker/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
 
   jaeger:
     image: jaegertracing/all-in-one:1.68.0
     ports:
       - "16686:16686"
       - "14268:14268"
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.120.0
+    command:
+      - "--config=/etc/otelcol-contrib/config.yaml"
+    volumes:
+      - ./docker/otel-collector/config.yaml:/etc/otelcol-contrib/config.yaml:ro
+    depends_on:
+      - jaeger
 
   postgres:
     image: postgres:18-alpine
@@ -99,8 +109,10 @@ services:
       SERVER_PORT: 8080
       SERVER_PORT_TLS: 8443
       ENVIRONMENT: development
-      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://jaeger:4318/v1/traces
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel-collector:4318/v1/traces
       OTEL_SERVICE_NAME: dealership
+      SERVICE_VERSION: development
+      DEPLOYMENT_REGION: local
     ports:
       - "${SERVER_PORT:-9999}:8080"
       - "${SERVER_PORT_TLS:-8444}:8443"
@@ -109,6 +121,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      otel-collector:
+        condition: service_started
 
 volumes:
   postgres_data:

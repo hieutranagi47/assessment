@@ -17,6 +17,9 @@ type Config struct {
 	HTTPSPort          string
 	OTELServiceName    string
 	OTELTraceEndpoint  string
+	Environment        string
+	ServiceVersion     string
+	DeploymentRegion   string
 }
 
 // Load reads required runtime settings from the environment and applies
@@ -32,6 +35,9 @@ func Load() (Config, error) {
 		HTTPSPort:          valueOrDefault("SERVER_PORT_TLS", "8443"),
 		OTELServiceName:    valueOrDefault("OTEL_SERVICE_NAME", "dealership"),
 		OTELTraceEndpoint:  os.Getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"),
+		Environment:        valueOrDefault("ENVIRONMENT", "development"),
+		ServiceVersion:     valueOrDefault("SERVICE_VERSION", "unknown"),
+		DeploymentRegion:   valueOrDefault("DEPLOYMENT_REGION", "unknown"),
 	}
 	if config.PostgresDSN == "" || config.EmailEncryptionKey == "" || config.EmailLookupKey == "" || config.JWTPrivateKeyPEM == "" || config.JWTPublicKeyPEM == "" {
 		return Config{}, fmt.Errorf("POSTGRES_DSN, EMAIL_ENCRYPTION_KEY, EMAIL_LOOKUP_KEY, RSA_PRIVATE_KEY_PEM, and RSA_PUBLIC_KEY_PEM are required")

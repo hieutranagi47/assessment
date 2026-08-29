@@ -11,6 +11,7 @@ import (
 	"assessment/modules/common"
 	"assessment/modules/common/module"
 	"assessment/modules/common/module/contracts"
+	"assessment/modules/common/observability"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -40,7 +41,11 @@ func (m *Module) RegisterContracts(_ context.Context, c *contracts.Contracts) er
 		return fmt.Errorf("auth contract is required by appointment scheduler")
 	}
 	repository := db.NewDealershipRepository(m.database)
-	service := app.NewService(repository, c.Auth)
+	telemetry, err := observability.NewAppointmentSchedulerTelemetry()
+	if err != nil {
+		return fmt.Errorf("configure appointment scheduler telemetry: %w", err)
+	}
+	service := app.NewService(repository, c.Auth, telemetry)
 	scheduleQuery := app.NewTechnicianScheduleQuery(repository)
 	m.handler = appointmenthttp.NewHandler(service, c.Auth, scheduleQuery)
 	return nil

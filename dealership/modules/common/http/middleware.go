@@ -1,21 +1,16 @@
 package http
 
 import (
-	"bufio"
-	"bytes"
-	"errors"
-	"io"
 	"log/slog"
-	"net"
 	"net/http"
 	"time"
-	"unicode/utf8"
 
 	"assessment/modules/common/log"
 
 	echo "github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
 	"github.com/lithammer/shortuuid/v3"
+	"go.opentelemetry.io/otel/trace"
 )
 
 const (
@@ -38,7 +33,11 @@ func correlationMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		if correlationID == "" {
 			correlationID = shortuuid.New()
 		}
+		spanContext := trace.SpanContextFromContext(req.Context())
 		logger := slog.With("correlation_id", correlationID)
+		if spanContext.HasTraceID() {
+			logger = logger.With("trace_id", spanContext.TraceID().String(), "span_id", spanContext.SpanID().String())
+		}
 		if testName := req.Header.Get(TestNameHeader); testName != "" {
 			logger = logger.With("test_name", testName)
 		}
@@ -49,62 +48,26 @@ func correlationMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
-type bodyCapturingWriter struct {
-	io.Writer
-	http.ResponseWriter
-}
-
-// WriteHeader forwards the response status to the underlying writer.
-func (w *bodyCapturingWriter) WriteHeader(code int) { w.ResponseWriter.WriteHeader(code) }
-
-// Write captures response bytes for logging while preserving the response writer contract.
-func (w *bodyCapturingWriter) Write(b []byte) (int, error) { return w.Writer.Write(b) }
-
-// Flush preserves streaming support when the underlying writer supports it.
-func (w *bodyCapturingWriter) Flush() {
-	if err := http.NewResponseController(w.ResponseWriter).Flush(); err != nil && !errors.Is(err, http.ErrNotSupported) {
-		slog.Warn("response writer flush failed", "error", err)
-	}
-}
-
-// Hijack preserves WebSocket and raw-connection support.
-func (w *bodyCapturingWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
-	return http.NewResponseController(w.ResponseWriter).Hijack()
-}
-
-// Unwrap exposes the original writer to net/http response controllers.
-func (w *bodyCapturingWriter) Unwrap() http.ResponseWriter { return w.ResponseWriter }
-
-// requestLogMiddleware buffers request and response bodies so structured logs
-// can include bounded, UTF-8-safe diagnostics.
+// requestLogMiddleware records safe request-completion metadata. It never
+// reads or logs request or response bodies, which can contain credentials or PII.
 func requestLogMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c *echo.Context) error {
-		var requestBody []byte
-		if c.Request().Body != nil {
-			requestBody, _ = io.ReadAll(c.Request().Body)
-		}
-		c.Request().Body = io.NopCloser(bytes.NewBuffer(requestBody))
-
-		responseBody := new(bytes.Buffer)
-		response := c.Response()
-		c.SetResponse(&bodyCapturingWriter{Writer: io.MultiWriter(response, responseBody), ResponseWriter: response})
 		started := time.Now()
 		err := next(c)
 		duration := time.Since(started)
 		ctx := c.Request().Context()
-		logger := log.FromContext(ctx).With("URI", c.Request().RequestURI, "status", responseStatus(c.Response(), err), "method", c.Request().Method, "duration", duration.String())
+		spanContext := trace.SpanContextFromContext(ctx)
+		logger := log.FromContext(ctx).With(
+			"route", c.Path(),
+			"status", responseStatus(c.Response(), err),
+			"method", c.Request().Method,
+			"duration", duration.String(),
+		)
+		if spanContext.HasTraceID() {
+			logger = logger.With("trace_id", spanContext.TraceID().String(), "span_id", spanContext.SpanID().String())
+		}
 		if err != nil {
 			logger = logger.With("error", err)
-		}
-		logger = logger.With("request_body", truncateBodyForLog(string(requestBody)))
-		body := responseBody.String()
-		if utf8.ValidString(body) {
-			if !log.FromContext(ctx).Enabled(ctx, slog.LevelDebug) {
-				body = truncateBodyForLog(body)
-			}
-			logger = logger.With("response_body", body)
-		} else {
-			logger = logger.With("response_body", "<binary data>")
 		}
 		logger.Info("Request done")
 		return err
