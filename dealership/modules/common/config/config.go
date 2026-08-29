@@ -15,6 +15,8 @@ type Config struct {
 	JWTPublicKeyPEM    string
 	HTTPPort           string
 	HTTPSPort          string
+	OTELServiceName    string
+	OTELTraceEndpoint  string
 }
 
 // Load reads required runtime settings from the environment and applies
@@ -28,6 +30,8 @@ func Load() (Config, error) {
 		JWTPublicKeyPEM:    os.Getenv("RSA_PUBLIC_KEY_PEM"),
 		HTTPPort:           valueOrDefault("SERVER_PORT", "8080"),
 		HTTPSPort:          valueOrDefault("SERVER_PORT_TLS", "8443"),
+		OTELServiceName:    valueOrDefault("OTEL_SERVICE_NAME", "dealership"),
+		OTELTraceEndpoint:  os.Getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"),
 	}
 	if config.PostgresDSN == "" || config.EmailEncryptionKey == "" || config.EmailLookupKey == "" || config.JWTPrivateKeyPEM == "" || config.JWTPublicKeyPEM == "" {
 		return Config{}, fmt.Errorf("POSTGRES_DSN, EMAIL_ENCRYPTION_KEY, EMAIL_LOOKUP_KEY, RSA_PRIVATE_KEY_PEM, and RSA_PUBLIC_KEY_PEM are required")

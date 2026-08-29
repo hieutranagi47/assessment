@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+
+# Path to the commit message file (provided by Git).
+
+COMMIT_MSG_FILE=$1
+
+# Ignore automatic commit messages containing ' into ' or 'Merge'.
+
+if grep --quiet --extended-regexp " into |^Merge " "$COMMIT_MSG_FILE"; then
+exit 0
+fi
+
+# Read the commit message from the file.
+
+COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+
+CONVENTIONAL*COMMIT_REGEX='^(feat|fix|docs|style|refactor|test|chore|build|ci|perf|revert)(\([a-zA-Z0-9*.-]+\))?(!)?:\s.\*$'
+
+# Check if the commit message matches the regex.
+
+if ! [[$COMMIT_MSG =~ $CONVENTIONAL_COMMIT_REGEX]]; then
+echo "ERROR: Commit message does not follow Conventional Commits format."
+echo
+echo "The commit message should be structured as follows:"
+echo "<type>(<optional scope>): <description>"
+echo "[optional body]"
+echo "[optional footer(s)]"
+echo
+echo "Valid types are:"
+echo " feat: Introduces a new feature or enhancement to the codebase (corresponds to a MINOR version bump in SemVer).
+echo " fix: Patches a bug or error in your system (corresponds to a PATCH version bump in SemVer).
+echo " docs: Changes restricted strictly to documentation (e.g., editing README.md, adding code comments).
+echo " style: Changes that do not affect the meaning or logic of the code (e.g., formatting, fixing indentation, missing semicolons).
+echo " refactor: Code changes that neither fix a bug nor add a feature, but restructure the existing code.
+echo " test: Adding missing tests, updating test cases, or refactoring existing tests without changing production code.
+echo " chore: Technical or maintenance tasks that do not modify src or test files (e.g., updating dependencies, modifying configs).
+echo " build: Changes that affect the build system or external compilation dependencies (e.g., webpack configs, npm scripts).
+echo " ci: Updates to continuous integration configuration scripts and workflows (e.g., GitHub Actions, GitLab CI, Travis).
+echo " perf: A code change specifically aimed at improving performance or optimizing execution speed.
+echo " revert: Used to undo a previous commit, reverting the codebase to a prior state.
+echo
+echo "Examples:"
+echo " feat(auth): add login functionality"
+echo " fix(api)!: resolve timeout issue"
+echo " docs(readme): update installation instructions"
+echo
+exit 1
+fi
+
+exit 0

@@ -1,0 +1,23 @@
+#!/bin/sh
+
+branch="$(git branch --show-current)"
+
+case "$branch" in
+  master|develop|dev|stg)
+    echo "Commit blocked on protected branch: $branch"
+    echo "Create or switch to a non-protected branch and open an MR/PR into $branch."
+    exit 1
+    ;;
+esac
+
+# echo "Running test and vest before commit..."
+# go test ./...
+# go vet ./...
+# status=$?
+
+# if [ $status -ne 0 ]; then
+#   echo "Go test/vest failed. Commit aborted."
+#   exit $status
+# fi
+
+exit 0

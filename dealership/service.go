@@ -25,6 +25,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	echo "github.com/labstack/echo/v5"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 // Service is the composition root for the standalone authentication service.
@@ -85,8 +86,9 @@ func (s *Service) Close() error {
 // exits unexpectedly. HTTPS uses an in-memory certificate derived from the RSA
 // key pair configured at the composition root.
 func (s *Service) Run(ctx context.Context, httpPort, httpsPort string) error {
-	httpServer := &http.Server{Addr: ":" + httpPort, Handler: s.router, ReadHeaderTimeout: 5 * time.Second}
-	httpsServer := &http.Server{Addr: ":" + httpsPort, Handler: s.router, ReadHeaderTimeout: 5 * time.Second, TLSConfig: s.tls}
+	tracedRouter := otelhttp.NewHandler(s.router, "dealership")
+	httpServer := &http.Server{Addr: ":" + httpPort, Handler: tracedRouter, ReadHeaderTimeout: 5 * time.Second}
+	httpsServer := &http.Server{Addr: ":" + httpsPort, Handler: tracedRouter, ReadHeaderTimeout: 5 * time.Second, TLSConfig: s.tls}
 	errCh := make(chan error, 2)
 
 	go func() { errCh <- httpServer.ListenAndServe() }()
