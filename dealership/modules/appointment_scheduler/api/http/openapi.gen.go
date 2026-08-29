@@ -949,8 +949,9 @@ type ListServiceBaysParams struct {
 
 // ListAvailableServiceBaysParams defines parameters for ListAvailableServiceBays.
 type ListAvailableServiceBaysParams struct {
-	StartsAt time.Time `form:"starts_at" json:"starts_at"`
-	EndsAt   time.Time `form:"ends_at" json:"ends_at"`
+	ServiceTypeId openapi_types.UUID `form:"service_type_id" json:"service_type_id"`
+	StartsAt      time.Time          `form:"starts_at" json:"starts_at"`
+	EndsAt        time.Time          `form:"ends_at" json:"ends_at"`
 }
 
 // ListTechnicianSchedulesParams defines parameters for ListTechnicianSchedules.
@@ -1641,6 +1642,13 @@ func (w *ServerInterfaceWrapper) ListAvailableServiceBays(ctx *echo.Context) err
 
 	// Parameter object where we will unmarshal all parameters from the context
 	var params ListAvailableServiceBaysParams
+	// ------------- Required query parameter "service_type_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "service_type_id", ctx.QueryParams(), &params.ServiceTypeId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter service_type_id: %s", err))
+	}
+
 	// ------------- Required query parameter "starts_at" -------------
 
 	err = runtime.BindQueryParameterWithOptions("form", true, true, "starts_at", ctx.QueryParams(), &params.StartsAt, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})

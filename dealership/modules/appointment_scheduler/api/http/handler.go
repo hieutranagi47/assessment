@@ -131,10 +131,11 @@ func (h *Handler) ListAvailableServiceBays(ctx context.Context, request ListAvai
 		return listAvailableServiceBaysErrorResponse(common.Error{PublicError: "internal server error", ErrorSlug: "internal_server_error"})
 	}
 	serviceBays, err := h.available.List(ctx, app.ListAvailableServiceBaysInput{
-		ActorUserID:  identityFrom(ctx),
-		DealershipID: uuid.UUID(request.DealershipId),
-		StartsAt:     request.Params.StartsAt,
-		EndsAt:       request.Params.EndsAt,
+		ActorUserID:   identityFrom(ctx),
+		DealershipID:  uuid.UUID(request.DealershipId),
+		ServiceTypeID: uuid.UUID(request.Params.ServiceTypeId),
+		StartsAt:      request.Params.StartsAt,
+		EndsAt:        request.Params.EndsAt,
 	})
 	if err != nil {
 		return listAvailableServiceBaysErrorResponse(err)

@@ -15,14 +15,16 @@ import (
 type AvailableServiceBayRepository interface {
 	CanReadAvailableServiceBays(context.Context, uuid.UUID, uuid.UUID) (bool, error)
 	IsActiveDealership(context.Context, uuid.UUID) (bool, error)
-	ListAvailableServiceBays(context.Context, uuid.UUID, time.Time, time.Time) ([]domain.ServiceBay, error)
+	IsActiveServiceTypeForAvailableServiceBays(context.Context, uuid.UUID, uuid.UUID) (bool, error)
+	ListAvailableServiceBays(context.Context, uuid.UUID, uuid.UUID, time.Time, time.Time) ([]domain.ServiceBay, error)
 }
 
 type ListAvailableServiceBaysInput struct {
-	ActorUserID  uuid.UUID
-	DealershipID uuid.UUID
-	StartsAt     time.Time
-	EndsAt       time.Time
+	ActorUserID   uuid.UUID
+	DealershipID  uuid.UUID
+	ServiceTypeID uuid.UUID
+	StartsAt      time.Time
+	EndsAt        time.Time
 }
 
 // AvailableServiceBaysQuery returns active bays without an active appointment
@@ -44,6 +46,9 @@ func (q *AvailableServiceBaysQuery) List(ctx context.Context, input ListAvailabl
 	}
 	if input.DealershipID == uuid.Nil {
 		return nil, common.NewInvalidInputError("invalid_dealership_id", "dealership ID is required")
+	}
+	if input.ServiceTypeID == uuid.Nil {
+		return nil, common.NewInvalidInputError("invalid_service_type_id", "service_type_id is required")
 	}
 	if input.StartsAt.IsZero() {
 		return nil, common.NewInvalidInputError("invalid_starts_at", "starts_at is required")
@@ -70,6 +75,13 @@ func (q *AvailableServiceBaysQuery) List(ctx context.Context, input ListAvailabl
 	if !isActive {
 		return nil, common.NewNotFoundError("dealership_not_found", "dealership was not found")
 	}
+	serviceTypeIsActive, err := q.repository.IsActiveServiceTypeForAvailableServiceBays(ctx, input.DealershipID, input.ServiceTypeID)
+	if err != nil {
+		return nil, err
+	}
+	if !serviceTypeIsActive {
+		return nil, common.NewNotFoundError("service_type_not_found", "active service type was not found")
+	}
 
-	return q.repository.ListAvailableServiceBays(ctx, input.DealershipID, input.StartsAt.UTC(), input.EndsAt.UTC())
+	return q.repository.ListAvailableServiceBays(ctx, input.DealershipID, input.ServiceTypeID, input.StartsAt.UTC(), input.EndsAt.UTC())
 }

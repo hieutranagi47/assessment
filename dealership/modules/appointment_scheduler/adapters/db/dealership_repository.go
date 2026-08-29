@@ -78,11 +78,19 @@ func (r *DealershipRepository) CanReadAvailableServiceBays(ctx context.Context, 
 	})
 }
 
-func (r *DealershipRepository) ListAvailableServiceBays(ctx context.Context, dealershipID uuid.UUID, startsAt, endsAt time.Time) ([]domain.ServiceBay, error) {
+func (r *DealershipRepository) IsActiveServiceTypeForAvailableServiceBays(ctx context.Context, dealershipID, serviceTypeID uuid.UUID) (bool, error) {
+	return r.queries.IsActiveServiceTypeForAvailableServiceBays(ctx, dbmodels.IsActiveServiceTypeForAvailableServiceBaysParams{
+		DealershipID:  toPGUUID(dealershipID),
+		ServiceTypeID: toPGUUID(serviceTypeID),
+	})
+}
+
+func (r *DealershipRepository) ListAvailableServiceBays(ctx context.Context, dealershipID, serviceTypeID uuid.UUID, startsAt, endsAt time.Time) ([]domain.ServiceBay, error) {
 	rows, err := r.queries.ListAvailableServiceBays(ctx, dbmodels.ListAvailableServiceBaysParams{
-		DealershipID: toPGUUID(dealershipID),
-		StartsAt:     startsAt,
-		EndsAt:       endsAt,
+		DealershipID:  toPGUUID(dealershipID),
+		ServiceTypeID: toPGUUID(serviceTypeID),
+		StartsAt:      startsAt,
+		EndsAt:        endsAt,
 	})
 	if err != nil {
 		return nil, err

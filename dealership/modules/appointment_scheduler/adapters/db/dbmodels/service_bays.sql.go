@@ -146,6 +146,29 @@ func (q *Queries) HasAppointmentsForServiceBay(ctx context.Context, serviceBayID
 	return exists, err
 }
 
+const isActiveServiceTypeForAvailableServiceBays = `-- name: IsActiveServiceTypeForAvailableServiceBays :one
+SELECT EXISTS (
+  SELECT 1
+  FROM appointment_scheduler.service_types
+  WHERE service_type_id = $1
+    AND dealership_id = $2
+    AND is_active
+    AND deleted_at IS NULL
+)
+`
+
+type IsActiveServiceTypeForAvailableServiceBaysParams struct {
+	ServiceTypeID pgtype.UUID
+	DealershipID  pgtype.UUID
+}
+
+func (q *Queries) IsActiveServiceTypeForAvailableServiceBays(ctx context.Context, arg IsActiveServiceTypeForAvailableServiceBaysParams) (bool, error) {
+	row := q.db.QueryRow(ctx, isActiveServiceTypeForAvailableServiceBays, arg.ServiceTypeID, arg.DealershipID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const listAvailableServiceBays = `-- name: ListAvailableServiceBays :many
 SELECT service_bay_id, dealership_id, code, name, is_active, created_at, updated_at
 FROM appointment_scheduler.service_bays AS service_bays
@@ -161,13 +184,25 @@ WHERE service_bays.dealership_id = $1
       AND appointments.starts_at < $2
       AND appointments.ends_at > $3
   )
+  AND NOT EXISTS (
+    SELECT 1
+    FROM appointment_scheduler.service_type_required_bay_capabilities AS required_capabilities
+    WHERE required_capabilities.service_type_id = $4
+      AND NOT EXISTS (
+        SELECT 1
+        FROM appointment_scheduler.service_bay_capabilities AS bay_capabilities
+        WHERE bay_capabilities.service_bay_id = service_bays.service_bay_id
+          AND bay_capabilities.bay_capability_id = required_capabilities.bay_capability_id
+      )
+  )
 ORDER BY code, service_bay_id
 `
 
 type ListAvailableServiceBaysParams struct {
-	DealershipID pgtype.UUID
-	EndsAt       time.Time
-	StartsAt     time.Time
+	DealershipID  pgtype.UUID
+	EndsAt        time.Time
+	StartsAt      time.Time
+	ServiceTypeID pgtype.UUID
 }
 
 type ListAvailableServiceBaysRow struct {
@@ -181,7 +216,12 @@ type ListAvailableServiceBaysRow struct {
 }
 
 func (q *Queries) ListAvailableServiceBays(ctx context.Context, arg ListAvailableServiceBaysParams) ([]ListAvailableServiceBaysRow, error) {
-	rows, err := q.db.Query(ctx, listAvailableServiceBays, arg.DealershipID, arg.EndsAt, arg.StartsAt)
+	rows, err := q.db.Query(ctx, listAvailableServiceBays,
+		arg.DealershipID,
+		arg.EndsAt,
+		arg.StartsAt,
+		arg.ServiceTypeID,
+	)
 	if err != nil {
 		return nil, err
 	}

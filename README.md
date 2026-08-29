@@ -181,13 +181,19 @@ From the sql result, take an admin account and it its' `auth_user_id`
 The API will response the access_token in the response body (There are a refresh_token on the http cookie only but you don't need it now). Note that the token will expires in 15 minutes. I don't bring the access_token expires time into environment variable yet. and you can update it in `dealership/modules/auth/adapters/token/issuer.go` file `accessLifetime  = 15 * time.Minute`
 Copy the `access_token` to test other apis.
 
-5. Get work schedule of all all employee of the above dealership by this api
+5. Get work schedule of all all employees of the above dealership by this api
 
 ```bash
 # [GET] http://localhost:9999/appointment-scheduler/v1/dealerships/<Dealership_id>/technician-schedules?date=2026-09-16
 ```
 
-6. Booking a service.
+6. Getting available service bays of that service_types
+
+```bash
+
+```
+
+7. Booking a service.
 
 ## Tracing log
 
