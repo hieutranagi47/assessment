@@ -211,11 +211,20 @@ func seedDealership(ctx context.Context, tx pgx.Tx, d int, spec struct{ code, na
 		if err := exec(ctx, tx, `INSERT INTO appointment_scheduler.service_bays (service_bay_id,dealership_id,code,name,is_active,created_at,updated_at) VALUES ($1,$2,$3,$4,true,$5,$5) ON CONFLICT (service_bay_id) DO NOTHING`, bid, did, fmt.Sprintf("B%02d", bay+1), fmt.Sprintf("Service bay %d", bay+1), seedTime); err != nil {
 			return err
 		}
-		for ci, capability := range capabilities {
-			if bay == 0 || ci%7 == bay {
-				if err := exec(ctx, tx, `INSERT INTO appointment_scheduler.service_bay_capabilities (service_bay_capability_id,service_bay_id,bay_capability_id,created_at,updated_at) VALUES ($1,$2,$3,$4,$4) ON CONFLICT (service_bay_capability_id) DO NOTHING`, fixtureID("bay-cap", fmt.Sprint(d), fmt.Sprint(bay), capability), bid, fixtureID("capability", capability), seedTime); err != nil {
+		for capabilityIndex, capability := range capabilities {
+			associationID := fixtureID("bay-cap", fmt.Sprint(d), fmt.Sprint(bay), capability)
+			if fixtureBaySupportsCapability(bay, capabilityIndex) {
+				if err := exec(ctx, tx, `INSERT INTO appointment_scheduler.service_bay_capabilities (service_bay_capability_id,service_bay_id,bay_capability_id,created_at,updated_at) VALUES ($1,$2,$3,$4,$4) ON CONFLICT (service_bay_capability_id) DO NOTHING`, associationID, bid, fixtureID("capability", capability), seedTime); err != nil {
 					return err
 				}
+				continue
+			}
+
+			// Remove only an obsolete association created by an earlier version of
+			// this deterministic fixture. Manually configured associations have a
+			// different ID and are deliberately preserved.
+			if err := exec(ctx, tx, `DELETE FROM appointment_scheduler.service_bay_capabilities WHERE service_bay_capability_id = $1`, associationID); err != nil {
+				return err
 			}
 		}
 	}
@@ -233,6 +242,18 @@ func seedDealership(ctx context.Context, tx pgx.Tx, d int, spec struct{ code, na
 	}
 	return nil
 }
+
+// fixtureBaySupportsCapability gives every service type five compatible bays:
+// B01 is the flexible bay and four of B02–B07 support each capability. The
+// rotating assignment leaves the specialist bays with distinct profiles.
+func fixtureBaySupportsCapability(bayIndex, capabilityIndex int) bool {
+	if bayIndex == 0 {
+		return true
+	}
+
+	return (capabilityIndex+bayIndex)%6 < 4
+}
+
 func seedEmployee(ctx context.Context, tx pgx.Tx, d, e int, dealershipID uuid.UUID) error {
 	uid := fixtureID("scheduler-user", fmt.Sprint(d), fmt.Sprint(e))
 	role := "technician"

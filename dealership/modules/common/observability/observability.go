@@ -52,9 +52,10 @@ func Configure(
 		metric.WithResource(resource),
 	)
 
-	traceProvider := tracesdk.NewTracerProvider(
+	traceProviderOptions := []tracesdk.TracerProviderOption{
 		tracesdk.WithResource(resource),
-	)
+		tracesdk.WithSpanProcessor(correlationIDSpanProcessor{}),
+	}
 	if traceEndpoint != "" {
 		traceExporter, err := otlptracehttp.New(
 			ctx,
@@ -64,11 +65,9 @@ func Configure(
 			_ = metricProvider.Shutdown(ctx)
 			return nil, fmt.Errorf("configure OTLP trace exporter: %w", err)
 		}
-		traceProvider = tracesdk.NewTracerProvider(
-			tracesdk.WithBatcher(traceExporter),
-			tracesdk.WithResource(resource),
-		)
+		traceProviderOptions = append(traceProviderOptions, tracesdk.WithBatcher(traceExporter))
 	}
+	traceProvider := tracesdk.NewTracerProvider(traceProviderOptions...)
 
 	otel.SetMeterProvider(metricProvider)
 	otel.SetTracerProvider(traceProvider)

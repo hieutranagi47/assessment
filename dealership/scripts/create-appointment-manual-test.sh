@@ -7,7 +7,8 @@
 #
 # Optional overrides:
 #   DEALERSHIP_CODE=DAL APPOINTMENT_DATE=2026-09-01 \
-#   APPOINTMENT_LOCAL_TIME=09:00 ./dealership/scripts/create-appointment-manual-test.sh
+#   APPOINTMENT_LOCAL_TIME=09:00 CORRELATION_ID=manual-appointment-001 \
+#   ./dealership/scripts/create-appointment-manual-test.sh
 
 set -euo pipefail
 
@@ -15,6 +16,7 @@ BASE_URL="${BASE_URL:-http://localhost:9999}"
 DEALERSHIP_CODE="${DEALERSHIP_CODE:-}"
 APPOINTMENT_DATE="${APPOINTMENT_DATE:-2026-09-01}"
 APPOINTMENT_LOCAL_TIME="${APPOINTMENT_LOCAL_TIME:-09:00}"
+CORRELATION_ID="${CORRELATION_ID:-manual-appointment-${APPOINTMENT_DATE}-${APPOINTMENT_LOCAL_TIME//:/}}"
 SEED_PASSWORD="${SEED_PASSWORD:-Abc@6789}"
 POSTGRES_USER="${POSTGRES_USER:-postgres}"
 POSTGRES_DB="${POSTGRES_DB:-ht47}"
@@ -43,6 +45,7 @@ api() {
   curl --fail-with-body --silent --show-error \
     -H "Authorization: Bearer ${ACCESS_TOKEN}" \
     -H 'Accept: application/json' \
+    -H "Correlation-ID: ${CORRELATION_ID}" \
     "$@"
 }
 
@@ -78,12 +81,14 @@ fi
 IFS=$'\t' read -r DEALERSHIP_ID SELECTED_DEALERSHIP_CODE DEALERSHIP_TIMEZONE ADMIN_EMAIL <<<"$dealership_row"
 printf 'Using dealership %s (%s), timezone %s, admin %s.\n' \
   "$SELECTED_DEALERSHIP_CODE" "$DEALERSHIP_ID" "$DEALERSHIP_TIMEZONE" "$ADMIN_EMAIL"
+printf 'Using Correlation-ID: %s\n' "$CORRELATION_ID"
 
 printf 'Signing in...\n'
 sign_in_body="$(jq -nc --arg email "$ADMIN_EMAIL" --arg password "$SEED_PASSWORD" \
   '{email: $email, password: $password}')"
 sign_in_response="$(curl --fail-with-body --silent --show-error \
   -H 'Content-Type: application/json' \
+  -H "Correlation-ID: ${CORRELATION_ID}" \
   -X POST "$BASE_URL/auth/v1/sign-in" \
   --data "$sign_in_body")"
 ACCESS_TOKEN="$(jq -er '.access_token' <<<"$sign_in_response")"
