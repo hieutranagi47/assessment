@@ -62,6 +62,16 @@ cd dealership
 task seed
 ```
 
+## Start testing automatically with script
+
+```bash
+# cd to-the-root-project
+DEALERSHIP_CODE=HCM APPOINTMENT_DATE=2026-09-01 APPOINTMENT_LOCAL_TIME=09:00 \
+  ./dealership/scripts/create-appointment-manual-test.sh
+```
+
+## Manual testing (Read the bellow if you start working on this project.)
+
 The command uses the same environment configuration as the service and is
 manual-only; it never runs at startup, during migrations, or in tests. It is
 transactional and can be run repeatedly without changing fixture identities or
@@ -141,14 +151,6 @@ contexts. Each context separates `domain`, `app`, `adapters`, and `api/http`
 packages; the common module provides shared infrastructure. See
 [`AGENT.MD`](AGENT.MD) for the full package map, dependency rules, generated
 code workflow, and development conventions.
-
-## Start testing automatically with script
-
-```bash
-# cd to-the-root-project
-DEALERSHIP_CODE=HCM APPOINTMENT_DATE=2026-09-01 APPOINTMENT_LOCAL_TIME=09:00 \
-  ./dealership/scripts/create-appointment-manual-test.sh
-```
 
 ## Start testing manually
 
