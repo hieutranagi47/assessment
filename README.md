@@ -25,6 +25,7 @@ docker compose up --build -d
 This starts:
 
 - PostgreSQL on `localhost:5432`
+- pgAdmin on [localhost:5050](http://localhost:5050) (`admin@example.com` / `admin`)
 - the dealership service on HTTP `localhost:9999`
 - the dealership service on HTTPS `localhost:8444`
 - Prometheus on [localhost:9090](http://localhost:9090)
@@ -33,6 +34,12 @@ This starts:
 
 The service waits for PostgreSQL to become healthy, then applies the embedded
 `auth` and `appointment_scheduler` migrations automatically.
+
+pgAdmin includes a preconfigured **Local PostgreSQL** server. It connects over
+the Compose network using host `postgres`, port `5432`, database `ht47`, and
+user `postgres`; the default PostgreSQL password is provisioned automatically.
+If you override any `POSTGRES_*` settings, edit the pgAdmin connection details
+and password to use the same values.
 
 Check that the service is running:
 
@@ -103,13 +110,16 @@ encryption keys, and container listener ports. Override host ports or database
 settings with environment variables when needed:
 
 ```sh
-POSTGRES_PORT=55432 SERVER_PORT=9000 SERVER_PORT_TLS=9443 \
+POSTGRES_PORT=55432 PGADMIN_PORT=5050 SERVER_PORT=9000 SERVER_PORT_TLS=9443 \
   docker compose up --build -d
 ```
 
 The application still listens on container ports `8080` and `8443`; these
 variables change the host-side mappings. For production, replace all
 development secrets in `docker-compose.yaml` with secret-managed values.
+
+pgAdmin's login and host port can also be changed with
+`PGADMIN_DEFAULT_EMAIL`, `PGADMIN_DEFAULT_PASSWORD`, and `PGADMIN_PORT`.
 
 ## Stop the service
 
@@ -132,7 +142,18 @@ packages; the common module provides shared infrastructure. See
 [`AGENT.MD`](AGENT.MD) for the full package map, dependency rules, generated
 code workflow, and development conventions.
 
-## Start testing
+## Start testing automatically with script
+
+```bash
+# cd to-the-root-project
+DEALERSHIP_CODE=HCM APPOINTMENT_DATE=2026-09-01 APPOINTMENT_LOCAL_TIME=09:00 \
+  ./dealership/scripts/create-appointment-manual-test.sh
+```
+
+## Start testing manually
+
+- Auth openapi web ui: http://localhost:9999/auth/docs/#/Session/signIn
+- Appointment Scheduler openapi web ui: http://localhost:9999/appointment-scheduler/docs/#/
 
 1. Open the appointment_scheduler.dealership to pick one dealership_id, see the dealership timezone.
 
@@ -185,16 +206,30 @@ Copy the `access_token` to test other apis.
 5. Get work schedule of all all employees of the above dealership by this api
 
 ```bash
-# [GET] http://localhost:9999/appointment-scheduler/v1/dealerships/<Dealership_id>/technician-schedules?date=2026-09-16
+# [GET] http://localhost:9999/appointment-scheduler/v1/dealerships/<Dealership_id>/technician-schedules?date=2026-09-1
 ```
 
-6. Getting available service bays of that service_types
+1. Getting available service bays of that service_types
 
 ```bash
-
+# [POST] appointment-scheduler/v1/dealerships/206c4a44-c525-5960-ad70-3a1e80f806e5/service-bays/available?service_type_id=03cdcb00-c17b-56c3-9134-150bffd9d9b3&starts_at=2026-08-30T09%3A00%3A00Z&ends_at=2026-08-30T11%3A00%3A00Z
 ```
 
 7. Booking a service.
+
+```bash
+# [POST] appointment-scheduler/v1/appointments
+{
+  "customer_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "vehicle_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "service_type_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "starts_at": "2026-08-30T09:54:27.244Z",
+  "technician_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "service_bay_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "planned_duration_minutes": 1,
+  "notes": "string"
+}
+```
 
 ## Tracing log
 

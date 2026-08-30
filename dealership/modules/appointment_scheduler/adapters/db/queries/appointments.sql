@@ -1,5 +1,38 @@
 -- appointments CRUD queries.
 
+-- name: CanReadDealershipAppointments :one
+SELECT EXISTS (
+  SELECT 1
+  FROM appointment_scheduler.users AS users
+  JOIN appointment_scheduler.user_roles AS user_roles ON user_roles.user_id = users.user_id
+  JOIN appointment_scheduler.roles AS roles ON roles.role_id = user_roles.role_id
+  WHERE users.auth_user_id = sqlc.arg('auth_user_id')
+    AND users.dealership_id = sqlc.arg('dealership_id')
+    AND users.is_active
+    AND users.deleted_at IS NULL
+    AND user_roles.deleted_at IS NULL
+    AND roles.deleted_at IS NULL
+    AND roles.code IN ('admin', 'staff', 'dealer')
+);
+
+-- name: GetActiveDealershipForAppointments :one
+SELECT dealership_id, timezone
+FROM appointment_scheduler.dealerships
+WHERE dealership_id = sqlc.arg('dealership_id')
+  AND is_active
+  AND deleted_at IS NULL;
+
+-- name: ListDealershipAppointments :many
+SELECT appointment_id, reference_code, customer_id, vehicle_id, dealership_id,
+  service_type_id, technician_id, service_bay_id, starts_at, ends_at,
+  actual_ends_at, planned_duration_minutes, status, notes, created_at, updated_at
+FROM appointment_scheduler.appointments
+WHERE dealership_id = sqlc.arg('dealership_id')
+  AND deleted_at IS NULL
+  AND starts_at < sqlc.arg('period_ends_at')
+  AND ends_at > sqlc.arg('period_starts_at')
+ORDER BY starts_at, ends_at, appointment_id;
+
 -- name: GetActiveDealershipTimezone :one
 SELECT timezone
 FROM appointment_scheduler.dealerships

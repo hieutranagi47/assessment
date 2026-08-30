@@ -48,6 +48,35 @@ func (r *DealershipRepository) Create(ctx context.Context, dealership domain.Dea
 	return err
 }
 
+func (r *DealershipRepository) CanListDealerships(ctx context.Context, authUserID uuid.UUID) (bool, error) {
+	return r.queries.CanListDealerships(ctx, toPGUUID(authUserID))
+}
+
+func (r *DealershipRepository) ListDealerships(ctx context.Context) ([]domain.Dealership, error) {
+	rows, err := r.queries.ListDealerships(ctx)
+	if err != nil {
+		return nil, err
+	}
+	items := make([]domain.Dealership, 0, len(rows))
+	for _, row := range rows {
+		dealership, err := domain.RehydrateDealership(
+			fromPGUUID(row.DealershipID),
+			row.Name,
+			row.Code,
+			row.Address,
+			row.Timezone,
+			row.IsActive,
+			row.CreatedAt,
+			row.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, dealership)
+	}
+	return items, nil
+}
+
 // IsActiveSchedulerAdmin reports whether the auth user has an active
 // appointment-scheduler user record with the admin role.
 func (r *DealershipRepository) IsActiveSchedulerAdmin(ctx context.Context, authUserID uuid.UUID) (bool, error) {

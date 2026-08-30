@@ -388,6 +388,13 @@ type DealershipAdmin struct {
 // DealershipAdminRole defines model for DealershipAdmin.Role.
 type DealershipAdminRole string
 
+// DealershipAppointmentListResponse defines model for DealershipAppointmentListResponse.
+type DealershipAppointmentListResponse struct {
+	Date     openapi_types.Date `json:"date"`
+	Items    []Appointment      `json:"items"`
+	Timezone string             `json:"timezone"`
+}
+
 // DealershipOperationTime defines model for DealershipOperationTime.
 type DealershipOperationTime struct {
 	ClosesAt        string             `json:"closes_at"`
@@ -791,11 +798,17 @@ type CustomersListed = CustomerListResponse
 // DealershipAdminCreated defines model for DealershipAdminCreated.
 type DealershipAdminCreated = DealershipAdmin
 
+// DealershipAppointmentsListed defines model for DealershipAppointmentsListed.
+type DealershipAppointmentsListed = DealershipAppointmentListResponse
+
 // DealershipCreated defines model for DealershipCreated.
 type DealershipCreated = Dealership
 
 // DealershipUserCreated defines model for DealershipUserCreated.
 type DealershipUserCreated = DealershipUser
+
+// DealershipsListed defines model for DealershipsListed.
+type DealershipsListed = []Dealership
 
 // Forbidden defines model for Forbidden.
 type Forbidden = ErrorResponse
@@ -938,6 +951,11 @@ type SearchCustomersParams struct {
 // SearchAuthUserByEmailParams defines parameters for SearchAuthUserByEmail.
 type SearchAuthUserByEmailParams struct {
 	Email openapi_types.Email `form:"email" json:"email"`
+}
+
+// ListDealershipAppointmentsParams defines parameters for ListDealershipAppointments.
+type ListDealershipAppointmentsParams struct {
+	Date openapi_types.Date `form:"date" json:"date"`
 }
 
 // ListServiceBaysParams defines parameters for ListServiceBays.
@@ -1121,9 +1139,15 @@ type ServerInterface interface {
 	// SearchAuthUserByEmail Search an auth user by email
 	// (GET /dealership-users/search)
 	SearchAuthUserByEmail(ctx *echo.Context, params SearchAuthUserByEmailParams) error
+	// ListDealerships List all dealerships
+	// (GET /dealerships)
+	ListDealerships(ctx *echo.Context) error
 	// CreateDealership Create a dealership
 	// (POST /dealerships)
 	CreateDealership(ctx *echo.Context) error
+
+	// (GET /dealerships/{dealershipId}/appointments)
+	ListDealershipAppointments(ctx *echo.Context, dealershipId DealershipId, params ListDealershipAppointmentsParams) error
 
 	// (GET /dealerships/{dealershipId}/operation-times)
 	ListDealershipOperationTimes(ctx *echo.Context, dealershipId DealershipId) error
@@ -1485,12 +1509,46 @@ func (w *ServerInterfaceWrapper) SearchAuthUserByEmail(ctx *echo.Context) error 
 	return err
 }
 
+// ListDealerships converts echo context to params.
+func (w *ServerInterfaceWrapper) ListDealerships(ctx *echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListDealerships(ctx)
+	return err
+}
+
 // CreateDealership converts echo context to params.
 func (w *ServerInterfaceWrapper) CreateDealership(ctx *echo.Context) error {
 	var err error
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.CreateDealership(ctx)
+	return err
+}
+
+// ListDealershipAppointments converts echo context to params.
+func (w *ServerInterfaceWrapper) ListDealershipAppointments(ctx *echo.Context) error {
+	var err error
+	// ------------- Path parameter "dealershipId" -------------
+	var dealershipId DealershipId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "dealershipId", ctx.Param("dealershipId"), &dealershipId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter dealershipId: %s", err))
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListDealershipAppointmentsParams
+	// ------------- Required query parameter "date" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "date", ctx.QueryParams(), &params.Date, runtime.BindQueryParameterOptions{Type: "string", Format: "date"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter date: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListDealershipAppointments(ctx, dealershipId, params)
 	return err
 }
 
@@ -2700,6 +2758,7 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.GET(options.BaseURL+"/dealerships/:dealershipId/service-bays/available", wrapper.ListAvailableServiceBays, options.OperationMiddlewares["listAvailableServiceBays"]...)
 	router.GET(options.BaseURL+"/dealerships/:dealershipId/technician-schedules", wrapper.ListTechnicianSchedules, options.OperationMiddlewares["listTechnicianSchedules"]...)
 	router.POST(options.BaseURL+"/appointments", wrapper.ScheduleAppointment, options.OperationMiddlewares["scheduleAppointment"]...)
+	router.GET(options.BaseURL+"/dealerships/:dealershipId/appointments", wrapper.ListDealershipAppointments, options.OperationMiddlewares["listDealershipAppointments"]...)
 	router.POST(options.BaseURL+"/appointments/:appointmentId/check-in", wrapper.CheckInAppointment, options.OperationMiddlewares["checkInAppointment"]...)
 	router.POST(options.BaseURL+"/appointments/:appointmentId/start", wrapper.StartAppointment, options.OperationMiddlewares["startAppointment"]...)
 	router.POST(options.BaseURL+"/appointments/:appointmentId/complete", wrapper.CompleteAppointment, options.OperationMiddlewares["completeAppointment"]...)
@@ -2733,6 +2792,7 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.POST(options.BaseURL+"/dealership-users", wrapper.CreateDealershipUser, options.OperationMiddlewares["createDealershipUser"]...)
 	router.GET(options.BaseURL+"/dealership-users/search", wrapper.SearchAuthUserByEmail, options.OperationMiddlewares["searchAuthUserByEmail"]...)
 	router.POST(options.BaseURL+"/dealership-users/admins", wrapper.CreateDealershipAdmin, options.OperationMiddlewares["createDealershipAdmin"]...)
+	router.GET(options.BaseURL+"/dealerships", wrapper.ListDealerships, options.OperationMiddlewares["listDealerships"]...)
 	router.POST(options.BaseURL+"/dealerships", wrapper.CreateDealership, options.OperationMiddlewares["createDealership"]...)
 	router.POST(options.BaseURL+"/customers", wrapper.CreateCustomer, options.OperationMiddlewares["createCustomer"]...)
 	router.GET(options.BaseURL+"/customers/:customerId", wrapper.GetCustomer, options.OperationMiddlewares["getCustomer"]...)
@@ -2791,9 +2851,13 @@ type CustomersListedJSONResponse CustomerListResponse
 
 type DealershipAdminCreatedJSONResponse DealershipAdmin
 
+type DealershipAppointmentsListedJSONResponse DealershipAppointmentListResponse
+
 type DealershipCreatedJSONResponse Dealership
 
 type DealershipUserCreatedJSONResponse DealershipUser
+
+type DealershipsListedJSONResponse []Dealership
 
 type ForbiddenJSONResponse ErrorResponse
 
@@ -4246,6 +4310,71 @@ func (response SearchAuthUserByEmail500JSONResponse) VisitSearchAuthUserByEmailR
 	return err
 }
 
+type ListDealershipsRequestObject struct {
+}
+
+type ListDealershipsResponseObject interface {
+	VisitListDealershipsResponse(w http.ResponseWriter) error
+}
+
+type ListDealerships200JSONResponse struct{ DealershipsListedJSONResponse }
+
+func (response ListDealerships200JSONResponse) VisitListDealershipsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListDealerships401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListDealerships401JSONResponse) VisitListDealershipsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListDealerships403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListDealerships403JSONResponse) VisitListDealershipsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListDealerships500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ListDealerships500JSONResponse) VisitListDealershipsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type CreateDealershipRequestObject struct {
 	Body *CreateDealershipJSONRequestBody
 }
@@ -4329,6 +4458,103 @@ type CreateDealership500JSONResponse struct {
 }
 
 func (response CreateDealership500JSONResponse) VisitCreateDealershipResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListDealershipAppointmentsRequestObject struct {
+	DealershipId DealershipId `json:"dealershipId"`
+	Params       ListDealershipAppointmentsParams
+}
+
+type ListDealershipAppointmentsResponseObject interface {
+	VisitListDealershipAppointmentsResponse(w http.ResponseWriter) error
+}
+
+type ListDealershipAppointments200JSONResponse struct {
+	DealershipAppointmentsListedJSONResponse
+}
+
+func (response ListDealershipAppointments200JSONResponse) VisitListDealershipAppointmentsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListDealershipAppointments400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ListDealershipAppointments400JSONResponse) VisitListDealershipAppointmentsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListDealershipAppointments401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListDealershipAppointments401JSONResponse) VisitListDealershipAppointmentsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListDealershipAppointments403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListDealershipAppointments403JSONResponse) VisitListDealershipAppointmentsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListDealershipAppointments404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ListDealershipAppointments404JSONResponse) VisitListDealershipAppointmentsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListDealershipAppointments500JSONResponse struct {
+	InternalServerErrorJSONResponse
+}
+
+func (response ListDealershipAppointments500JSONResponse) VisitListDealershipAppointmentsResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -9069,9 +9295,15 @@ type StrictServerInterface interface {
 	// SearchAuthUserByEmail Search an auth user by email
 	// (GET /dealership-users/search)
 	SearchAuthUserByEmail(ctx context.Context, request SearchAuthUserByEmailRequestObject) (SearchAuthUserByEmailResponseObject, error)
+	// ListDealerships List all dealerships
+	// (GET /dealerships)
+	ListDealerships(ctx context.Context, request ListDealershipsRequestObject) (ListDealershipsResponseObject, error)
 	// CreateDealership Create a dealership
 	// (POST /dealerships)
 	CreateDealership(ctx context.Context, request CreateDealershipRequestObject) (CreateDealershipResponseObject, error)
+
+	// (GET /dealerships/{dealershipId}/appointments)
+	ListDealershipAppointments(ctx context.Context, request ListDealershipAppointmentsRequestObject) (ListDealershipAppointmentsResponseObject, error)
 
 	// (GET /dealerships/{dealershipId}/operation-times)
 	ListDealershipOperationTimes(ctx context.Context, request ListDealershipOperationTimesRequestObject) (ListDealershipOperationTimesResponseObject, error)
@@ -9735,6 +9967,29 @@ func (sh *strictHandler) SearchAuthUserByEmail(ctx *echo.Context, params SearchA
 	return nil
 }
 
+// ListDealerships operation middleware
+func (sh *strictHandler) ListDealerships(ctx *echo.Context) error {
+	var request ListDealershipsRequestObject
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListDealerships(ctx.Request().Context(), request.(ListDealershipsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListDealerships")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListDealershipsResponseObject); ok {
+		return validResponse.VisitListDealershipsResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
 // CreateDealership operation middleware
 func (sh *strictHandler) CreateDealership(ctx *echo.Context) error {
 	var request CreateDealershipRequestObject
@@ -9768,6 +10023,32 @@ func (sh *strictHandler) CreateDealership(ctx *echo.Context) error {
 		return err
 	} else if validResponse, ok := response.(CreateDealershipResponseObject); ok {
 		return validResponse.VisitCreateDealershipResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListDealershipAppointments operation middleware
+func (sh *strictHandler) ListDealershipAppointments(ctx *echo.Context, dealershipId DealershipId, params ListDealershipAppointmentsParams) error {
+	var request ListDealershipAppointmentsRequestObject
+
+	request.DealershipId = dealershipId
+	request.Params = params
+
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListDealershipAppointments(ctx.Request().Context(), request.(ListDealershipAppointmentsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListDealershipAppointments")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListDealershipAppointmentsResponseObject); ok {
+		return validResponse.VisitListDealershipAppointmentsResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

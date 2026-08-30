@@ -22,6 +22,20 @@ SELECT EXISTS (
     AND roles.deleted_at IS NULL
 );
 
+-- name: CanListDealerships :one
+SELECT EXISTS (
+  SELECT 1
+  FROM appointment_scheduler.users AS users
+  JOIN appointment_scheduler.user_roles AS user_roles ON user_roles.user_id = users.user_id
+  JOIN appointment_scheduler.roles AS roles ON roles.role_id = user_roles.role_id
+  WHERE users.auth_user_id = sqlc.arg('auth_user_id')
+    AND users.is_active
+    AND users.deleted_at IS NULL
+    AND user_roles.deleted_at IS NULL
+    AND roles.deleted_at IS NULL
+    AND roles.code IN ('admin', 'staff', 'dealer')
+);
+
 -- name: IsActiveSchedulerAdminForDealership :one
 SELECT EXISTS (
   SELECT 1

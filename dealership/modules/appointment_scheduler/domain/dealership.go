@@ -62,6 +62,18 @@ func NewDealership(id uuid.UUID, name, code, address, timezone string, now time.
 	}, nil
 }
 
+// RehydrateDealership rebuilds a persisted dealership while preserving its
+// lifecycle state and timestamps.
+func RehydrateDealership(id uuid.UUID, name, code, address, timezone string, isActive bool, createdAt, updatedAt time.Time) (Dealership, error) {
+	dealership, err := NewDealership(id, name, code, address, timezone, createdAt)
+	if err != nil {
+		return Dealership{}, err
+	}
+	dealership.isActive = isActive
+	dealership.updatedAt = updatedAt.UTC()
+	return dealership, nil
+}
+
 func (d Dealership) ID() uuid.UUID        { return d.id }
 func (d Dealership) Name() string         { return d.name }
 func (d Dealership) Code() string         { return d.code }

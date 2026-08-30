@@ -1,5 +1,11 @@
 -- dealerships CRUD queries.
 
+-- name: ListDealerships :many
+SELECT dealership_id, name, code, address, timezone, is_active, created_at, updated_at
+FROM appointment_scheduler.dealerships
+WHERE deleted_at IS NULL
+ORDER BY name, dealership_id;
+
 -- name: GetActiveDealership :one
 SELECT dealership_id
 FROM appointment_scheduler.dealerships

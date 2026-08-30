@@ -24,6 +24,24 @@ type repositoryStub struct {
 	isActiveSchedulerAdmin bool
 }
 
+type dealershipListerStub struct {
+	items []domain.Dealership
+	err   error
+}
+
+type dealershipAppointmentsListerStub struct {
+	result app.DealershipAppointmentsResult
+	err    error
+}
+
+func (s dealershipAppointmentsListerStub) List(context.Context, app.ListDealershipAppointmentsInput) (app.DealershipAppointmentsResult, error) {
+	return s.result, s.err
+}
+
+func (s dealershipListerStub) List(context.Context, uuid.UUID) ([]domain.Dealership, error) {
+	return s.items, s.err
+}
+
 func TestServiceBayHTTPAuthorizationOwnershipValidationAndConflict(t *testing.T) {
 	actor := uuid.New()
 	dealershipID := uuid.New()
@@ -70,6 +88,68 @@ func (r repositoryStub) Create(context.Context, domain.Dealership) error { retur
 
 func (r repositoryStub) IsActiveSchedulerAdmin(context.Context, uuid.UUID) (bool, error) {
 	return r.isActiveSchedulerAdmin, nil
+}
+
+func TestListDealershipsHTTPResponse(t *testing.T) {
+	actorID := uuid.New()
+	dealership, err := domain.NewDealership(uuid.New(), "Downtown Motors", "DTM", "1 Main Street", "Asia/Ho_Chi_Minh", time.Now())
+	require.NoError(t, err)
+	auth := authStub{identity: client.Identity{UserID: actorID}}
+	service := app.NewService(repositoryStub{}, auth)
+	handler := NewHandler(service, auth)
+	handler.SetDealershipLister(dealershipListerStub{items: []domain.Dealership{dealership}})
+	router := common.NewEcho(common.EchoConfig{})
+	Register(context.Background(), router, handler)
+
+	request := httptest.NewRequest(stdhttp.MethodGet, "/appointment-scheduler/v1/dealerships", nil)
+	request.Header.Set("Authorization", "Bearer access-token")
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, request)
+
+	require.Equal(t, stdhttp.StatusOK, recorder.Code, recorder.Body.String())
+	require.Contains(t, recorder.Body.String(), `"dealership_id":"`+dealership.ID().String()+`"`)
+}
+
+func TestListDealershipAppointmentsHTTPResponse(t *testing.T) {
+	actorID := uuid.New()
+	dealershipID := uuid.New()
+	appointmentID := uuid.New()
+	auth := authStub{identity: client.Identity{UserID: actorID}}
+	service := app.NewService(repositoryStub{}, auth)
+	handler := NewHandler(service, auth)
+	handler.SetDealershipAppointmentsLister(dealershipAppointmentsListerStub{
+		result: app.DealershipAppointmentsResult{
+			Date:     time.Date(2026, 9, 16, 0, 0, 0, 0, time.UTC),
+			Timezone: "Asia/Ho_Chi_Minh",
+			Appointments: []app.DealershipAppointment{{
+				AppointmentID:          appointmentID,
+				ReferenceCode:          "APT-001",
+				CustomerID:             uuid.New(),
+				VehicleID:              uuid.New(),
+				DealershipID:           dealershipID,
+				ServiceTypeID:          uuid.New(),
+				TechnicianID:           uuid.New(),
+				ServiceBayID:           uuid.New(),
+				StartsAt:               time.Date(2026, 9, 16, 2, 0, 0, 0, time.UTC),
+				EndsAt:                 time.Date(2026, 9, 16, 3, 0, 0, 0, time.UTC),
+				PlannedDurationMinutes: 60,
+				Status:                 "requested",
+				CreatedAt:              time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC),
+				UpdatedAt:              time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC),
+			}},
+		},
+	})
+	router := common.NewEcho(common.EchoConfig{})
+	Register(context.Background(), router, handler)
+
+	request := httptest.NewRequest(stdhttp.MethodGet, "/appointment-scheduler/v1/dealerships/"+dealershipID.String()+"/appointments?date=2026-09-16", nil)
+	request.Header.Set("Authorization", "Bearer access-token")
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, request)
+
+	require.Equal(t, stdhttp.StatusOK, recorder.Code, recorder.Body.String())
+	require.Contains(t, recorder.Body.String(), `"date":"2026-09-16"`)
+	require.Contains(t, recorder.Body.String(), `"appointment_id":"`+appointmentID.String()+`"`)
 }
 
 type adminRepositoryStub struct {

@@ -12,6 +12,36 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const canReadDealershipAppointments = `-- name: CanReadDealershipAppointments :one
+
+SELECT EXISTS (
+  SELECT 1
+  FROM appointment_scheduler.users AS users
+  JOIN appointment_scheduler.user_roles AS user_roles ON user_roles.user_id = users.user_id
+  JOIN appointment_scheduler.roles AS roles ON roles.role_id = user_roles.role_id
+  WHERE users.auth_user_id = $1
+    AND users.dealership_id = $2
+    AND users.is_active
+    AND users.deleted_at IS NULL
+    AND user_roles.deleted_at IS NULL
+    AND roles.deleted_at IS NULL
+    AND roles.code IN ('admin', 'staff', 'dealer')
+)
+`
+
+type CanReadDealershipAppointmentsParams struct {
+	AuthUserID   pgtype.UUID
+	DealershipID pgtype.UUID
+}
+
+// appointments CRUD queries.
+func (q *Queries) CanReadDealershipAppointments(ctx context.Context, arg CanReadDealershipAppointmentsParams) (bool, error) {
+	row := q.db.QueryRow(ctx, canReadDealershipAppointments, arg.AuthUserID, arg.DealershipID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const cancelAppointment = `-- name: CancelAppointment :exec
 UPDATE appointment_scheduler.appointments
 SET status = 'cancelled', cancelled_at = $1, cancelled_by_user_id = $2, cancellation_reason = $3, notes = $4, updated_at = $1
@@ -234,8 +264,27 @@ func (q *Queries) DeleteAppointments(ctx context.Context, arg DeleteAppointments
 	return result.RowsAffected(), nil
 }
 
-const getActiveDealershipTimezone = `-- name: GetActiveDealershipTimezone :one
+const getActiveDealershipForAppointments = `-- name: GetActiveDealershipForAppointments :one
+SELECT dealership_id, timezone
+FROM appointment_scheduler.dealerships
+WHERE dealership_id = $1
+  AND is_active
+  AND deleted_at IS NULL
+`
 
+type GetActiveDealershipForAppointmentsRow struct {
+	DealershipID pgtype.UUID
+	Timezone     string
+}
+
+func (q *Queries) GetActiveDealershipForAppointments(ctx context.Context, dealershipID pgtype.UUID) (GetActiveDealershipForAppointmentsRow, error) {
+	row := q.db.QueryRow(ctx, getActiveDealershipForAppointments, dealershipID)
+	var i GetActiveDealershipForAppointmentsRow
+	err := row.Scan(&i.DealershipID, &i.Timezone)
+	return i, err
+}
+
+const getActiveDealershipTimezone = `-- name: GetActiveDealershipTimezone :one
 SELECT timezone
 FROM appointment_scheduler.dealerships
 WHERE dealership_id = $1
@@ -243,7 +292,6 @@ WHERE dealership_id = $1
   AND deleted_at IS NULL
 `
 
-// appointments CRUD queries.
 func (q *Queries) GetActiveDealershipTimezone(ctx context.Context, dealershipID pgtype.UUID) (string, error) {
 	row := q.db.QueryRow(ctx, getActiveDealershipTimezone, dealershipID)
 	var timezone string
@@ -525,6 +573,80 @@ func (q *Queries) IsWithinDealershipOperatingHours(ctx context.Context, arg IsWi
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
+}
+
+const listDealershipAppointments = `-- name: ListDealershipAppointments :many
+SELECT appointment_id, reference_code, customer_id, vehicle_id, dealership_id,
+  service_type_id, technician_id, service_bay_id, starts_at, ends_at,
+  actual_ends_at, planned_duration_minutes, status, notes, created_at, updated_at
+FROM appointment_scheduler.appointments
+WHERE dealership_id = $1
+  AND deleted_at IS NULL
+  AND starts_at < $2
+  AND ends_at > $3
+ORDER BY starts_at, ends_at, appointment_id
+`
+
+type ListDealershipAppointmentsParams struct {
+	DealershipID   pgtype.UUID
+	PeriodEndsAt   time.Time
+	PeriodStartsAt time.Time
+}
+
+type ListDealershipAppointmentsRow struct {
+	AppointmentID          pgtype.UUID
+	ReferenceCode          string
+	CustomerID             pgtype.UUID
+	VehicleID              pgtype.UUID
+	DealershipID           pgtype.UUID
+	ServiceTypeID          pgtype.UUID
+	TechnicianID           pgtype.UUID
+	ServiceBayID           pgtype.UUID
+	StartsAt               time.Time
+	EndsAt                 time.Time
+	ActualEndsAt           pgtype.Timestamptz
+	PlannedDurationMinutes *int32
+	Status                 string
+	Notes                  *string
+	CreatedAt              time.Time
+	UpdatedAt              time.Time
+}
+
+func (q *Queries) ListDealershipAppointments(ctx context.Context, arg ListDealershipAppointmentsParams) ([]ListDealershipAppointmentsRow, error) {
+	rows, err := q.db.Query(ctx, listDealershipAppointments, arg.DealershipID, arg.PeriodEndsAt, arg.PeriodStartsAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListDealershipAppointmentsRow{}
+	for rows.Next() {
+		var i ListDealershipAppointmentsRow
+		if err := rows.Scan(
+			&i.AppointmentID,
+			&i.ReferenceCode,
+			&i.CustomerID,
+			&i.VehicleID,
+			&i.DealershipID,
+			&i.ServiceTypeID,
+			&i.TechnicianID,
+			&i.ServiceBayID,
+			&i.StartsAt,
+			&i.EndsAt,
+			&i.ActualEndsAt,
+			&i.PlannedDurationMinutes,
+			&i.Status,
+			&i.Notes,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const startAppointment = `-- name: StartAppointment :exec

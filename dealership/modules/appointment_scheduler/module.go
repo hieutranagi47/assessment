@@ -48,7 +48,11 @@ func (m *Module) RegisterContracts(_ context.Context, c *contracts.Contracts) er
 	service := app.NewService(repository, c.Auth, telemetry)
 	scheduleQuery := app.NewTechnicianScheduleQuery(repository)
 	availableServiceBaysQuery := app.NewAvailableServiceBaysQuery(repository)
+	dealershipAppointmentsQuery := app.NewDealershipAppointmentsQuery(repository)
+	listDealershipsQuery := app.NewListDealershipsQuery(repository, c.Auth)
 	m.handler = appointmenthttp.NewHandler(service, c.Auth, scheduleQuery)
 	m.handler.SetAvailableServiceBayLister(availableServiceBaysQuery)
+	m.handler.SetDealershipAppointmentsLister(dealershipAppointmentsQuery)
+	m.handler.SetDealershipLister(listDealershipsQuery)
 	return nil
 }

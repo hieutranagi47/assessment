@@ -62,7 +62,6 @@ func (q *Queries) DeleteDealerships(ctx context.Context, arg DeleteDealershipsPa
 }
 
 const getActiveDealership = `-- name: GetActiveDealership :one
-
 SELECT dealership_id
 FROM appointment_scheduler.dealerships
 WHERE dealership_id = $1
@@ -70,7 +69,6 @@ WHERE dealership_id = $1
   AND deleted_at IS NULL
 `
 
-// dealerships CRUD queries.
 func (q *Queries) GetActiveDealership(ctx context.Context, dealershipID pgtype.UUID) (pgtype.UUID, error) {
 	row := q.db.QueryRow(ctx, getActiveDealership, dealershipID)
 	var dealership_id pgtype.UUID
@@ -111,6 +109,55 @@ func (q *Queries) GetDealerships(ctx context.Context, dealershipID pgtype.UUID) 
 		&i.DeletedAt,
 	)
 	return i, err
+}
+
+const listDealerships = `-- name: ListDealerships :many
+
+SELECT dealership_id, name, code, address, timezone, is_active, created_at, updated_at
+FROM appointment_scheduler.dealerships
+WHERE deleted_at IS NULL
+ORDER BY name, dealership_id
+`
+
+type ListDealershipsRow struct {
+	DealershipID pgtype.UUID
+	Name         string
+	Code         string
+	Address      string
+	Timezone     string
+	IsActive     bool
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+}
+
+// dealerships CRUD queries.
+func (q *Queries) ListDealerships(ctx context.Context) ([]ListDealershipsRow, error) {
+	rows, err := q.db.Query(ctx, listDealerships)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListDealershipsRow{}
+	for rows.Next() {
+		var i ListDealershipsRow
+		if err := rows.Scan(
+			&i.DealershipID,
+			&i.Name,
+			&i.Code,
+			&i.Address,
+			&i.Timezone,
+			&i.IsActive,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const updateDealerships = `-- name: UpdateDealerships :execrows

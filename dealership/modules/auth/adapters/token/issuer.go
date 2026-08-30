@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	accessLifetime  = 15 * time.Minute
+	accessLifetime  = 180 * time.Minute
 	refreshLifetime = 7 * 24 * time.Hour
 )
 

@@ -21,10 +21,12 @@ import (
 type identityKey struct{}
 
 type Handler struct {
-	service   *app.Service
-	auth      client.Authenticator
-	schedules TechnicianScheduleLister
-	available AvailableServiceBayLister
+	service      *app.Service
+	auth         client.Authenticator
+	schedules    TechnicianScheduleLister
+	available    AvailableServiceBayLister
+	appointments DealershipAppointmentsLister
+	dealerships  DealershipLister
 }
 
 type TechnicianScheduleLister interface {
@@ -33,6 +35,14 @@ type TechnicianScheduleLister interface {
 
 type AvailableServiceBayLister interface {
 	List(context.Context, app.ListAvailableServiceBaysInput) ([]domain.ServiceBay, error)
+}
+
+type DealershipLister interface {
+	List(context.Context, uuid.UUID) ([]domain.Dealership, error)
+}
+
+type DealershipAppointmentsLister interface {
+	List(context.Context, app.ListDealershipAppointmentsInput) (app.DealershipAppointmentsResult, error)
 }
 
 func NewHandler(service *app.Service, auth client.Authenticator, schedules ...TechnicianScheduleLister) *Handler {
@@ -50,11 +60,21 @@ func (h *Handler) SetAvailableServiceBayLister(available AvailableServiceBayList
 	h.available = available
 }
 
+func (h *Handler) SetDealershipAppointmentsLister(appointments DealershipAppointmentsLister) {
+	h.appointments = appointments
+}
+
+func (h *Handler) SetDealershipLister(dealerships DealershipLister) {
+	h.dealerships = dealerships
+}
+
 func Register(_ context.Context, router common.EchoRouter, handler *Handler) error {
 	options := RegisterHandlersOptions{
 		OperationMiddlewares: map[string][]echo.MiddlewareFunc{
+			"listDealerships":                        {handler.requireIdentity},
 			"listAvailableServiceBays":               {handler.requireIdentity},
 			"listTechnicianSchedules":                {handler.requireIdentity},
+			"listDealershipAppointments":             {handler.requireIdentity},
 			"scheduleAppointment":                    {handler.requireIdentity},
 			"checkInAppointment":                     {handler.requireIdentity},
 			"startAppointment":                       {handler.requireIdentity},
@@ -124,6 +144,106 @@ func Register(_ context.Context, router common.EchoRouter, handler *Handler) err
 	RegisterHandlersWithOptions(router, strictHandler, options)
 	RegisterDocs(router)
 	return nil
+}
+
+func (h *Handler) ListDealershipAppointments(ctx context.Context, request ListDealershipAppointmentsRequestObject) (ListDealershipAppointmentsResponseObject, error) {
+	if h.appointments == nil {
+		return listDealershipAppointmentsErrorResponse(common.Error{PublicError: "internal server error", ErrorSlug: "internal_server_error"})
+	}
+	result, err := h.appointments.List(ctx, app.ListDealershipAppointmentsInput{
+		ActorUserID:  identityFrom(ctx),
+		DealershipID: uuid.UUID(request.DealershipId),
+		Date:         request.Params.Date.String(),
+	})
+	if err != nil {
+		return listDealershipAppointmentsErrorResponse(err)
+	}
+	items := make([]Appointment, 0, len(result.Appointments))
+	for _, appointment := range result.Appointments {
+		items = append(items, Appointment{
+			AppointmentId:          appointment.AppointmentID,
+			ReferenceCode:          appointment.ReferenceCode,
+			CustomerId:             &appointment.CustomerID,
+			VehicleId:              &appointment.VehicleID,
+			DealershipId:           appointment.DealershipID,
+			ServiceTypeId:          &appointment.ServiceTypeID,
+			TechnicianId:           &appointment.TechnicianID,
+			ServiceBayId:           &appointment.ServiceBayID,
+			StartsAt:               appointment.StartsAt,
+			EndsAt:                 appointment.EndsAt,
+			ActualEndsAt:           appointment.ActualEndsAt,
+			PlannedDurationMinutes: appointment.PlannedDurationMinutes,
+			Status:                 AppointmentStatus(appointment.Status),
+			Notes:                  appointment.Notes,
+			CreatedAt:              appointment.CreatedAt,
+			UpdatedAt:              appointment.UpdatedAt,
+		})
+	}
+	return ListDealershipAppointments200JSONResponse{
+		DealershipAppointmentsListedJSONResponse: DealershipAppointmentsListedJSONResponse{
+			Date:     openapi_types.Date{Time: result.Date},
+			Timezone: result.Timezone,
+			Items:    items,
+		},
+	}, nil
+}
+
+func listDealershipAppointmentsErrorResponse(err error) (ListDealershipAppointmentsResponseObject, error) {
+	structured := operationTimeProblem(err)
+	response := errorResponse(structured)
+	switch structured.HttpErrorCode {
+	case stdhttp.StatusBadRequest:
+		return ListDealershipAppointments400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse(response)}, nil
+	case stdhttp.StatusUnauthorized:
+		return ListDealershipAppointments401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case stdhttp.StatusForbidden:
+		return ListDealershipAppointments403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	case stdhttp.StatusNotFound:
+		return ListDealershipAppointments404JSONResponse{NotFoundJSONResponse: NotFoundJSONResponse(response)}, nil
+	default:
+		return ListDealershipAppointments500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
+}
+
+func (h *Handler) ListDealerships(ctx context.Context, _ ListDealershipsRequestObject) (ListDealershipsResponseObject, error) {
+	if h.dealerships == nil {
+		return listDealershipsErrorResponse(common.Error{PublicError: "internal server error", ErrorSlug: "internal_server_error"})
+	}
+	dealerships, err := h.dealerships.List(ctx, identityFrom(ctx))
+	if err != nil {
+		return listDealershipsErrorResponse(err)
+	}
+	items := make([]Dealership, 0, len(dealerships))
+	for _, dealership := range dealerships {
+		items = append(items, dealershipResponse(dealership))
+	}
+	return ListDealerships200JSONResponse{DealershipsListedJSONResponse: items}, nil
+}
+
+func dealershipResponse(dealership domain.Dealership) Dealership {
+	return Dealership{
+		DealershipId: dealership.ID(),
+		Name:         dealership.Name(),
+		Code:         dealership.Code(),
+		Address:      dealership.Address(),
+		Timezone:     dealership.Timezone(),
+		IsActive:     dealership.IsActive(),
+		CreatedAt:    dealership.CreatedAt(),
+		UpdatedAt:    dealership.UpdatedAt(),
+	}
+}
+
+func listDealershipsErrorResponse(err error) (ListDealershipsResponseObject, error) {
+	structured := operationTimeProblem(err)
+	response := errorResponse(structured)
+	switch structured.HttpErrorCode {
+	case stdhttp.StatusUnauthorized:
+		return ListDealerships401JSONResponse{UnauthorizedJSONResponse: UnauthorizedJSONResponse(response)}, nil
+	case stdhttp.StatusForbidden:
+		return ListDealerships403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse(response)}, nil
+	default:
+		return ListDealerships500JSONResponse{InternalServerErrorJSONResponse: InternalServerErrorJSONResponse(response)}, nil
+	}
 }
 
 func (h *Handler) ListAvailableServiceBays(ctx context.Context, request ListAvailableServiceBaysRequestObject) (ListAvailableServiceBaysResponseObject, error) {

@@ -14,3 +14,9 @@ tasks:
   seed:
     desc: Load deterministic development fixtures into an already migrated database
     cmds: [docker compose run --rm --no-deps dealership /app/dealership-seed]
+  build:dealership:
+    desc: Build and recreate dealership project
+    cmd: docker compose up -d --build dealership
+  build:all:
+    desc: Force to rebuild all services.
+    cmd: docker compose up -d --build --force-recreate

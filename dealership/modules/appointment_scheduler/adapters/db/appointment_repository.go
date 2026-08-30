@@ -239,3 +239,68 @@ func (r *DealershipRepository) TransitionAppointment(ctx context.Context, transi
 func pgTimestamptz(value time.Time) pgtype.Timestamptz {
 	return pgtype.Timestamptz{Time: value.UTC(), Valid: true}
 }
+
+var _ app.DealershipAppointmentsRepository = (*DealershipRepository)(nil)
+
+func (r *DealershipRepository) CanReadDealershipAppointments(ctx context.Context, authUserID, dealershipID uuid.UUID) (bool, error) {
+	return r.queries.CanReadDealershipAppointments(ctx, dbmodels.CanReadDealershipAppointmentsParams{
+		AuthUserID:   toPGUUID(authUserID),
+		DealershipID: toPGUUID(dealershipID),
+	})
+}
+
+func (r *DealershipRepository) GetActiveDealershipForAppointments(ctx context.Context, dealershipID uuid.UUID) (app.DealershipAppointmentsDealership, error) {
+	row, err := r.queries.GetActiveDealershipForAppointments(ctx, toPGUUID(dealershipID))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return app.DealershipAppointmentsDealership{}, app.ErrDealershipAppointmentsDealershipNotFound
+	}
+	if err != nil {
+		return app.DealershipAppointmentsDealership{}, err
+	}
+	return app.DealershipAppointmentsDealership{
+		ID:       fromPGUUID(row.DealershipID),
+		Timezone: row.Timezone,
+	}, nil
+}
+
+func (r *DealershipRepository) ListDealershipAppointments(ctx context.Context, dealershipID uuid.UUID, periodStartsAt, periodEndsAt time.Time) ([]app.DealershipAppointment, error) {
+	rows, err := r.queries.ListDealershipAppointments(ctx, dbmodels.ListDealershipAppointmentsParams{
+		DealershipID:   toPGUUID(dealershipID),
+		PeriodStartsAt: periodStartsAt.UTC(),
+		PeriodEndsAt:   periodEndsAt.UTC(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	items := make([]app.DealershipAppointment, 0, len(rows))
+	for _, row := range rows {
+		var actualEndsAt *time.Time
+		if row.ActualEndsAt.Valid {
+			value := row.ActualEndsAt.Time.UTC()
+			actualEndsAt = &value
+		}
+		plannedDurationMinutes := 0
+		if row.PlannedDurationMinutes != nil {
+			plannedDurationMinutes = int(*row.PlannedDurationMinutes)
+		}
+		items = append(items, app.DealershipAppointment{
+			AppointmentID:          fromPGUUID(row.AppointmentID),
+			ReferenceCode:          row.ReferenceCode,
+			CustomerID:             fromPGUUID(row.CustomerID),
+			VehicleID:              fromPGUUID(row.VehicleID),
+			DealershipID:           fromPGUUID(row.DealershipID),
+			ServiceTypeID:          fromPGUUID(row.ServiceTypeID),
+			TechnicianID:           fromPGUUID(row.TechnicianID),
+			ServiceBayID:           fromPGUUID(row.ServiceBayID),
+			StartsAt:               row.StartsAt,
+			EndsAt:                 row.EndsAt,
+			ActualEndsAt:           actualEndsAt,
+			PlannedDurationMinutes: plannedDurationMinutes,
+			Status:                 row.Status,
+			Notes:                  row.Notes,
+			CreatedAt:              row.CreatedAt,
+			UpdatedAt:              row.UpdatedAt,
+		})
+	}
+	return items, nil
+}

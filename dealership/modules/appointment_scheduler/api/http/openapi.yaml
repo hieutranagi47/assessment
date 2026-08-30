@@ -82,6 +82,25 @@ paths:
         "409": { $ref: "#/components/responses/Conflict" }
         "422": { $ref: "#/components/responses/UnprocessableEntity" }
         "500": { $ref: "#/components/responses/InternalServerError" }
+  /dealerships/{dealershipId}/appointments:
+    parameters:
+      - $ref: "#/components/parameters/DealershipId"
+    get:
+      operationId: listDealershipAppointments
+      tags: [Appointments]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema: { type: string, format: date, pattern: '^\\d{4}-\\d{2}-\\d{2}$' }
+      responses:
+        "200": { $ref: "#/components/responses/DealershipAppointmentsListed" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
   /appointments/{appointmentId}/check-in:
     parameters: [{ $ref: "#/components/parameters/AppointmentId" }]
     post:
@@ -570,6 +589,17 @@ paths:
         "409": { $ref: "#/components/responses/Conflict" }
         "500": { $ref: "#/components/responses/InternalServerError" }
   /dealerships:
+    get:
+      operationId: listDealerships
+      tags: [Dealerships]
+      summary: List all dealerships
+      description: Available to active auth superadmins/admins and active scheduler admins, staff, and dealers.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/DealershipsListed" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
     post:
       operationId: createDealership
       tags: [Dealerships]
@@ -1056,6 +1086,15 @@ components:
         notes: { type: string, nullable: true }
         created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }
+    DealershipAppointmentListResponse:
+      type: object
+      required: [date, timezone, items]
+      properties:
+        date: { type: string, format: date }
+        timezone: { type: string }
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Appointment" }
     CreateTechnicianRequest:
       type: object
       required: [name, phone]
@@ -1571,6 +1610,11 @@ components:
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Appointment" }
+    DealershipAppointmentsListed:
+      description: Appointments overlapping the dealership-local date
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/DealershipAppointmentListResponse" }
     OperationTimeCreated:
       description: Operation time created
       content:
@@ -1815,7 +1859,14 @@ components:
       description: Dealership created
       content:
         application/json:
-          schema: { $ref: "#/components/schemas/Dealership" }
+            schema: { $ref: "#/components/schemas/Dealership" }
+    DealershipsListed:
+      description: All non-deleted dealerships
+      content:
+        application/json:
+          schema:
+            type: array
+            items: { $ref: "#/components/schemas/Dealership" }
     BadRequest:
       description: Invalid request
       content:
