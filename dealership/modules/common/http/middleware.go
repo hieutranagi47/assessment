@@ -10,6 +10,7 @@ import (
 	echo "github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
 	"github.com/lithammer/shortuuid/v3"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -34,6 +35,9 @@ func correlationMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 			correlationID = shortuuid.New()
 		}
 		spanContext := trace.SpanContextFromContext(req.Context())
+		trace.SpanFromContext(req.Context()).SetAttributes(
+			attribute.String("correlation_id", correlationID),
+		)
 		logger := slog.With("correlation_id", correlationID)
 		if spanContext.HasTraceID() {
 			logger = logger.With("trace_id", spanContext.TraceID().String(), "span_id", spanContext.SpanID().String())
