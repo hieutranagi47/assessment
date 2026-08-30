@@ -50,7 +50,7 @@ services:
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql
+      - ./docker/postgresql/data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
@@ -141,6 +141,5 @@ services:
         condition: service_started
 
 volumes:
-  postgres_data:
   pgadmin_data:
   prom_data:
