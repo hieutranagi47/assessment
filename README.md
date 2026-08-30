@@ -178,6 +178,7 @@ From the sql result, take an admin account and it its' `auth_user_id`
   "password": "Tqh@6879"
 }
 ```
+
 The API will response the access_token in the response body (There are a refresh_token on the http cookie only but you don't need it now). Note that the token will expires in 15 minutes. I don't bring the access_token expires time into environment variable yet. and you can update it in `dealership/modules/auth/adapters/token/issuer.go` file `accessLifetime  = 15 * time.Minute`
 Copy the `access_token` to test other apis.
 

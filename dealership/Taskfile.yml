@@ -8,6 +8,9 @@ tasks:
     cmds: [go generate ./..., gofmt -w .]
   test:
     cmds: [go test ./...]
+  test:component:
+    desc: Run component tests against COMPONENT_TEST_POSTGRES_DSN
+    cmds: [COMPONENT_TEST=1 go test ./tests -count=1]
   seed:
     desc: Load deterministic development fixtures into an already migrated database
     cmds: [docker compose run --rm --no-deps dealership /app/dealership-seed]
