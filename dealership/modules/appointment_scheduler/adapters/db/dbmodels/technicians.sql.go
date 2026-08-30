@@ -176,7 +176,6 @@ func (q *Queries) GetActiveSchedulerEmployeeID(ctx context.Context, authUserID p
 }
 
 const getGlobalAdminDealership = `-- name: GetGlobalAdminDealership :one
-
 SELECT users.dealership_id
 FROM appointment_scheduler.users
 JOIN appointment_scheduler.user_roles ON user_roles.user_id = users.user_id
@@ -187,7 +186,6 @@ WHERE users.auth_user_id = $1
   AND roles.code = 'admin' AND roles.deleted_at IS NULL
 `
 
-// technicians CRUD queries.
 func (q *Queries) GetGlobalAdminDealership(ctx context.Context, authUserID pgtype.UUID) (pgtype.UUID, error) {
 	row := q.db.QueryRow(ctx, getGlobalAdminDealership, authUserID)
 	var dealership_id pgtype.UUID
@@ -264,6 +262,31 @@ func (q *Queries) GetTechnicians(ctx context.Context, technicianID pgtype.UUID) 
 		&i.DeletedAt,
 	)
 	return i, err
+}
+
+const hasActiveAppointmentOverlap = `-- name: HasActiveAppointmentOverlap :one
+SELECT EXISTS (
+  SELECT 1
+  FROM appointment_scheduler.appointments
+  WHERE technician_id = $1
+    AND deleted_at IS NULL
+    AND status IN ('requested', 'checked_in', 'in_progress')
+    AND starts_at < $2
+    AND ends_at > $3
+)
+`
+
+type HasActiveAppointmentOverlapParams struct {
+	TechnicianID pgtype.UUID
+	EndsAt       time.Time
+	StartsAt     time.Time
+}
+
+func (q *Queries) HasActiveAppointmentOverlap(ctx context.Context, arg HasActiveAppointmentOverlapParams) (bool, error) {
+	row := q.db.QueryRow(ctx, hasActiveAppointmentOverlap, arg.TechnicianID, arg.EndsAt, arg.StartsAt)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
 }
 
 const hasFutureActiveTechnicianAppointments = `-- name: HasFutureActiveTechnicianAppointments :one
@@ -348,6 +371,17 @@ func (q *Queries) ListTechniciansForDealership(ctx context.Context, arg ListTech
 		return nil, err
 	}
 	return items, nil
+}
+
+const lockTechnicianSchedule = `-- name: LockTechnicianSchedule :exec
+
+SELECT pg_advisory_xact_lock(hashtextextended($1::text, 0))
+`
+
+// technicians CRUD queries.
+func (q *Queries) LockTechnicianSchedule(ctx context.Context, technicianID string) error {
+	_, err := q.db.Exec(ctx, lockTechnicianSchedule, technicianID)
+	return err
 }
 
 const updateTechnicianForDealership = `-- name: UpdateTechnicianForDealership :one

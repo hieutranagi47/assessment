@@ -31,11 +31,11 @@ type AppointmentSchedulerAppointment struct {
 	UpdatedAt              time.Time
 	CancelledAt            pgtype.Timestamptz
 	CheckedInAt            pgtype.Timestamptz
+	InProgressAt           pgtype.Timestamptz
 	StartedAt              pgtype.Timestamptz
 	CompletedAt            pgtype.Timestamptz
-	PlannedDurationMinutes *int32
 	ActualEndsAt           pgtype.Timestamptz
-	InProgressAt           pgtype.Timestamptz
+	PlannedDurationMinutes *int32
 }
 
 type AppointmentSchedulerAppointmentAuditEvent struct {
@@ -177,9 +177,9 @@ type AppointmentSchedulerSkill struct {
 	SkillID   pgtype.UUID
 	Code      string
 	Name      string
+	IsActive  bool
 	CreatedAt time.Time
 	UpdatedAt time.Time
-	IsActive  bool
 }
 
 type AppointmentSchedulerTechnician struct {
@@ -205,8 +205,8 @@ type AppointmentSchedulerTechnicianShift struct {
 type AppointmentSchedulerTechnicianSkill struct {
 	TechnicianSkillID pgtype.UUID
 	TechnicianID      pgtype.UUID
-	CreatedAt         time.Time
 	SkillID           pgtype.UUID
+	CreatedAt         time.Time
 	UpdatedAt         time.Time
 }
 
@@ -216,9 +216,9 @@ type AppointmentSchedulerTechnicianTimeOff struct {
 	StartsAt            time.Time
 	EndsAt              time.Time
 	Reason              *string
+	CreatedByUserID     pgtype.UUID
 	CreatedAt           time.Time
 	DeletedAt           pgtype.Timestamptz
-	CreatedByUserID     pgtype.UUID
 	UpdatedAt           time.Time
 }
 

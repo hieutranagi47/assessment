@@ -1,5 +1,19 @@
 -- technicians CRUD queries.
 
+-- name: LockTechnicianSchedule :exec
+SELECT pg_advisory_xact_lock(hashtextextended(sqlc.arg('technician_id')::text, 0));
+
+-- name: HasActiveAppointmentOverlap :one
+SELECT EXISTS (
+  SELECT 1
+  FROM appointment_scheduler.appointments
+  WHERE technician_id = sqlc.arg('technician_id')
+    AND deleted_at IS NULL
+    AND status IN ('requested', 'checked_in', 'in_progress')
+    AND starts_at < sqlc.arg('ends_at')
+    AND ends_at > sqlc.arg('starts_at')
+);
+
 -- name: GetGlobalAdminDealership :one
 SELECT users.dealership_id
 FROM appointment_scheduler.users

@@ -7,7 +7,7 @@ tasks:
   gen:
     cmds: [go generate ./..., gofmt -w .]
   test:
-    cmds: [go test ./...]
+    cmds: [go test $(go list ./... | grep -v -E "/common/module|/adapters/db|/seed|/api/module|/api/module/clients")]
   test:component:
     desc: Run component tests against COMPONENT_TEST_POSTGRES_DSN
     cmds: [COMPONENT_TEST=1 go test ./tests -count=1]

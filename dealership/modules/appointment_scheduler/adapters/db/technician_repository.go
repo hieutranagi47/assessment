@@ -34,7 +34,11 @@ func (r *DealershipRepository) GetSchedulerUserID(ctx context.Context, authUserI
 
 func (r *DealershipRepository) CreateTechnicianTimeOff(ctx context.Context, item domain.TechnicianTimeOff) error {
 	return r.withTechnicianScheduleLock(ctx, item.TechnicianID(), func(tx pgx.Tx, queries *dbmodels.Queries) error {
-		conflict, err := hasActiveAppointmentOverlap(ctx, tx, item.TechnicianID(), item.StartsAt(), item.EndsAt())
+		conflict, err := queries.HasActiveAppointmentOverlap(ctx, dbmodels.HasActiveAppointmentOverlapParams{
+			TechnicianID: toPGUUID(item.TechnicianID()),
+			StartsAt:     item.StartsAt().UTC(),
+			EndsAt:       item.EndsAt().UTC(),
+		})
 		if err != nil {
 			return err
 		}
@@ -80,7 +84,11 @@ func (r *DealershipRepository) ListTechnicianTimeOff(ctx context.Context, techni
 
 func (r *DealershipRepository) UpdateTechnicianTimeOff(ctx context.Context, item domain.TechnicianTimeOff) error {
 	return r.withTechnicianScheduleLock(ctx, item.TechnicianID(), func(tx pgx.Tx, queries *dbmodels.Queries) error {
-		conflict, err := hasActiveAppointmentOverlap(ctx, tx, item.TechnicianID(), item.StartsAt(), item.EndsAt())
+		conflict, err := queries.HasActiveAppointmentOverlap(ctx, dbmodels.HasActiveAppointmentOverlapParams{
+			TechnicianID: toPGUUID(item.TechnicianID()),
+			StartsAt:     item.StartsAt().UTC(),
+			EndsAt:       item.EndsAt().UTC(),
+		})
 		if err != nil {
 			return err
 		}
@@ -115,19 +123,14 @@ func (r *DealershipRepository) withTechnicianScheduleLock(ctx context.Context, t
 		return err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-	if _, err := tx.Exec(ctx, "SELECT pg_advisory_xact_lock(hashtextextended($1::text, 0))", technicianID.String()); err != nil {
+	queries := r.queries.WithTx(tx)
+	if err := queries.LockTechnicianSchedule(ctx, technicianID.String()); err != nil {
 		return err
 	}
-	if err := write(tx, r.queries.WithTx(tx)); err != nil {
+	if err := write(tx, queries); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)
-}
-
-func hasActiveAppointmentOverlap(ctx context.Context, tx pgx.Tx, technicianID uuid.UUID, startsAt, endsAt time.Time) (bool, error) {
-	var conflict bool
-	err := tx.QueryRow(ctx, "SELECT EXISTS (SELECT 1 FROM appointment_scheduler.appointments WHERE technician_id = $1 AND deleted_at IS NULL AND status IN ('requested', 'checked_in', 'in_progress') AND starts_at < $3 AND ends_at > $2)", toPGUUID(technicianID), startsAt.UTC(), endsAt.UTC()).Scan(&conflict)
-	return conflict, err
 }
 
 func technicianTimeOffFromValues(id, technicianID, createdByUserID pgtype.UUID, startsAt, endsAt time.Time, reason *string, createdAt, updatedAt time.Time, err error) (domain.TechnicianTimeOff, error) {

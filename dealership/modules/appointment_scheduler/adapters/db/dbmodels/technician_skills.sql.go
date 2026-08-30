@@ -49,15 +49,7 @@ type CreateTechnicianSkillParams struct {
 	TechnicianID      pgtype.UUID
 }
 
-type CreateTechnicianSkillRow struct {
-	TechnicianSkillID pgtype.UUID
-	TechnicianID      pgtype.UUID
-	SkillID           pgtype.UUID
-	CreatedAt         time.Time
-	UpdatedAt         time.Time
-}
-
-func (q *Queries) CreateTechnicianSkill(ctx context.Context, arg CreateTechnicianSkillParams) (CreateTechnicianSkillRow, error) {
+func (q *Queries) CreateTechnicianSkill(ctx context.Context, arg CreateTechnicianSkillParams) (AppointmentSchedulerTechnicianSkill, error) {
 	row := q.db.QueryRow(ctx, createTechnicianSkill,
 		arg.TechnicianSkillID,
 		arg.CreatedAt,
@@ -65,7 +57,7 @@ func (q *Queries) CreateTechnicianSkill(ctx context.Context, arg CreateTechnicia
 		arg.SkillID,
 		arg.TechnicianID,
 	)
-	var i CreateTechnicianSkillRow
+	var i AppointmentSchedulerTechnicianSkill
 	err := row.Scan(
 		&i.TechnicianSkillID,
 		&i.TechnicianID,
@@ -129,17 +121,9 @@ type GetTechnicianSkillParams struct {
 	TechnicianID      pgtype.UUID
 }
 
-type GetTechnicianSkillRow struct {
-	TechnicianSkillID pgtype.UUID
-	TechnicianID      pgtype.UUID
-	SkillID           pgtype.UUID
-	CreatedAt         time.Time
-	UpdatedAt         time.Time
-}
-
-func (q *Queries) GetTechnicianSkill(ctx context.Context, arg GetTechnicianSkillParams) (GetTechnicianSkillRow, error) {
+func (q *Queries) GetTechnicianSkill(ctx context.Context, arg GetTechnicianSkillParams) (AppointmentSchedulerTechnicianSkill, error) {
 	row := q.db.QueryRow(ctx, getTechnicianSkill, arg.TechnicianSkillID, arg.TechnicianID)
-	var i GetTechnicianSkillRow
+	var i AppointmentSchedulerTechnicianSkill
 	err := row.Scan(
 		&i.TechnicianSkillID,
 		&i.TechnicianID,
@@ -157,23 +141,15 @@ WHERE technician_id = $1
 ORDER BY created_at, technician_skill_id
 `
 
-type ListTechnicianSkillsRow struct {
-	TechnicianSkillID pgtype.UUID
-	TechnicianID      pgtype.UUID
-	SkillID           pgtype.UUID
-	CreatedAt         time.Time
-	UpdatedAt         time.Time
-}
-
-func (q *Queries) ListTechnicianSkills(ctx context.Context, technicianID pgtype.UUID) ([]ListTechnicianSkillsRow, error) {
+func (q *Queries) ListTechnicianSkills(ctx context.Context, technicianID pgtype.UUID) ([]AppointmentSchedulerTechnicianSkill, error) {
 	rows, err := q.db.Query(ctx, listTechnicianSkills, technicianID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ListTechnicianSkillsRow{}
+	items := []AppointmentSchedulerTechnicianSkill{}
 	for rows.Next() {
-		var i ListTechnicianSkillsRow
+		var i AppointmentSchedulerTechnicianSkill
 		if err := rows.Scan(
 			&i.TechnicianSkillID,
 			&i.TechnicianID,
@@ -213,22 +189,14 @@ type UpdateTechnicianSkillParams struct {
 	SkillID           pgtype.UUID
 }
 
-type UpdateTechnicianSkillRow struct {
-	TechnicianSkillID pgtype.UUID
-	TechnicianID      pgtype.UUID
-	SkillID           pgtype.UUID
-	CreatedAt         time.Time
-	UpdatedAt         time.Time
-}
-
-func (q *Queries) UpdateTechnicianSkill(ctx context.Context, arg UpdateTechnicianSkillParams) (UpdateTechnicianSkillRow, error) {
+func (q *Queries) UpdateTechnicianSkill(ctx context.Context, arg UpdateTechnicianSkillParams) (AppointmentSchedulerTechnicianSkill, error) {
 	row := q.db.QueryRow(ctx, updateTechnicianSkill,
 		arg.UpdatedAt,
 		arg.TechnicianSkillID,
 		arg.TechnicianID,
 		arg.SkillID,
 	)
-	var i UpdateTechnicianSkillRow
+	var i AppointmentSchedulerTechnicianSkill
 	err := row.Scan(
 		&i.TechnicianSkillID,
 		&i.TechnicianID,

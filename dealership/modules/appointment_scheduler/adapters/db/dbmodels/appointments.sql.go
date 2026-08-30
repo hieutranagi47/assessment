@@ -12,6 +12,71 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const cancelAppointment = `-- name: CancelAppointment :exec
+UPDATE appointment_scheduler.appointments
+SET status = 'cancelled', cancelled_at = $1, cancelled_by_user_id = $2, cancellation_reason = $3, notes = $4, updated_at = $1
+WHERE appointment_id = $5
+`
+
+type CancelAppointmentParams struct {
+	OccurredAt         pgtype.Timestamptz
+	ActorUserID        pgtype.UUID
+	CancellationReason *string
+	Notes              *string
+	AppointmentID      pgtype.UUID
+}
+
+func (q *Queries) CancelAppointment(ctx context.Context, arg CancelAppointmentParams) error {
+	_, err := q.db.Exec(ctx, cancelAppointment,
+		arg.OccurredAt,
+		arg.ActorUserID,
+		arg.CancellationReason,
+		arg.Notes,
+		arg.AppointmentID,
+	)
+	return err
+}
+
+const checkInAppointment = `-- name: CheckInAppointment :exec
+UPDATE appointment_scheduler.appointments
+SET status = 'checked_in', checked_in_at = $1, notes = $2, updated_at = $1
+WHERE appointment_id = $3
+`
+
+type CheckInAppointmentParams struct {
+	OccurredAt    pgtype.Timestamptz
+	Notes         *string
+	AppointmentID pgtype.UUID
+}
+
+func (q *Queries) CheckInAppointment(ctx context.Context, arg CheckInAppointmentParams) error {
+	_, err := q.db.Exec(ctx, checkInAppointment, arg.OccurredAt, arg.Notes, arg.AppointmentID)
+	return err
+}
+
+const completeAppointment = `-- name: CompleteAppointment :exec
+UPDATE appointment_scheduler.appointments
+SET status = 'completed', completed_at = $1, actual_ends_at = $2, notes = $3, updated_at = $1
+WHERE appointment_id = $4
+`
+
+type CompleteAppointmentParams struct {
+	OccurredAt    pgtype.Timestamptz
+	ActualEndsAt  pgtype.Timestamptz
+	Notes         *string
+	AppointmentID pgtype.UUID
+}
+
+func (q *Queries) CompleteAppointment(ctx context.Context, arg CompleteAppointmentParams) error {
+	_, err := q.db.Exec(ctx, completeAppointment,
+		arg.OccurredAt,
+		arg.ActualEndsAt,
+		arg.Notes,
+		arg.AppointmentID,
+	)
+	return err
+}
+
 const createAppointments = `-- name: CreateAppointments :exec
 INSERT INTO appointment_scheduler.appointments (appointment_id, reference_code, customer_id, vehicle_id, dealership_id, service_type_id, technician_id, service_bay_id, starts_at, ends_at, status, notes, created_by_user_id, cancelled_by_user_id, cancellation_reason, created_at, updated_at, cancelled_at, checked_in_at, started_at, completed_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
@@ -68,6 +133,88 @@ func (q *Queries) CreateAppointments(ctx context.Context, arg CreateAppointments
 	return err
 }
 
+const createScheduledAppointment = `-- name: CreateScheduledAppointment :exec
+INSERT INTO appointment_scheduler.appointments (
+  appointment_id, reference_code, customer_id, vehicle_id, dealership_id,
+  service_type_id, technician_id, service_bay_id, starts_at, ends_at,
+  planned_duration_minutes, status, notes, created_by_user_id, created_at,
+  updated_at
+)
+VALUES (
+  $1, $2, $3,
+  $4, $5, $6,
+  $7, $8, $9,
+  $10, $11, 'requested',
+  $12, $13, $14,
+  $15
+)
+`
+
+type CreateScheduledAppointmentParams struct {
+	AppointmentID          pgtype.UUID
+	ReferenceCode          string
+	CustomerID             pgtype.UUID
+	VehicleID              pgtype.UUID
+	DealershipID           pgtype.UUID
+	ServiceTypeID          pgtype.UUID
+	TechnicianID           pgtype.UUID
+	ServiceBayID           pgtype.UUID
+	StartsAt               time.Time
+	EndsAt                 time.Time
+	PlannedDurationMinutes *int32
+	Notes                  *string
+	CreatedByUserID        pgtype.UUID
+	CreatedAt              time.Time
+	UpdatedAt              time.Time
+}
+
+func (q *Queries) CreateScheduledAppointment(ctx context.Context, arg CreateScheduledAppointmentParams) error {
+	_, err := q.db.Exec(ctx, createScheduledAppointment,
+		arg.AppointmentID,
+		arg.ReferenceCode,
+		arg.CustomerID,
+		arg.VehicleID,
+		arg.DealershipID,
+		arg.ServiceTypeID,
+		arg.TechnicianID,
+		arg.ServiceBayID,
+		arg.StartsAt,
+		arg.EndsAt,
+		arg.PlannedDurationMinutes,
+		arg.Notes,
+		arg.CreatedByUserID,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	return err
+}
+
+const customerVehicleBelongsToDealership = `-- name: CustomerVehicleBelongsToDealership :one
+SELECT EXISTS (
+  SELECT 1
+  FROM appointment_scheduler.customer_dealerships cd
+  JOIN appointment_scheduler.vehicles v
+    ON v.customer_id = cd.customer_id
+   AND v.vehicle_id = $1
+   AND v.deleted_at IS NULL
+  WHERE cd.customer_id = $2
+    AND cd.dealership_id = $3
+)
+`
+
+type CustomerVehicleBelongsToDealershipParams struct {
+	VehicleID    pgtype.UUID
+	CustomerID   pgtype.UUID
+	DealershipID pgtype.UUID
+}
+
+func (q *Queries) CustomerVehicleBelongsToDealership(ctx context.Context, arg CustomerVehicleBelongsToDealershipParams) (bool, error) {
+	row := q.db.QueryRow(ctx, customerVehicleBelongsToDealership, arg.VehicleID, arg.CustomerID, arg.DealershipID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const deleteAppointments = `-- name: DeleteAppointments :execrows
 UPDATE appointment_scheduler.appointments
 SET deleted_at = $1::timestamptz
@@ -87,8 +234,96 @@ func (q *Queries) DeleteAppointments(ctx context.Context, arg DeleteAppointments
 	return result.RowsAffected(), nil
 }
 
-const getAppointments = `-- name: GetAppointments :one
+const getActiveDealershipTimezone = `-- name: GetActiveDealershipTimezone :one
 
+SELECT timezone
+FROM appointment_scheduler.dealerships
+WHERE dealership_id = $1
+  AND is_active
+  AND deleted_at IS NULL
+`
+
+// appointments CRUD queries.
+func (q *Queries) GetActiveDealershipTimezone(ctx context.Context, dealershipID pgtype.UUID) (string, error) {
+	row := q.db.QueryRow(ctx, getActiveDealershipTimezone, dealershipID)
+	var timezone string
+	err := row.Scan(&timezone)
+	return timezone, err
+}
+
+const getActiveServiceTypeDuration = `-- name: GetActiveServiceTypeDuration :one
+SELECT min_duration_minutes, max_duration_minutes
+FROM appointment_scheduler.service_types
+WHERE service_type_id = $1
+  AND dealership_id = $2
+  AND is_active
+  AND deleted_at IS NULL
+`
+
+type GetActiveServiceTypeDurationParams struct {
+	ServiceTypeID pgtype.UUID
+	DealershipID  pgtype.UUID
+}
+
+type GetActiveServiceTypeDurationRow struct {
+	MinDurationMinutes int32
+	MaxDurationMinutes int32
+}
+
+func (q *Queries) GetActiveServiceTypeDuration(ctx context.Context, arg GetActiveServiceTypeDurationParams) (GetActiveServiceTypeDurationRow, error) {
+	row := q.db.QueryRow(ctx, getActiveServiceTypeDuration, arg.ServiceTypeID, arg.DealershipID)
+	var i GetActiveServiceTypeDurationRow
+	err := row.Scan(&i.MinDurationMinutes, &i.MaxDurationMinutes)
+	return i, err
+}
+
+const getAppointmentCheckedInAt = `-- name: GetAppointmentCheckedInAt :one
+SELECT checked_in_at
+FROM appointment_scheduler.appointments
+WHERE appointment_id = $1
+`
+
+func (q *Queries) GetAppointmentCheckedInAt(ctx context.Context, appointmentID pgtype.UUID) (pgtype.Timestamptz, error) {
+	row := q.db.QueryRow(ctx, getAppointmentCheckedInAt, appointmentID)
+	var checked_in_at pgtype.Timestamptz
+	err := row.Scan(&checked_in_at)
+	return checked_in_at, err
+}
+
+const getAppointmentForTransition = `-- name: GetAppointmentForTransition :one
+SELECT status, starts_at, ends_at, notes
+FROM appointment_scheduler.appointments
+WHERE appointment_id = $1
+  AND dealership_id = $2
+  AND deleted_at IS NULL
+FOR UPDATE
+`
+
+type GetAppointmentForTransitionParams struct {
+	AppointmentID pgtype.UUID
+	DealershipID  pgtype.UUID
+}
+
+type GetAppointmentForTransitionRow struct {
+	Status   string
+	StartsAt time.Time
+	EndsAt   time.Time
+	Notes    *string
+}
+
+func (q *Queries) GetAppointmentForTransition(ctx context.Context, arg GetAppointmentForTransitionParams) (GetAppointmentForTransitionRow, error) {
+	row := q.db.QueryRow(ctx, getAppointmentForTransition, arg.AppointmentID, arg.DealershipID)
+	var i GetAppointmentForTransitionRow
+	err := row.Scan(
+		&i.Status,
+		&i.StartsAt,
+		&i.EndsAt,
+		&i.Notes,
+	)
+	return i, err
+}
+
+const getAppointments = `-- name: GetAppointments :one
 SELECT appointment_id, reference_code, customer_id, vehicle_id, dealership_id, service_type_id, technician_id, service_bay_id, starts_at, ends_at, status, notes, created_by_user_id, cancelled_by_user_id, cancellation_reason, created_at, updated_at, cancelled_at, checked_in_at, started_at, completed_at, deleted_at
 FROM appointment_scheduler.appointments
 WHERE appointment_id = $1 AND deleted_at IS NULL
@@ -119,7 +354,6 @@ type GetAppointmentsRow struct {
 	DeletedAt          pgtype.Timestamptz
 }
 
-// appointments CRUD queries.
 func (q *Queries) GetAppointments(ctx context.Context, appointmentID pgtype.UUID) (GetAppointmentsRow, error) {
 	row := q.db.QueryRow(ctx, getAppointments, appointmentID)
 	var i GetAppointmentsRow
@@ -148,6 +382,166 @@ func (q *Queries) GetAppointments(ctx context.Context, appointmentID pgtype.UUID
 		&i.DeletedAt,
 	)
 	return i, err
+}
+
+const isCompatibleServiceBay = `-- name: IsCompatibleServiceBay :one
+SELECT EXISTS (
+  SELECT 1
+  FROM appointment_scheduler.service_bays b
+  WHERE b.service_bay_id = $1
+    AND b.dealership_id = $2
+    AND b.is_active
+    AND b.deleted_at IS NULL
+    AND NOT EXISTS (
+      SELECT 1
+      FROM appointment_scheduler.service_type_required_bay_capabilities required
+      WHERE required.service_type_id = $3
+        AND NOT EXISTS (
+          SELECT 1
+          FROM appointment_scheduler.service_bay_capabilities capability
+          WHERE capability.service_bay_id = b.service_bay_id
+            AND capability.bay_capability_id = required.bay_capability_id
+        )
+    )
+)
+`
+
+type IsCompatibleServiceBayParams struct {
+	ServiceBayID  pgtype.UUID
+	DealershipID  pgtype.UUID
+	ServiceTypeID pgtype.UUID
+}
+
+func (q *Queries) IsCompatibleServiceBay(ctx context.Context, arg IsCompatibleServiceBayParams) (bool, error) {
+	row := q.db.QueryRow(ctx, isCompatibleServiceBay, arg.ServiceBayID, arg.DealershipID, arg.ServiceTypeID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const isCompatibleTechnician = `-- name: IsCompatibleTechnician :one
+SELECT EXISTS (
+  SELECT 1
+  FROM appointment_scheduler.technicians t
+  JOIN appointment_scheduler.users u ON u.user_id = t.user_id
+  WHERE t.technician_id = $1
+    AND u.dealership_id = $2
+    AND t.is_active
+    AND t.deleted_at IS NULL
+    AND u.deleted_at IS NULL
+    AND NOT EXISTS (
+      SELECT 1
+      FROM appointment_scheduler.service_type_required_skills required
+      WHERE required.service_type_id = $3
+        AND NOT EXISTS (
+          SELECT 1
+          FROM appointment_scheduler.technician_skills skill
+          WHERE skill.technician_id = t.technician_id
+            AND skill.skill_id = required.skill_id
+        )
+    )
+)
+`
+
+type IsCompatibleTechnicianParams struct {
+	TechnicianID  pgtype.UUID
+	DealershipID  pgtype.UUID
+	ServiceTypeID pgtype.UUID
+}
+
+func (q *Queries) IsCompatibleTechnician(ctx context.Context, arg IsCompatibleTechnicianParams) (bool, error) {
+	row := q.db.QueryRow(ctx, isCompatibleTechnician, arg.TechnicianID, arg.DealershipID, arg.ServiceTypeID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const isTechnicianAvailableForAppointment = `-- name: IsTechnicianAvailableForAppointment :one
+SELECT EXISTS (
+  SELECT 1
+  FROM appointment_scheduler.technician_shifts s
+  WHERE s.technician_id = $1
+    AND s.deleted_at IS NULL
+    AND s.day_of_week = EXTRACT(ISODOW FROM $3::timestamptz AT TIME ZONE $2::text)::smallint
+    AND ($3::timestamptz AT TIME ZONE $2::text)::date = ($4::timestamptz AT TIME ZONE $2::text)::date
+    AND ($3::timestamptz AT TIME ZONE $2::text)::time >= s.starts_at
+    AND ($4::timestamptz AT TIME ZONE $2::text)::time <= s.ends_at
+)
+AND NOT EXISTS (
+  SELECT 1
+  FROM appointment_scheduler.technician_time_off t
+  WHERE t.technician_id = $1
+    AND t.deleted_at IS NULL
+    AND t.starts_at < $4::timestamptz
+    AND t.ends_at > $3::timestamptz
+)
+`
+
+type IsTechnicianAvailableForAppointmentParams struct {
+	TechnicianID pgtype.UUID
+	Timezone     string
+	StartsAt     time.Time
+	EndsAt       time.Time
+}
+
+func (q *Queries) IsTechnicianAvailableForAppointment(ctx context.Context, arg IsTechnicianAvailableForAppointmentParams) (*bool, error) {
+	row := q.db.QueryRow(ctx, isTechnicianAvailableForAppointment,
+		arg.TechnicianID,
+		arg.Timezone,
+		arg.StartsAt,
+		arg.EndsAt,
+	)
+	var column_1 *bool
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const isWithinDealershipOperatingHours = `-- name: IsWithinDealershipOperatingHours :one
+SELECT EXISTS (
+  SELECT 1
+  FROM appointment_scheduler.dealership_operation_time ot
+  WHERE ot.dealership_id = $1
+    AND ot.day_of_week = EXTRACT(ISODOW FROM $3::timestamptz AT TIME ZONE $2::text)::smallint
+    AND ($3::timestamptz AT TIME ZONE $2::text)::date = ($4::timestamptz AT TIME ZONE $2::text)::date
+    AND ($3::timestamptz AT TIME ZONE $2::text)::time >= ot.opens_at
+    AND ($4::timestamptz AT TIME ZONE $2::text)::time <= ot.closes_at
+)
+`
+
+type IsWithinDealershipOperatingHoursParams struct {
+	DealershipID pgtype.UUID
+	Timezone     string
+	StartsAt     time.Time
+	EndsAt       time.Time
+}
+
+func (q *Queries) IsWithinDealershipOperatingHours(ctx context.Context, arg IsWithinDealershipOperatingHoursParams) (bool, error) {
+	row := q.db.QueryRow(ctx, isWithinDealershipOperatingHours,
+		arg.DealershipID,
+		arg.Timezone,
+		arg.StartsAt,
+		arg.EndsAt,
+	)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const startAppointment = `-- name: StartAppointment :exec
+UPDATE appointment_scheduler.appointments
+SET status = 'in_progress', in_progress_at = $1, started_at = $1, notes = $2, updated_at = $1
+WHERE appointment_id = $3
+`
+
+type StartAppointmentParams struct {
+	OccurredAt    pgtype.Timestamptz
+	Notes         *string
+	AppointmentID pgtype.UUID
+}
+
+func (q *Queries) StartAppointment(ctx context.Context, arg StartAppointmentParams) error {
+	_, err := q.db.Exec(ctx, startAppointment, arg.OccurredAt, arg.Notes, arg.AppointmentID)
+	return err
 }
 
 const updateAppointments = `-- name: UpdateAppointments :execrows
