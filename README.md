@@ -32,17 +32,6 @@ This starts:
 - Grafana on [localhost:3000](http://localhost:3000) (`admin` / `admin`)
 - Jaeger on [localhost:16686](http://localhost:16686)
 
-The service waits for PostgreSQL to become healthy, then applies the embedded
-`auth` and `appointment_scheduler` migrations automatically.
-
-pgAdmin includes a preconfigured **Local PostgreSQL** server. It connects over
-the Compose network using host `postgres`, port `5432`, database `ht47`, and
-user `postgres`; the default PostgreSQL password is provisioned automatically.
-If you override any `POSTGRES_*` settings, edit the pgAdmin connection details
-and password to use the same values.
-
-Check that the service is running:
-
 ```sh
 curl -i http://localhost:9999/health
 curl -i http://localhost:9999/metrics
@@ -50,12 +39,7 @@ docker compose ps
 docker compose logs -f dealership
 ```
 
-## Load deterministic development fixtures
-
-After PostgreSQL is healthy and the service has applied its migrations, load
-the fixtures from the Go module directory. The command runs the seed executable
-in the Compose service environment, so it uses the same PostgreSQL and email
-configuration without printing either:
+## Adding sample data for testing
 
 ```sh
 cd dealership
@@ -64,9 +48,12 @@ task seed
 
 ## Start testing automatically with script
 
-```bash
+```sh
 # cd to-the-root-project
-DEALERSHIP_CODE=HCM APPOINTMENT_DATE=2026-09-01 APPOINTMENT_LOCAL_TIME=09:00 \
+DEALERSHIP_CODE=HCM \
+  APPOINTMENT_DATE=2026-09-15 \
+  APPOINTMENT_LOCAL_TIME=09:00 \
+  CORRELATION_ID=demo-6666 \
   ./dealership/scripts/create-appointment-manual-test.sh
 ```
 
@@ -238,3 +225,12 @@ Copy the `access_token` to test other apis.
 Access the Jaeger at http://localhost:16686, select the `dealership` service to see it.
 
 ![Jaeger screenshot](tracing.png)
+
+
+
+
+DEALERSHIP_CODE=HCM \
+  CORRELATION_ID=tracing-id-6789 \
+  APPOINTMENT_DATE=2026-09-10 \
+  APPOINTMENT_LOCAL_TIME=10:00 \
+  ./dealership/scripts/create-appointment-manual-test.sh
