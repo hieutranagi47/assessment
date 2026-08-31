@@ -51,7 +51,7 @@ task seed
 ```sh
 # cd to-the-root-project
 DEALERSHIP_CODE=HCM \
-  APPOINTMENT_DATE=2026-09-15 \
+  APPOINTMENT_DATE=2026-09-25 \
   APPOINTMENT_LOCAL_TIME=09:00 \
   CORRELATION_ID=demo-6666 \
   ./dealership/scripts/create-appointment-manual-test.sh
