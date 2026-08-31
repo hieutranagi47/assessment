@@ -32,15 +32,6 @@ This starts:
 - Grafana on [localhost:3000](http://localhost:3000) (`admin` / `admin`)
 - Jaeger on [localhost:16686](http://localhost:16686)
 
-The service waits for PostgreSQL to become healthy, then applies the embedded
-`auth` and `appointment_scheduler` migrations automatically.
-
-pgAdmin includes a preconfigured **Local PostgreSQL** server. It connects over
-the Compose network using host `postgres`, port `5432`, database `ht47`, and
-user `postgres`; the default PostgreSQL password is provisioned automatically.
-If you override any `POSTGRES_*` settings, edit the pgAdmin connection details
-and password to use the same values.
-
 Check that the service is running:
 
 ```sh
@@ -64,9 +55,12 @@ task seed
 
 ## Start testing automatically with script
 
-```bash
+```sh
 # cd to-the-root-project
-DEALERSHIP_CODE=HCM APPOINTMENT_DATE=2026-09-01 APPOINTMENT_LOCAL_TIME=09:00 \
+DEALERSHIP_CODE=HCM \
+  APPOINTMENT_DATE=2026-09-16 \
+  APPOINTMENT_LOCAL_TIME=09:00 \
+  CORRELATION_ID=demo-6666 \
   ./dealership/scripts/create-appointment-manual-test.sh
 ```
 
