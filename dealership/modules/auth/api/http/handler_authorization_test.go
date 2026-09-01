@@ -23,8 +23,10 @@ type authorizationRepository struct {
 	updatedRole   string
 }
 
-func (r *authorizationRepository) Create(context.Context, domain.User) error           { return nil }
-func (r *authorizationRepository) CreateSuperadmin(context.Context, domain.User) error { return nil }
+func (r *authorizationRepository) Create(context.Context, domain.User, string) error { return nil }
+func (r *authorizationRepository) CreateSuperadmin(context.Context, domain.User, string) error {
+	return nil
+}
 func (r *authorizationRepository) FindByEmail(context.Context, string) (domain.User, error) {
 	return domain.User{}, app.ErrNotFound
 }
@@ -52,6 +54,12 @@ func (r *authorizationRepository) UpdateRole(_ context.Context, _ uuid.UUID, rol
 	return nil
 }
 func (r *authorizationRepository) Update(context.Context, domain.User) error { return nil }
+func (r *authorizationRepository) UpdatePassword(context.Context, domain.User, string, string) error {
+	return nil
+}
+func (r *authorizationRepository) StoreDeliveryEmail(context.Context, uuid.UUID, string) error {
+	return nil
+}
 
 type authorizationTokens struct {
 	identity app.Identity

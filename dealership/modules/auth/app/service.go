@@ -11,7 +11,6 @@ import (
 	"assessment/modules/common"
 
 	"github.com/google/uuid"
-	"golang.org/x/crypto/bcrypt"
 )
 
 var (
@@ -23,8 +22,8 @@ var (
 )
 
 type Repository interface {
-	Create(context.Context, domain.User) error
-	CreateSuperadmin(context.Context, domain.User) error
+	Create(context.Context, domain.User, string) error
+	CreateSuperadmin(context.Context, domain.User, string) error
 	FindByEmail(context.Context, string) (domain.User, error)
 	FindSignInUserByEmail(context.Context, string) (AuthenticatedUser, error)
 	FindByID(context.Context, uuid.UUID) (domain.User, error)
@@ -32,6 +31,8 @@ type Repository interface {
 	FindRole(context.Context, uuid.UUID) (string, error)
 	UpdateRole(context.Context, uuid.UUID, string, time.Time) error
 	Update(context.Context, domain.User) error
+	UpdatePassword(context.Context, domain.User, string, string) error
+	StoreDeliveryEmail(context.Context, uuid.UUID, string) error
 }
 
 // AuthenticatedUser is the credential and authorization data loaded atomically
@@ -100,7 +101,7 @@ func (s *Service) CreateSuperadmin(ctx context.Context, input SignUpInput) (uuid
 	return s.createUser(ctx, input, s.repo.CreateSuperadmin)
 }
 
-func (s *Service) createUser(ctx context.Context, input SignUpInput, create func(context.Context, domain.User) error) (uuid.UUID, error) {
+func (s *Service) createUser(ctx context.Context, input SignUpInput, create func(context.Context, domain.User, string) error) (uuid.UUID, error) {
 	// BEGIN: Form validation
 	errDetails := []common.ErrorDetails{}
 	if strings.TrimSpace(input.Password) == "" {
@@ -147,7 +148,7 @@ func (s *Service) createUser(ctx context.Context, input SignUpInput, create func
 			Message:    err.Error(),
 		}})
 	}
-	if err := create(ctx, user); err != nil {
+	if err := create(ctx, user, input.Password); err != nil {
 		if errors.Is(err, ErrAccountExists) {
 			return uuid.Nil, common.NewConflictError("account_exists", "an account already exists")
 		}
@@ -158,10 +159,15 @@ func (s *Service) createUser(ctx context.Context, input SignUpInput, create func
 
 // SignIn authenticates an email and password and issues access and refresh
 // tokens. All authentication failures intentionally collapse to one error.
-func (s *Service) SignIn(ctx context.Context, email, password string) (Tokens, error) {
+func (s *Service) SignIn(ctx context.Context, email, password string, storeDeliveryEmail bool) (Tokens, error) {
 	signInUser, err := s.repo.FindSignInUserByEmail(ctx, strings.ToLower(strings.TrimSpace(email)))
 	if err != nil || !s.passwords.Matches(signInUser.User.PasswordHash(), password) || signInUser.User.CanSignIn() != nil {
 		return Tokens{}, ErrInvalidCredentials
+	}
+	if storeDeliveryEmail {
+		if err := s.repo.StoreDeliveryEmail(ctx, signInUser.User.ID(), password); err != nil {
+			return Tokens{}, err
+		}
 	}
 	return s.tokens.Issue(signInUser.User, signInUser.Role)
 }
@@ -258,7 +264,7 @@ func (s *Service) ChangePassword(ctx context.Context, actor, target uuid.UUID, c
 	if err := user.ChangePassword(hash, func(old string) bool { return s.passwords.Matches(old, next) }, signOutAll, s.now()); err != nil {
 		return err
 	}
-	return s.repo.Update(ctx, user)
+	return s.repo.UpdatePassword(ctx, user, current, next)
 }
 
 // UpdateFullName changes only the authenticated user's full name.
@@ -308,23 +314,6 @@ func (s *Service) UpdateRole(ctx context.Context, actor, target uuid.UUID, role 
 		return ErrNotFound
 	}
 	return s.repo.UpdateRole(ctx, target, role, s.now())
-}
-
-type BcryptPasswordHasher struct{}
-
-// Hash creates a bcrypt password hash and rejects blank passwords.
-func (BcryptPasswordHasher) Hash(password string) (string, error) {
-	if strings.TrimSpace(password) == "" {
-		return "", domain.ErrInvalidPassword
-	}
-	value, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	return string(value), err
-}
-
-// Matches compares a plaintext password with a bcrypt hash without exposing
-// comparison details to callers.
-func (BcryptPasswordHasher) Matches(hash, password string) bool {
-	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) == nil
 }
 
 // Validate password pattern:

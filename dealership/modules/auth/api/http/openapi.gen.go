@@ -75,6 +75,9 @@ type CreateSuperadminRequest struct {
 type CredentialsRequest struct {
 	Email    openapi_types.Email `json:"email"`
 	Password string              `json:"password"`
+
+	// StoreDeliveryEmail When true, store this address in plaintext for future email delivery.
+	StoreDeliveryEmail *bool `json:"store_delivery_email,omitempty"`
 }
 
 // ErrorDetail defines model for ErrorDetail.

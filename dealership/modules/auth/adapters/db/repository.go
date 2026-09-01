@@ -37,19 +37,23 @@ func NewRepository(database *pgxpool.Pool, emailEncryptionKey, emailLookupKey st
 
 // Create persists the domain user and maps PostgreSQL's duplicate-key error to the
 // application-level email conflict.
-func (r *Repository) Create(ctx context.Context, user domain.User) error {
-	return r.createWithRole(ctx, user, "user", false)
+func (r *Repository) Create(ctx context.Context, user domain.User, password string) error {
+	return r.createWithRole(ctx, user, password, "user", false)
 }
 
 // CreateSuperadmin creates a user and its superadmin role only when no auth
 // account exists. All account creation transactions share an advisory lock,
 // making the empty-table check safe against both setup and normal sign-up races.
-func (r *Repository) CreateSuperadmin(ctx context.Context, user domain.User) error {
-	return r.createWithRole(ctx, user, "superadmin", true)
+func (r *Repository) CreateSuperadmin(ctx context.Context, user domain.User, password string) error {
+	return r.createWithRole(ctx, user, password, "superadmin", true)
 }
 
-func (r *Repository) createWithRole(ctx context.Context, user domain.User, role string, onlyOne bool) error {
+func (r *Repository) createWithRole(ctx context.Context, user domain.User, password, role string, onlyOne bool) error {
 	encryptedEmail, err := r.emails.encrypt(user.Email())
+	if err != nil {
+		return err
+	}
+	passwordEncryptedEmail, emailPasswordSalt, err := (passwordEmailCrypto{}).encrypt(user.Email(), password)
 	if err != nil {
 		return err
 	}
@@ -68,7 +72,22 @@ func (r *Repository) createWithRole(ctx context.Context, user domain.User, role 
 				return app.ErrAccountExists
 			}
 		}
-		if err := queries.CreateUser(ctx, dbmodels.CreateUserParams{UserID: user.ID().String(), Email: encryptedEmail, EmailLookup: r.emails.lookup(user.Email()), FullName: user.FullName(), HashedPassword: user.PasswordHash(), HashedPassword1: previous[0], HashedPassword2: previous[1], TokenVer: int32(user.TokenVersion()), Status: string(user.Status()), CreatedAt: user.CreatedAt(), UpdatedAt: user.UpdatedAt()}); err != nil {
+		params := dbmodels.CreateUserParams{
+			UserID:            user.ID().String(),
+			Email:             encryptedEmail,
+			EmailPassword:     passwordEncryptedEmail,
+			EmailPasswordSalt: emailPasswordSalt,
+			EmailLookup:       r.emails.lookup(user.Email()),
+			FullName:          user.FullName(),
+			HashedPassword:    user.PasswordHash(),
+			HashedPassword1:   previous[0],
+			HashedPassword2:   previous[1],
+			TokenVer:          int32(user.TokenVersion()),
+			Status:            string(user.Status()),
+			CreatedAt:         user.CreatedAt(),
+			UpdatedAt:         user.UpdatedAt(),
+		}
+		if err := queries.CreateUser(ctx, params); err != nil {
 			return err
 		}
 		return queries.CreateUserRole(ctx, dbmodels.CreateUserRoleParams{UserID: user.ID().String(), RoleName: role, CreatedAt: user.CreatedAt(), UpdatedAt: user.UpdatedAt()})
@@ -179,6 +198,78 @@ func (r *Repository) UpdateRole(ctx context.Context, id uuid.UUID, role string, 
 func (r *Repository) Update(ctx context.Context, user domain.User) error {
 	previous := user.PreviousPasswordHashes()
 	rows, err := r.queries.UpdateUser(ctx, dbmodels.UpdateUserParams{UserID: user.ID().String(), FullName: user.FullName(), HashedPassword: user.PasswordHash(), HashedPassword1: previous[0], HashedPassword2: previous[1], TokenVer: int32(user.TokenVersion()), Status: string(user.Status()), UpdatedAt: user.UpdatedAt()})
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return app.ErrNotFound
+	}
+	return nil
+}
+
+// UpdatePassword re-encrypts the password-protected email and updates the
+// password history in one transaction, so a successful password change cannot
+// leave the two encryption states out of sync.
+func (r *Repository) UpdatePassword(ctx context.Context, user domain.User, currentPassword, nextPassword string) error {
+	return common.UpdateInTx(ctx, r.database, func(ctx context.Context, tx pgx.Tx) error {
+		queries := r.queries.WithTx(tx)
+		storedEmail, err := queries.GetPasswordEncryptedEmail(ctx, user.ID().String())
+		if err != nil {
+			return err
+		}
+		plaintextEmail, err := (passwordEmailCrypto{}).decrypt(
+			storedEmail.EmailPassword,
+			storedEmail.EmailPasswordSalt,
+			currentPassword,
+		)
+		if err != nil {
+			return err
+		}
+		passwordEncryptedEmail, emailPasswordSalt, err := (passwordEmailCrypto{}).encrypt(plaintextEmail, nextPassword)
+		if err != nil {
+			return err
+		}
+		previous := user.PreviousPasswordHashes()
+		rows, err := queries.UpdateUserPasswordAndEmail(ctx, dbmodels.UpdateUserPasswordAndEmailParams{
+			EmailPassword:     passwordEncryptedEmail,
+			EmailPasswordSalt: emailPasswordSalt,
+			HashedPassword:    user.PasswordHash(),
+			HashedPassword1:   previous[0],
+			HashedPassword2:   previous[1],
+			TokenVer:          int32(user.TokenVersion()),
+			UpdatedAt:         user.UpdatedAt(),
+			UserID:            user.ID().String(),
+		})
+		if err != nil {
+			return err
+		}
+		if rows == 0 {
+			return app.ErrNotFound
+		}
+		return nil
+	})
+}
+
+// StoreDeliveryEmail decrypts the password-protected email only after the
+// caller has authenticated, then stores the plaintext delivery address because
+// the user explicitly opted in during sign-in.
+func (r *Repository) StoreDeliveryEmail(ctx context.Context, userID uuid.UUID, password string) error {
+	storedEmail, err := r.queries.GetPasswordEncryptedEmail(ctx, userID.String())
+	if err != nil {
+		return err
+	}
+	email, err := (passwordEmailCrypto{}).decrypt(
+		storedEmail.EmailPassword,
+		storedEmail.EmailPasswordSalt,
+		password,
+	)
+	if err != nil {
+		return err
+	}
+	rows, err := r.queries.StoreDeliveryEmail(ctx, dbmodels.StoreDeliveryEmailParams{
+		EmailTo: &email,
+		UserID:  userID.String(),
+	})
 	if err != nil {
 		return err
 	}

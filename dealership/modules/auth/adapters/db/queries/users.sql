@@ -1,10 +1,12 @@
 -- name: CreateUser :exec
 INSERT INTO auth.users (
-  user_id, email, email_lookup, full_name, hashed_password, hashed_password_1,
+  user_id, email, email_password, email_password_salt, email_lookup, full_name, hashed_password, hashed_password_1,
   hashed_password_2, token_ver, status, created_at, updated_at
 ) VALUES (
   sqlc.arg('user_id'),
   sqlc.arg('email'),
+  sqlc.arg('email_password'),
+  sqlc.arg('email_password_salt'),
   sqlc.arg('email_lookup'),
   sqlc.arg('full_name'),
   sqlc.arg('hashed_password'),
@@ -84,4 +86,25 @@ SET full_name = sqlc.arg('full_name'),
     token_ver = sqlc.arg('token_ver'),
     status = sqlc.arg('status'),
     updated_at = sqlc.arg('updated_at')
+WHERE user_id = sqlc.arg('user_id');
+
+-- name: UpdateUserPasswordAndEmail :execrows
+UPDATE auth.users
+SET email_password = sqlc.arg('email_password'),
+    email_password_salt = sqlc.arg('email_password_salt'),
+    hashed_password = sqlc.arg('hashed_password'),
+    hashed_password_1 = sqlc.arg('hashed_password_1'),
+    hashed_password_2 = sqlc.arg('hashed_password_2'),
+    token_ver = sqlc.arg('token_ver'),
+    updated_at = sqlc.arg('updated_at')
+WHERE user_id = sqlc.arg('user_id');
+
+-- name: GetPasswordEncryptedEmail :one
+SELECT email_password, email_password_salt
+FROM auth.users
+WHERE user_id = sqlc.arg('user_id');
+
+-- name: StoreDeliveryEmail :execrows
+UPDATE auth.users
+SET email_to = sqlc.arg('email_to')
 WHERE user_id = sqlc.arg('user_id');

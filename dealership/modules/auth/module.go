@@ -5,6 +5,7 @@ import (
 	"embed"
 
 	"assessment/modules/auth/adapters/db"
+	"assessment/modules/auth/adapters/password"
 	"assessment/modules/auth/adapters/token"
 	"assessment/modules/auth/api/http"
 	authmodule "assessment/modules/auth/api/module"
@@ -52,7 +53,7 @@ func (m *Module) Init(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	m.service = app.NewService(repository, issuer, app.BcryptPasswordHasher{})
+	m.service = app.NewService(repository, issuer, password.BcryptHasher{})
 	m.handler = http.NewHandler(m.service)
 	return common.MigrateDatabaseUp(ctx, m.database, "auth", migrations, "adapters/db/migrations")
 }

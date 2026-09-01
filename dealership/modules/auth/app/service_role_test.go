@@ -20,8 +20,8 @@ type roleRepository struct {
 	calls     int
 }
 
-func (r *roleRepository) Create(context.Context, domain.User) error           { return nil }
-func (r *roleRepository) CreateSuperadmin(context.Context, domain.User) error { return nil }
+func (r *roleRepository) Create(context.Context, domain.User, string) error           { return nil }
+func (r *roleRepository) CreateSuperadmin(context.Context, domain.User, string) error { return nil }
 
 func (r *roleRepository) FindByEmail(_ context.Context, email string) (domain.User, error) {
 	if r.emailUser.ID() != uuid.Nil && strings.EqualFold(strings.TrimSpace(email), r.emailUser.Email()) {
@@ -71,6 +71,10 @@ func (r *roleRepository) UpdateRole(_ context.Context, id uuid.UUID, role string
 	return nil
 }
 func (r *roleRepository) Update(context.Context, domain.User) error { return nil }
+func (r *roleRepository) UpdatePassword(context.Context, domain.User, string, string) error {
+	return nil
+}
+func (r *roleRepository) StoreDeliveryEmail(context.Context, uuid.UUID, string) error { return nil }
 
 func TestUpdateRoleOnlyAllowsSuperadminToChangeAnotherAccount(t *testing.T) {
 	actor, target := uuid.New(), uuid.New()
