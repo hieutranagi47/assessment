@@ -36,8 +36,14 @@ func (r *superadminRepository) CreateSuperadmin(_ context.Context, user domain.U
 func (r *superadminRepository) FindByEmail(context.Context, string) (domain.User, error) {
 	return domain.User{}, ErrNotFound
 }
+func (r *superadminRepository) FindSignInUserByEmail(context.Context, string) (AuthenticatedUser, error) {
+	return AuthenticatedUser{}, ErrNotFound
+}
 func (r *superadminRepository) FindByID(context.Context, uuid.UUID) (domain.User, error) {
 	return domain.User{}, ErrNotFound
+}
+func (r *superadminRepository) FindRefreshUserByID(context.Context, uuid.UUID) (AuthenticatedUser, error) {
+	return AuthenticatedUser{}, ErrNotFound
 }
 func (r *superadminRepository) FindRole(context.Context, uuid.UUID) (string, error) {
 	return "", ErrNotFound
@@ -49,9 +55,9 @@ func (r *superadminRepository) Update(context.Context, domain.User) error { retu
 
 type superadminTokens struct{}
 
-func (superadminTokens) Issue(domain.User) (Tokens, error)      { return Tokens{}, nil }
-func (superadminTokens) VerifyAccess(string) (Identity, error)  { return Identity{}, nil }
-func (superadminTokens) VerifyRefresh(string) (Identity, error) { return Identity{}, nil }
+func (superadminTokens) Issue(domain.User, string) (Tokens, error) { return Tokens{}, nil }
+func (superadminTokens) VerifyAccess(string) (Identity, error)     { return Identity{}, nil }
+func (superadminTokens) VerifyRefresh(string) (Identity, error)    { return Identity{}, nil }
 
 type superadminHasher struct{}
 

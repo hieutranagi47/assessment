@@ -26,13 +26,22 @@ type Repository interface {
 	Create(context.Context, domain.User) error
 	CreateSuperadmin(context.Context, domain.User) error
 	FindByEmail(context.Context, string) (domain.User, error)
+	FindSignInUserByEmail(context.Context, string) (AuthenticatedUser, error)
 	FindByID(context.Context, uuid.UUID) (domain.User, error)
+	FindRefreshUserByID(context.Context, uuid.UUID) (AuthenticatedUser, error)
 	FindRole(context.Context, uuid.UUID) (string, error)
 	UpdateRole(context.Context, uuid.UUID, string, time.Time) error
 	Update(context.Context, domain.User) error
 }
+
+// AuthenticatedUser is the credential and authorization data loaded atomically
+// for token issuance. Its role is read from auth.user_roles joined to auth.roles.
+type AuthenticatedUser struct {
+	User domain.User
+	Role string
+}
 type TokenIssuer interface {
-	Issue(domain.User) (Tokens, error)
+	Issue(domain.User, string) (Tokens, error)
 	VerifyAccess(string) (Identity, error)
 	VerifyRefresh(string) (Identity, error)
 }
@@ -149,11 +158,11 @@ func (s *Service) createUser(ctx context.Context, input SignUpInput, create func
 // SignIn authenticates an email and password and issues access and refresh
 // tokens. All authentication failures intentionally collapse to one error.
 func (s *Service) SignIn(ctx context.Context, email, password string) (Tokens, error) {
-	user, err := s.repo.FindByEmail(ctx, strings.ToLower(strings.TrimSpace(email)))
-	if err != nil || !s.passwords.Matches(user.PasswordHash(), password) || user.CanSignIn() != nil {
+	signInUser, err := s.repo.FindSignInUserByEmail(ctx, strings.ToLower(strings.TrimSpace(email)))
+	if err != nil || !s.passwords.Matches(signInUser.User.PasswordHash(), password) || signInUser.User.CanSignIn() != nil {
 		return Tokens{}, ErrInvalidCredentials
 	}
-	return s.tokens.Issue(user)
+	return s.tokens.Issue(signInUser.User, signInUser.Role)
 }
 
 // Refresh verifies a refresh token and compares its embedded token version
@@ -163,11 +172,11 @@ func (s *Service) Refresh(ctx context.Context, rawToken string) (Tokens, error) 
 	if err != nil {
 		return Tokens{}, ErrInvalidCredentials
 	}
-	user, err := s.repo.FindByID(ctx, identity.UserID)
-	if err != nil || user.TokenVersion() != identity.TokenVersion || user.CanSignIn() != nil {
+	refreshUser, err := s.repo.FindRefreshUserByID(ctx, identity.UserID)
+	if err != nil || refreshUser.User.TokenVersion() != identity.TokenVersion || refreshUser.User.CanSignIn() != nil {
 		return Tokens{}, ErrInvalidCredentials
 	}
-	return s.tokens.Issue(user)
+	return s.tokens.Issue(refreshUser.User, refreshUser.Role)
 }
 
 // SignOutAllDevices revokes every refresh token issued for the authenticated

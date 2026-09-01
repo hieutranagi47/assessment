@@ -89,6 +89,60 @@ func (r *Repository) FindByEmail(ctx context.Context, email string) (domain.User
 	return toDomain(value.UserID, decryptedEmail, value.FullName, value.HashedPassword, value.HashedPassword1, value.HashedPassword2, value.TokenVer, value.Status, value.CreatedAt, value.UpdatedAt, err)
 }
 
+// FindSignInUserByEmail loads a user and its role in one query so the access
+// token is issued from one consistent authentication read.
+func (r *Repository) FindSignInUserByEmail(ctx context.Context, email string) (app.AuthenticatedUser, error) {
+	value, err := r.queries.GetSignInUserByEmail(ctx, r.emails.lookup(email))
+	decryptedEmail, decryptErr := r.emails.decrypt(value.Email)
+	if err == nil && decryptErr != nil {
+		err = decryptErr
+	}
+	user, err := toDomain(
+		value.UserID,
+		decryptedEmail,
+		value.FullName,
+		value.HashedPassword,
+		value.HashedPassword1,
+		value.HashedPassword2,
+		value.TokenVer,
+		value.Status,
+		value.CreatedAt,
+		value.UpdatedAt,
+		err,
+	)
+	if err != nil {
+		return app.AuthenticatedUser{}, err
+	}
+	return app.AuthenticatedUser{User: user, Role: value.Role}, nil
+}
+
+// FindRefreshUserByID loads a user and its current role in one query before
+// a refresh token is exchanged for a new access token.
+func (r *Repository) FindRefreshUserByID(ctx context.Context, id uuid.UUID) (app.AuthenticatedUser, error) {
+	value, err := r.queries.GetRefreshUserByID(ctx, id.String())
+	decryptedEmail, decryptErr := r.emails.decrypt(value.Email)
+	if err == nil && decryptErr != nil {
+		err = decryptErr
+	}
+	user, err := toDomain(
+		value.UserID,
+		decryptedEmail,
+		value.FullName,
+		value.HashedPassword,
+		value.HashedPassword1,
+		value.HashedPassword2,
+		value.TokenVer,
+		value.Status,
+		value.CreatedAt,
+		value.UpdatedAt,
+		err,
+	)
+	if err != nil {
+		return app.AuthenticatedUser{}, err
+	}
+	return app.AuthenticatedUser{User: user, Role: value.Role}, nil
+}
+
 // FindByID loads a user by UUID and restores it through domain validation.
 func (r *Repository) FindByID(ctx context.Context, id uuid.UUID) (domain.User, error) {
 	value, err := r.queries.GetUserByID(ctx, id.String())

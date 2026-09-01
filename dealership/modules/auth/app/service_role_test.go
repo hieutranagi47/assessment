@@ -29,11 +29,19 @@ func (r *roleRepository) FindByEmail(_ context.Context, email string) (domain.Us
 	}
 	return domain.User{}, ErrNotFound
 }
+func (r *roleRepository) FindSignInUserByEmail(ctx context.Context, email string) (AuthenticatedUser, error) {
+	user, err := r.FindByEmail(ctx, email)
+	return AuthenticatedUser{User: user, Role: r.actorRole}, err
+}
 func (r *roleRepository) FindByID(_ context.Context, id uuid.UUID) (domain.User, error) {
 	if id != r.target.ID() {
 		return domain.User{}, ErrNotFound
 	}
 	return r.target, nil
+}
+func (r *roleRepository) FindRefreshUserByID(ctx context.Context, id uuid.UUID) (AuthenticatedUser, error) {
+	user, err := r.FindByID(ctx, id)
+	return AuthenticatedUser{User: user, Role: r.actorRole}, err
 }
 
 func TestUserInfoByEmailNormalizesTheLookupAndReturnsCurrentRole(t *testing.T) {

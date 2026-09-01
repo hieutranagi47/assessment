@@ -28,12 +28,18 @@ func (r *authorizationRepository) CreateSuperadmin(context.Context, domain.User)
 func (r *authorizationRepository) FindByEmail(context.Context, string) (domain.User, error) {
 	return domain.User{}, app.ErrNotFound
 }
+func (r *authorizationRepository) FindSignInUserByEmail(context.Context, string) (app.AuthenticatedUser, error) {
+	return app.AuthenticatedUser{}, app.ErrNotFound
+}
 func (r *authorizationRepository) FindByID(_ context.Context, id uuid.UUID) (domain.User, error) {
 	r.findByIDCalls++
 	if id == r.target.ID() {
 		return r.target, nil
 	}
 	return domain.User{}, app.ErrNotFound
+}
+func (r *authorizationRepository) FindRefreshUserByID(context.Context, uuid.UUID) (app.AuthenticatedUser, error) {
+	return app.AuthenticatedUser{}, app.ErrNotFound
 }
 func (r *authorizationRepository) FindRole(context.Context, uuid.UUID) (string, error) {
 	if r.actorRole != "" {
@@ -52,7 +58,7 @@ type authorizationTokens struct {
 	err      error
 }
 
-func (t authorizationTokens) Issue(domain.User) (app.Tokens, error) { return app.Tokens{}, nil }
+func (t authorizationTokens) Issue(domain.User, string) (app.Tokens, error) { return app.Tokens{}, nil }
 func (t authorizationTokens) VerifyAccess(string) (app.Identity, error) {
 	return t.identity, t.err
 }

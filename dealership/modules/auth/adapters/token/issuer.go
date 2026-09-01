@@ -41,12 +41,12 @@ func NewIssuer(privateKeyPEM, publicKeyPEM []byte) (*Issuer, error) {
 
 // Issue creates a short-lived access token and a longer-lived refresh token
 // carrying the user's current token version.
-func (i *Issuer) Issue(user domain.User) (app.Tokens, error) {
-	access, err := i.sign(user, "access", accessLifetime)
+func (i *Issuer) Issue(user domain.User, role string) (app.Tokens, error) {
+	access, err := i.sign(user, role, "access", accessLifetime)
 	if err != nil {
 		return app.Tokens{}, err
 	}
-	refresh, err := i.sign(user, "refresh", refreshLifetime)
+	refresh, err := i.sign(user, "", "refresh", refreshLifetime)
 	if err != nil {
 		return app.Tokens{}, err
 	}
@@ -63,15 +63,17 @@ type claims struct {
 	UserID       string `json:"user_id"`
 	TokenVersion int    `json:"token_version"`
 	Plan         string `json:"plan"`
+	Role         string `json:"role,omitempty"`
 	Type         string `json:"type"`
 	jwt.RegisteredClaims
 }
 
-func (i *Issuer) sign(user domain.User, kind string, lifetime time.Duration) (string, error) {
+func (i *Issuer) sign(user domain.User, role, kind string, lifetime time.Duration) (string, error) {
 	value := claims{
 		UserID:       user.ID().String(),
 		TokenVersion: user.TokenVersion(),
 		Plan:         "free",
+		Role:         role,
 		Type:         kind,
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(i.now()),

@@ -10,6 +10,7 @@ import (
 
 	"assessment/modules/auth/domain"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
@@ -21,16 +22,30 @@ func TestIssuerCreatesTokensRecognizedByTheAuthService(t *testing.T) {
 	user, err := domain.NewUser(uuid.New(), "person@example.com", "Person", "hash", now)
 	require.NoError(t, err)
 
-	tokens, err := issuer.Issue(user)
+	tokens, err := issuer.Issue(user, domain.RoleAdmin)
 	require.NoError(t, err)
 	identity, err := issuer.VerifyAccess(tokens.AccessToken)
 	require.NoError(t, err)
 	require.Equal(t, user.ID(), identity.UserID)
 	require.Equal(t, "free", identity.Plan)
 
+	accessClaims := claims{}
+	_, err = jwt.ParseWithClaims(tokens.AccessToken, &accessClaims, func(*jwt.Token) (any, error) {
+		return &issuer.privateKey.PublicKey, nil
+	}, jwt.WithTimeFunc(issuer.now))
+	require.NoError(t, err)
+	require.Equal(t, domain.RoleAdmin, accessClaims.Role)
+
 	refreshIdentity, err := issuer.VerifyRefresh(tokens.RefreshToken)
 	require.NoError(t, err)
 	require.Equal(t, user.TokenVersion(), refreshIdentity.TokenVersion)
+
+	refreshClaims := claims{}
+	_, err = jwt.ParseWithClaims(tokens.RefreshToken, &refreshClaims, func(*jwt.Token) (any, error) {
+		return &issuer.privateKey.PublicKey, nil
+	}, jwt.WithTimeFunc(issuer.now))
+	require.NoError(t, err)
+	require.Empty(t, refreshClaims.Role)
 }
 
 func testIssuer(t *testing.T) *Issuer {

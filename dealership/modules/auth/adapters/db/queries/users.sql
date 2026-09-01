@@ -45,6 +45,24 @@ SELECT user_id, email, full_name, hashed_password, hashed_password_1,
 FROM auth.users
 WHERE email_lookup = sqlc.arg('email_lookup');
 
+-- name: GetSignInUserByEmail :one
+SELECT users.user_id, users.email, users.full_name, users.hashed_password,
+       users.hashed_password_1, users.hashed_password_2, users.token_ver,
+       users.status, users.created_at, users.updated_at, roles.name AS role
+FROM auth.users
+JOIN auth.user_roles ON auth.user_roles.user_id = users.user_id
+JOIN auth.roles ON roles.role_id = auth.user_roles.role_id
+WHERE users.email_lookup = sqlc.arg('email_lookup');
+
+-- name: GetRefreshUserByID :one
+SELECT users.user_id, users.email, users.full_name, users.hashed_password,
+       users.hashed_password_1, users.hashed_password_2, users.token_ver,
+       users.status, users.created_at, users.updated_at, roles.name AS role
+FROM auth.users
+JOIN auth.user_roles ON auth.user_roles.user_id = users.user_id
+JOIN auth.roles ON roles.role_id = auth.user_roles.role_id
+WHERE users.user_id = sqlc.arg('user_id');
+
 -- name: GetUserByID :one
 SELECT user_id, email, full_name, hashed_password, hashed_password_1,
        hashed_password_2, token_ver, status, created_at, updated_at

@@ -30,8 +30,14 @@ func (r *setupRepository) CreateSuperadmin(_ context.Context, _ domain.User) err
 func (r *setupRepository) FindByEmail(context.Context, string) (domain.User, error) {
 	return domain.User{}, app.ErrNotFound
 }
+func (r *setupRepository) FindSignInUserByEmail(context.Context, string) (app.AuthenticatedUser, error) {
+	return app.AuthenticatedUser{}, app.ErrNotFound
+}
 func (r *setupRepository) FindByID(context.Context, uuid.UUID) (domain.User, error) {
 	return domain.User{}, app.ErrNotFound
+}
+func (r *setupRepository) FindRefreshUserByID(context.Context, uuid.UUID) (app.AuthenticatedUser, error) {
+	return app.AuthenticatedUser{}, app.ErrNotFound
 }
 func (r *setupRepository) FindRole(context.Context, uuid.UUID) (string, error) {
 	return "", app.ErrNotFound
@@ -41,9 +47,9 @@ func (r *setupRepository) Update(context.Context, domain.User) error            
 
 type setupTokens struct{}
 
-func (setupTokens) Issue(domain.User) (app.Tokens, error)      { return app.Tokens{}, nil }
-func (setupTokens) VerifyAccess(string) (app.Identity, error)  { return app.Identity{}, nil }
-func (setupTokens) VerifyRefresh(string) (app.Identity, error) { return app.Identity{}, nil }
+func (setupTokens) Issue(domain.User, string) (app.Tokens, error) { return app.Tokens{}, nil }
+func (setupTokens) VerifyAccess(string) (app.Identity, error)     { return app.Identity{}, nil }
+func (setupTokens) VerifyRefresh(string) (app.Identity, error)    { return app.Identity{}, nil }
 
 type setupHasher struct{}
 

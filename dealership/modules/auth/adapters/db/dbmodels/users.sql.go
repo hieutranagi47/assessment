@@ -92,6 +92,92 @@ func (q *Queries) CreateUserRole(ctx context.Context, arg CreateUserRoleParams) 
 	return err
 }
 
+const getRefreshUserByID = `-- name: GetRefreshUserByID :one
+SELECT users.user_id, users.email, users.full_name, users.hashed_password,
+       users.hashed_password_1, users.hashed_password_2, users.token_ver,
+       users.status, users.created_at, users.updated_at, roles.name AS role
+FROM auth.users
+JOIN auth.user_roles ON auth.user_roles.user_id = users.user_id
+JOIN auth.roles ON roles.role_id = auth.user_roles.role_id
+WHERE users.user_id = $1
+`
+
+type GetRefreshUserByIDRow struct {
+	UserID          string
+	Email           []byte
+	FullName        string
+	HashedPassword  string
+	HashedPassword1 string
+	HashedPassword2 string
+	TokenVer        int32
+	Status          string
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	Role            string
+}
+
+func (q *Queries) GetRefreshUserByID(ctx context.Context, userID string) (GetRefreshUserByIDRow, error) {
+	row := q.db.QueryRow(ctx, getRefreshUserByID, userID)
+	var i GetRefreshUserByIDRow
+	err := row.Scan(
+		&i.UserID,
+		&i.Email,
+		&i.FullName,
+		&i.HashedPassword,
+		&i.HashedPassword1,
+		&i.HashedPassword2,
+		&i.TokenVer,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Role,
+	)
+	return i, err
+}
+
+const getSignInUserByEmail = `-- name: GetSignInUserByEmail :one
+SELECT users.user_id, users.email, users.full_name, users.hashed_password,
+       users.hashed_password_1, users.hashed_password_2, users.token_ver,
+       users.status, users.created_at, users.updated_at, roles.name AS role
+FROM auth.users
+JOIN auth.user_roles ON auth.user_roles.user_id = users.user_id
+JOIN auth.roles ON roles.role_id = auth.user_roles.role_id
+WHERE users.email_lookup = $1
+`
+
+type GetSignInUserByEmailRow struct {
+	UserID          string
+	Email           []byte
+	FullName        string
+	HashedPassword  string
+	HashedPassword1 string
+	HashedPassword2 string
+	TokenVer        int32
+	Status          string
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	Role            string
+}
+
+func (q *Queries) GetSignInUserByEmail(ctx context.Context, emailLookup []byte) (GetSignInUserByEmailRow, error) {
+	row := q.db.QueryRow(ctx, getSignInUserByEmail, emailLookup)
+	var i GetSignInUserByEmailRow
+	err := row.Scan(
+		&i.UserID,
+		&i.Email,
+		&i.FullName,
+		&i.HashedPassword,
+		&i.HashedPassword1,
+		&i.HashedPassword2,
+		&i.TokenVer,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Role,
+	)
+	return i, err
+}
+
 const getUserByEmail = `-- name: GetUserByEmail :one
 SELECT user_id, email, full_name, hashed_password, hashed_password_1,
        hashed_password_2, token_ver, status, created_at, updated_at
