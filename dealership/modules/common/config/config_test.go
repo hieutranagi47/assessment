@@ -8,6 +8,7 @@ import (
 func TestLoadRequiresSecurityAndInfrastructureSettings(t *testing.T) {
 	required := map[string]string{
 		"POSTGRES_DSN":         "postgres://example",
+		"REDIS_URL":            "redis://example:6379/0",
 		"EMAIL_ENCRYPTION_KEY": "encryption-key",
 		"EMAIL_LOOKUP_KEY":     "lookup-key",
 		"RSA_PRIVATE_KEY_PEM":  "private-key",
@@ -35,6 +36,7 @@ func TestLoadRequiresSecurityAndInfrastructureSettings(t *testing.T) {
 func TestLoadUsesListenerPortDefaults(t *testing.T) {
 	for name, value := range map[string]string{
 		"POSTGRES_DSN":         "postgres://example",
+		"REDIS_URL":            "redis://example:6379/0",
 		"EMAIL_ENCRYPTION_KEY": "encryption-key",
 		"EMAIL_LOOKUP_KEY":     "lookup-key",
 		"RSA_PRIVATE_KEY_PEM":  "private-key",

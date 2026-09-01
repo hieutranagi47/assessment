@@ -2,10 +2,11 @@ package observability
 
 import (
 	"context"
+	"fmt"
+	"net/http"
 	"time"
 
 	"assessment/modules/appointment_scheduler/app"
-	"assessment/modules/appointment_scheduler/domain"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -53,40 +54,72 @@ func NewAppointmentSchedulerTelemetry() (*AppointmentSchedulerTelemetry, error) 
 	}, nil
 }
 
-func (t *AppointmentSchedulerTelemetry) StartScheduleAppointment(ctx context.Context) (context.Context, func(string)) {
+func (t *AppointmentSchedulerTelemetry) StartScheduleAppointment(ctx context.Context, metadata app.ScheduleAppointmentTraceMetadata) (context.Context, func(app.ScheduleAppointmentTraceResult, error)) {
 	ctx, span := t.tracer.Start(ctx, "scheduler.schedule_appointment")
+	span.SetAttributes(
+		attribute.String("actor.id", metadata.ActorID.String()),
+		attribute.String("customer.id", metadata.CustomerID.String()),
+		attribute.String("vehicle.id", metadata.VehicleID.String()),
+		attribute.String("service_type.id", metadata.ServiceTypeID.String()),
+		attribute.String("technician.id", metadata.TechnicianID.String()),
+		attribute.String("service_bay.id", metadata.ServiceBayID.String()),
+	)
 	started := time.Now()
-	return ctx, func(outcome string) {
+	return ctx, func(result app.ScheduleAppointmentTraceResult, err error) {
+		outcome := app.AppointmentOutcome(err)
 		attributes := metric.WithAttributes(attribute.String("outcome", outcome))
 		t.bookingTotal.Add(ctx, 1, attributes)
 		t.bookingDuration.Record(ctx, time.Since(started).Seconds(), attributes)
-		span.SetAttributes(attribute.String("booking.outcome", outcome))
-		if outcome == "error" {
-			span.SetStatus(codes.Error, "booking failed")
+		span.SetAttributes(
+			attribute.String("booking.outcome", outcome),
+			attribute.Int("status_code", app.AppointmentStatusCode(err, http.StatusCreated)),
+		)
+		if err != nil {
+			recordSpanError(span, err, "booking failed")
+		} else {
+			span.SetAttributes(
+				attribute.Int("record_count", 1),
+				attribute.String("appointment.id", result.AppointmentID.String()),
+				attribute.String("dealership.id", result.DealershipID.String()),
+			)
 		}
 		span.End()
 	}
 }
 
-func (t *AppointmentSchedulerTelemetry) StartAppointmentTransition(ctx context.Context, from, to domain.AppointmentStatus) (context.Context, func(string)) {
+func (t *AppointmentSchedulerTelemetry) StartAppointmentTransition(ctx context.Context, metadata app.AppointmentTransitionTraceMetadata) (context.Context, func(error)) {
 	ctx, span := t.tracer.Start(ctx, "scheduler.change_appointment_status")
+	span.SetAttributes(
+		attribute.String("actor.id", metadata.ActorID.String()),
+		attribute.String("appointment.id", metadata.AppointmentID.String()),
+	)
 	started := time.Now()
-	return ctx, func(outcome string) {
+	return ctx, func(err error) {
+		outcome := app.AppointmentOutcome(err)
 		attributes := metric.WithAttributes(
-			attribute.String("from", string(from)),
-			attribute.String("to", string(to)),
+			attribute.String("from", string(metadata.From)),
+			attribute.String("to", string(metadata.To)),
 			attribute.String("outcome", outcome),
 		)
 		t.transitionTotal.Add(ctx, 1, attributes)
 		t.transitionDuration.Record(ctx, time.Since(started).Seconds(), attributes)
 		span.SetAttributes(
-			attribute.String("appointment.status.from", string(from)),
-			attribute.String("appointment.status.to", string(to)),
+			attribute.String("appointment.status.from", string(metadata.From)),
+			attribute.String("appointment.status.to", string(metadata.To)),
 			attribute.String("appointment.outcome", outcome),
+			attribute.Int("status_code", app.AppointmentStatusCode(err, http.StatusNoContent)),
 		)
-		if outcome == "error" {
-			span.SetStatus(codes.Error, "appointment transition failed")
+		if err != nil {
+			recordSpanError(span, err, "appointment transition failed")
+		} else {
+			span.SetAttributes(attribute.Int("record_count", 1))
 		}
 		span.End()
 	}
+}
+
+func recordSpanError(span trace.Span, err error, statusDescription string) {
+	span.SetStatus(codes.Error, statusDescription)
+	span.SetAttributes(attribute.String("error.type", fmt.Sprintf("%T", err)))
+	span.RecordError(err)
 }

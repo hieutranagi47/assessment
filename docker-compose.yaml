@@ -59,6 +59,20 @@ services:
       retries: 10
       start_period: 5s
 
+  redis:
+    image: redis:8-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
   pgadmin:
     image: dpage/pgadmin4:9.17
     environment:
@@ -82,6 +96,7 @@ services:
       no_cache: true
     environment:
       POSTGRES_DSN: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-very-secret}@postgres:5432/${POSTGRES_DB:-ht47}?sslmode=disable
+      REDIS_URL: redis://redis:6379/0
       RSA_PRIVATE_KEY_PEM: |-
         -----BEGIN PRIVATE KEY-----
         MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDUqYn1WVvN3NDs
@@ -138,6 +153,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
       otel-collector:
         condition: service_started
 
@@ -145,3 +162,4 @@ volumes:
   postgres_data:
   pgadmin_data:
   prom_data:
+  redis_data:

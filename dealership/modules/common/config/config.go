@@ -9,6 +9,7 @@ import (
 // root. Domain and application packages never read process environment values.
 type Config struct {
 	PostgresDSN        string
+	RedisURL           string
 	EmailEncryptionKey string
 	EmailLookupKey     string
 	JWTPrivateKeyPEM   string
@@ -27,6 +28,7 @@ type Config struct {
 func Load() (Config, error) {
 	config := Config{
 		PostgresDSN:        os.Getenv("POSTGRES_DSN"),
+		RedisURL:           os.Getenv("REDIS_URL"),
 		EmailEncryptionKey: os.Getenv("EMAIL_ENCRYPTION_KEY"),
 		EmailLookupKey:     os.Getenv("EMAIL_LOOKUP_KEY"),
 		JWTPrivateKeyPEM:   os.Getenv("RSA_PRIVATE_KEY_PEM"),
@@ -39,8 +41,8 @@ func Load() (Config, error) {
 		ServiceVersion:     valueOrDefault("SERVICE_VERSION", "unknown"),
 		DeploymentRegion:   valueOrDefault("DEPLOYMENT_REGION", "unknown"),
 	}
-	if config.PostgresDSN == "" || config.EmailEncryptionKey == "" || config.EmailLookupKey == "" || config.JWTPrivateKeyPEM == "" || config.JWTPublicKeyPEM == "" {
-		return Config{}, fmt.Errorf("POSTGRES_DSN, EMAIL_ENCRYPTION_KEY, EMAIL_LOOKUP_KEY, RSA_PRIVATE_KEY_PEM, and RSA_PUBLIC_KEY_PEM are required")
+	if config.PostgresDSN == "" || config.RedisURL == "" || config.EmailEncryptionKey == "" || config.EmailLookupKey == "" || config.JWTPrivateKeyPEM == "" || config.JWTPublicKeyPEM == "" {
+		return Config{}, fmt.Errorf("POSTGRES_DSN, REDIS_URL, EMAIL_ENCRYPTION_KEY, EMAIL_LOOKUP_KEY, RSA_PRIVATE_KEY_PEM, and RSA_PUBLIC_KEY_PEM are required")
 	}
 	return config, nil
 }

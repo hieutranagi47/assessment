@@ -9,6 +9,7 @@ docker compose up -d postgres
 cd dealership
 COMPONENT_TEST=1 \
   COMPONENT_TEST_POSTGRES_DSN='postgres://postgres:very-secret@localhost:5432/ht47?sslmode=disable' \
+  COMPONENT_TEST_REDIS_URL='redis://localhost:6379/0' \
   go test ./tests -count=1
 ```
 

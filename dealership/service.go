@@ -38,9 +38,12 @@ type Service struct {
 
 // New builds the composition root, initializes every module, verifies module
 // contracts, and registers their HTTP routes.
-func New(ctx context.Context, database *pgxpool.Pool, config config.Config) (*Service, error) {
+func New(ctx context.Context, database *pgxpool.Pool, idempotencyStore commonHTTP.IdempotencyStore, config config.Config) (*Service, error) {
 	if database == nil {
 		return nil, fmt.Errorf("PostgreSQL database is required")
+	}
+	if idempotencyStore == nil {
+		return nil, fmt.Errorf("idempotency store is required")
 	}
 	tlsConfig, err := newTLSConfig([]byte(config.JWTPrivateKeyPEM), []byte(config.JWTPublicKeyPEM))
 	if err != nil {
@@ -73,6 +76,7 @@ func New(ctx context.Context, database *pgxpool.Pool, config config.Config) (*Se
 	if err := moduleContracts.Verify(); err != nil {
 		return nil, fmt.Errorf("verify module contracts: %w", err)
 	}
+	router.Use(commonHTTP.IdempotencyMiddleware(idempotencyStore))
 	for _, currentModule := range modules {
 		if err := currentModule.RegisterHttp(ctx, router); err != nil {
 			return nil, fmt.Errorf("register module %s HTTP routes: %w", currentModule.Name(), err)
