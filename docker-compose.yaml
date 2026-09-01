@@ -50,7 +50,8 @@ services:
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - ./docker/postgresql/data:/var/lib/postgresql/data
+      # Docker-managed storage preserves the postgres user's required ownership.
+      - postgres_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
@@ -141,5 +142,6 @@ services:
         condition: service_started
 
 volumes:
+  postgres_data:
   pgadmin_data:
   prom_data:
