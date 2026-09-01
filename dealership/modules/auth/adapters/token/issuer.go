@@ -100,5 +100,10 @@ func (i *Issuer) verify(raw, kind string) (app.Identity, error) {
 	if err != nil || id == uuid.Nil || value.TokenVersion < 1 {
 		return app.Identity{}, errors.New("invalid token")
 	}
-	return app.Identity{UserID: id, TokenVersion: value.TokenVersion, Plan: value.Plan}, nil
+	return app.Identity{
+		UserID:       id,
+		TokenVersion: value.TokenVersion,
+		Plan:         value.Plan,
+		Role:         value.Role,
+	}, nil
 }

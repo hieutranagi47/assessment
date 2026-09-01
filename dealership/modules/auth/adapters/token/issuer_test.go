@@ -28,6 +28,7 @@ func TestIssuerCreatesTokensRecognizedByTheAuthService(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, user.ID(), identity.UserID)
 	require.Equal(t, "free", identity.Plan)
+	require.Equal(t, domain.RoleAdmin, identity.Role)
 
 	accessClaims := claims{}
 	_, err = jwt.ParseWithClaims(tokens.AccessToken, &accessClaims, func(*jwt.Token) (any, error) {

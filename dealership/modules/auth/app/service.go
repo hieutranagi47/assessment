@@ -59,6 +59,7 @@ type Identity struct {
 	UserID       uuid.UUID
 	TokenVersion int
 	Plan         string
+	Role         string
 }
 
 // UserInfo is the current authorization-relevant view of a user. It is kept

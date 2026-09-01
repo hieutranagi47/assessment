@@ -16,6 +16,7 @@ import (
 	"assessment/modules/common"
 
 	"github.com/google/uuid"
+	echo "github.com/labstack/echo/v5"
 	"github.com/stretchr/testify/require"
 )
 
@@ -387,6 +388,26 @@ func (a authStub) GetUserInfo(context.Context, uuid.UUID) (client.UserInfo, erro
 }
 func (a authStub) GetUserInfoByEmail(context.Context, string) (client.UserInfo, error) {
 	return a.info, a.infoErr
+}
+
+func TestRequireIdentityAddsAccessTokenRoleToRequestContext(t *testing.T) {
+	actorID := uuid.New()
+	handler := &Handler{auth: authStub{identity: client.Identity{UserID: actorID, Role: "admin"}}}
+	router := common.NewEcho(common.EchoConfig{})
+	router.GET("/", handler.requireIdentity(func(c *echo.Context) error {
+		authorization, ok := app.AuthorizationFrom(c.Request().Context())
+		require.True(t, ok)
+		require.Equal(t, actorID, authorization.UserID)
+		require.Equal(t, "admin", authorization.Role)
+		return c.NoContent(stdhttp.StatusNoContent)
+	}))
+
+	request := httptest.NewRequest(stdhttp.MethodGet, "/", nil)
+	request.Header.Set("Authorization", "Bearer access-token")
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, request)
+
+	require.Equal(t, stdhttp.StatusNoContent, recorder.Code)
 }
 
 func TestCreateDealershipHTTPErrorMapping(t *testing.T) {

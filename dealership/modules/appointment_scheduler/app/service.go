@@ -1465,34 +1465,42 @@ func valueOr[T any](value *T, fallback T) T {
 	return *value
 }
 
-func (s *Service) authorizeCreate(ctx context.Context, actorID uuid.UUID) error {
-	user, err := s.users.GetUserInfo(ctx, actorID)
-	if err != nil || user.UserID == "" || user.UserID != actorID.String() {
-		return common.NewForbiddenError("dealership_create_forbidden", "you are not allowed to create dealerships")
+// actorRole reads the verified token claim placed on the request by the HTTP
+// middleware. The auth lookup is retained only for non-HTTP callers that have
+// not supplied request authorization (for example, legacy internal callers).
+func (s *Service) actorRole(ctx context.Context, actorID uuid.UUID) (string, error) {
+	if authorization, ok := AuthorizationFrom(ctx); ok && authorization.UserID == actorID {
+		return authorization.Role, nil
 	}
-	if user.Status != "active" || (user.Role != "superadmin" && user.Role != "admin") {
+	user, err := s.users.GetUserInfo(ctx, actorID)
+	if err != nil || user.UserID != actorID.String() || user.Status != "active" || user.Role == "" {
+		return "", common.NewForbiddenError("authorization_forbidden", "you are not authorized")
+	}
+	return user.Role, nil
+}
+
+func (s *Service) authorizeCreate(ctx context.Context, actorID uuid.UUID) error {
+	role, err := s.actorRole(ctx, actorID)
+	if err != nil || (role != "superadmin" && role != "admin") {
 		return common.NewForbiddenError("dealership_create_forbidden", "you are not allowed to create dealerships")
 	}
 	return nil
 }
 
 func (s *Service) authorizeCreateAdmin(ctx context.Context, actorID uuid.UUID) error {
-	user, err := s.users.GetUserInfo(ctx, actorID)
-	if err != nil || user.UserID == "" || user.UserID != actorID.String() {
-		return common.NewForbiddenError("dealership_admin_create_forbidden", "you are not allowed to create dealership admins")
-	}
-	if user.Status != "active" || (user.Role != "superadmin" && user.Role != "admin") {
+	role, err := s.actorRole(ctx, actorID)
+	if err != nil || (role != "superadmin" && role != "admin") {
 		return common.NewForbiddenError("dealership_admin_create_forbidden", "you are not allowed to create dealership admins")
 	}
 	return nil
 }
 
 func (s *Service) authorizeCreateDealershipUser(ctx context.Context, actorID, dealershipID uuid.UUID) error {
-	user, err := s.users.GetUserInfo(ctx, actorID)
-	if err != nil || user.UserID == "" || user.UserID != actorID.String() || user.Status != "active" {
+	role, err := s.actorRole(ctx, actorID)
+	if err != nil {
 		return common.NewForbiddenError("dealership_user_create_forbidden", "you are not allowed to create dealership users")
 	}
-	if user.Role == "superadmin" || user.Role == "admin" {
+	if role == "superadmin" || role == "admin" {
 		return nil
 	}
 	authorizer, ok := s.repository.(DealershipSchedulerAdminAuthorizer)
@@ -1510,11 +1518,11 @@ func (s *Service) authorizeCreateDealershipUser(ctx context.Context, actorID, de
 }
 
 func (s *Service) authorizeSearchAuthUser(ctx context.Context, actorID uuid.UUID) error {
-	user, err := s.users.GetUserInfo(ctx, actorID)
-	if err != nil || user.UserID == "" || user.UserID != actorID.String() || user.Status != "active" {
+	role, err := s.actorRole(ctx, actorID)
+	if err != nil {
 		return common.NewForbiddenError("auth_user_search_forbidden", "you are not allowed to search auth users")
 	}
-	if user.Role == "superadmin" || user.Role == "admin" {
+	if role == "superadmin" || role == "admin" {
 		return nil
 	}
 
@@ -1612,8 +1620,8 @@ func (s *Service) authorizeTechnicians(ctx context.Context, actorID uuid.UUID) (
 	if actorID == uuid.Nil {
 		return nil, uuid.Nil, common.NewUnauthorizedError("authentication_required", "authentication required")
 	}
-	user, err := s.users.GetUserInfo(ctx, actorID)
-	if err != nil || user.UserID != actorID.String() || user.Status != "active" || user.Role != "admin" {
+	role, err := s.actorRole(ctx, actorID)
+	if err != nil || role != "admin" {
 		return nil, uuid.Nil, common.NewForbiddenError("technician_access_forbidden", "you are not allowed to manage technicians")
 	}
 	repository, ok := s.repository.(TechnicianRepository)
@@ -1750,8 +1758,8 @@ func (s *Service) authorizeTechnicianShifts(ctx context.Context, actorID uuid.UU
 	if actorID == uuid.Nil {
 		return nil, uuid.Nil, common.NewUnauthorizedError("unauthenticated", "authentication required")
 	}
-	user, err := s.users.GetUserInfo(ctx, actorID)
-	if err != nil || user.UserID != actorID.String() || user.Status != "active" || user.Role != "admin" {
+	role, err := s.actorRole(ctx, actorID)
+	if err != nil || role != "admin" {
 		return nil, uuid.Nil, common.NewForbiddenError("forbidden", "you are not allowed to manage technician shifts")
 	}
 	repository, ok := s.repository.(TechnicianShiftRepository)
@@ -1865,8 +1873,8 @@ func (s *Service) authorizeTechnicianTimeOff(ctx context.Context, actorID uuid.U
 	if actorID == uuid.Nil {
 		return nil, uuid.Nil, common.NewUnauthorizedError("unauthenticated", "authentication required")
 	}
-	user, err := s.users.GetUserInfo(ctx, actorID)
-	if err != nil || user.UserID != actorID.String() || user.Status != "active" || (user.Role != "admin" && user.Role != "staff") {
+	role, err := s.actorRole(ctx, actorID)
+	if err != nil || (role != "admin" && role != "staff") {
 		return nil, uuid.Nil, common.NewForbiddenError("forbidden", "you are not allowed to manage technician time off")
 	}
 	repository, ok := s.repository.(TechnicianTimeOffRepository)

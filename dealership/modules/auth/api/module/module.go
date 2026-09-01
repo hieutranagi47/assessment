@@ -19,7 +19,7 @@ func New(service *app.Service) *Auth {
 
 func (a *Auth) AuthenticateAccessToken(raw string) (client.Identity, error) {
 	i, e := a.service.Authenticate(raw)
-	return client.Identity{UserID: i.UserID}, e
+	return client.Identity{UserID: i.UserID, Role: i.Role}, e
 }
 
 // GetUserInfo provides other modules with the current authorization-relevant

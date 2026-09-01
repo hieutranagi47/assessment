@@ -1489,7 +1489,12 @@ func (h *Handler) requireIdentity(next echo.HandlerFunc) echo.HandlerFunc {
 		if err != nil || identity.UserID == uuid.Nil {
 			return c.JSON(stdhttp.StatusUnauthorized, errorResponse(common.NewUnauthorizedError("authentication_required", "authentication required")))
 		}
-		request := c.Request().WithContext(context.WithValue(c.Request().Context(), identityKey{}, identity.UserID))
+		requestContext := context.WithValue(c.Request().Context(), identityKey{}, identity.UserID)
+		requestContext = app.WithAuthorization(requestContext, app.Authorization{
+			UserID: identity.UserID,
+			Role:   identity.Role,
+		})
+		request := c.Request().WithContext(requestContext)
 		c.SetRequest(request)
 		return next(c)
 	}

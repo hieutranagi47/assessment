@@ -78,3 +78,15 @@ func TestListDealershipsQueryRequiresAuthentication(t *testing.T) {
 	require.Equal(t, "authentication_required", structured.ErrorSlug)
 	require.False(t, repository.listWasCalled)
 }
+
+func TestListDealershipsQueryUsesAccessTokenRoleWithoutAuthLookup(t *testing.T) {
+	actorID := uuid.New()
+	repository := &dealershipListRepositoryStub{items: []domain.Dealership{}}
+	query := NewListDealershipsQuery(repository, userInfoStub{err: errors.New("auth lookup must not be called")})
+	ctx := WithAuthorization(context.Background(), Authorization{UserID: actorID, Role: "admin"})
+
+	_, err := query.List(ctx, actorID)
+
+	require.NoError(t, err)
+	require.True(t, repository.listWasCalled)
+}

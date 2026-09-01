@@ -41,11 +41,11 @@ func (q *ListDealershipsQuery) List(ctx context.Context, actorUserID uuid.UUID) 
 		return nil, common.NewUnauthorizedError("authentication_required", "authentication is required")
 	}
 
-	user, err := q.users.GetUserInfo(ctx, actorUserID)
-	if err != nil || user.UserID != actorUserID.String() || user.Status != "active" {
+	role, err := q.actorRole(ctx, actorUserID)
+	if err != nil {
 		return nil, common.NewForbiddenError("dealership_list_forbidden", "you are not allowed to list dealerships")
 	}
-	if user.Role == "superadmin" || user.Role == "admin" {
+	if role == "superadmin" || role == "admin" {
 		return q.repository.ListDealerships(ctx)
 	}
 
@@ -57,4 +57,15 @@ func (q *ListDealershipsQuery) List(ctx context.Context, actorUserID uuid.UUID) 
 		return nil, common.NewForbiddenError("dealership_list_forbidden", "you are not allowed to list dealerships")
 	}
 	return q.repository.ListDealerships(ctx)
+}
+
+func (q *ListDealershipsQuery) actorRole(ctx context.Context, actorUserID uuid.UUID) (string, error) {
+	if authorization, ok := AuthorizationFrom(ctx); ok && authorization.UserID == actorUserID {
+		return authorization.Role, nil
+	}
+	user, err := q.users.GetUserInfo(ctx, actorUserID)
+	if err != nil || user.UserID != actorUserID.String() || user.Status != "active" || user.Role == "" {
+		return "", common.NewForbiddenError("dealership_list_forbidden", "you are not allowed to list dealerships")
+	}
+	return user.Role, nil
 }
