@@ -48,13 +48,6 @@ type AppointmentSchedulerAppointmentAuditEvent struct {
 	OccurredAt              time.Time
 }
 
-type AppointmentSchedulerAppointmentIdempotency struct {
-	IdempotencyKey string
-	AppointmentID  pgtype.UUID
-	CreatedAt      time.Time
-	DeletedAt      pgtype.Timestamptz
-}
-
 type AppointmentSchedulerAppointmentResourceReservation struct {
 	AppointmentResourceReservationID pgtype.UUID
 	AppointmentID                    pgtype.UUID
