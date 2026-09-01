@@ -52,7 +52,7 @@ func (r *superadminRepository) UpdateRole(context.Context, uuid.UUID, string, ti
 	return nil
 }
 func (r *superadminRepository) Update(context.Context, domain.User) error { return nil }
-func (r *superadminRepository) UpdatePassword(context.Context, domain.User, string, string) error {
+func (r *superadminRepository) UpdatePassword(context.Context, domain.User) error {
 	return nil
 }
 func (r *superadminRepository) StoreDeliveryEmail(context.Context, uuid.UUID, string) error {

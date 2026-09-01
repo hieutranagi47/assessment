@@ -29,10 +29,9 @@ type Module struct {
 var _ module.Module = (*Module)(nil)
 
 type Config struct {
-	EmailEncryptionKey string
-	EmailLookupKey     string
-	JWTPrivateKeyPEM   []byte
-	JWTPublicKeyPEM    []byte
+	EmailLookupKey   string
+	JWTPrivateKeyPEM []byte
+	JWTPublicKeyPEM  []byte
 }
 
 // NewModule creates the auth module. Initialization is deferred until Init so
@@ -48,7 +47,7 @@ func (m *Module) Name() module.Name { return "auth" }
 var migrations embed.FS
 
 func (m *Module) Init(ctx context.Context) error {
-	repository := db.NewRepository(m.database, m.config.EmailEncryptionKey, m.config.EmailLookupKey)
+	repository := db.NewRepository(m.database, m.config.EmailLookupKey)
 	issuer, err := token.NewIssuer(m.config.JWTPrivateKeyPEM, m.config.JWTPublicKeyPEM)
 	if err != nil {
 		return err

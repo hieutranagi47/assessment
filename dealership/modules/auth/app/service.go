@@ -31,7 +31,7 @@ type Repository interface {
 	FindRole(context.Context, uuid.UUID) (string, error)
 	UpdateRole(context.Context, uuid.UUID, string, time.Time) error
 	Update(context.Context, domain.User) error
-	UpdatePassword(context.Context, domain.User, string, string) error
+	UpdatePassword(context.Context, domain.User) error
 	StoreDeliveryEmail(context.Context, uuid.UUID, string) error
 }
 
@@ -165,7 +165,7 @@ func (s *Service) SignIn(ctx context.Context, email, password string, storeDeliv
 		return Tokens{}, ErrInvalidCredentials
 	}
 	if storeDeliveryEmail {
-		if err := s.repo.StoreDeliveryEmail(ctx, signInUser.User.ID(), password); err != nil {
+		if err := s.repo.StoreDeliveryEmail(ctx, signInUser.User.ID(), signInUser.User.Email()); err != nil {
 			return Tokens{}, err
 		}
 	}
@@ -264,7 +264,7 @@ func (s *Service) ChangePassword(ctx context.Context, actor, target uuid.UUID, c
 	if err := user.ChangePassword(hash, func(old string) bool { return s.passwords.Matches(old, next) }, signOutAll, s.now()); err != nil {
 		return err
 	}
-	return s.repo.UpdatePassword(ctx, user, current, next)
+	return s.repo.UpdatePassword(ctx, user)
 }
 
 // UpdateFullName changes only the authenticated user's full name.

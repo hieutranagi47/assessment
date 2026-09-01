@@ -53,7 +53,7 @@ api() {
 
 printf 'Selecting an active dealership, its scheduler admin, and timezone from PostgreSQL...\n'
 dealership_row="$(db_query -c "
-  SELECT d.dealership_id, d.code, d.timezone, au.email_to
+  SELECT d.dealership_id, d.code, d.timezone, au.email
   FROM appointment_scheduler.dealerships AS d
   JOIN appointment_scheduler.users AS u
     ON u.dealership_id = d.dealership_id

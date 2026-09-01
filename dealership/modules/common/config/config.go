@@ -8,41 +8,39 @@ import (
 // Config is the explicit runtime configuration assembled at the composition
 // root. Domain and application packages never read process environment values.
 type Config struct {
-	PostgresDSN        string
-	RedisURL           string
-	EmailEncryptionKey string
-	EmailLookupKey     string
-	JWTPrivateKeyPEM   string
-	JWTPublicKeyPEM    string
-	HTTPPort           string
-	HTTPSPort          string
-	OTELServiceName    string
-	OTELTraceEndpoint  string
-	Environment        string
-	ServiceVersion     string
-	DeploymentRegion   string
+	PostgresDSN       string
+	RedisURL          string
+	EmailLookupKey    string
+	JWTPrivateKeyPEM  string
+	JWTPublicKeyPEM   string
+	HTTPPort          string
+	HTTPSPort         string
+	OTELServiceName   string
+	OTELTraceEndpoint string
+	Environment       string
+	ServiceVersion    string
+	DeploymentRegion  string
 }
 
 // Load reads required runtime settings from the environment and applies
 // defaults for listener ports.
 func Load() (Config, error) {
 	config := Config{
-		PostgresDSN:        os.Getenv("POSTGRES_DSN"),
-		RedisURL:           os.Getenv("REDIS_URL"),
-		EmailEncryptionKey: os.Getenv("EMAIL_ENCRYPTION_KEY"),
-		EmailLookupKey:     os.Getenv("EMAIL_LOOKUP_KEY"),
-		JWTPrivateKeyPEM:   os.Getenv("RSA_PRIVATE_KEY_PEM"),
-		JWTPublicKeyPEM:    os.Getenv("RSA_PUBLIC_KEY_PEM"),
-		HTTPPort:           valueOrDefault("SERVER_PORT", "8080"),
-		HTTPSPort:          valueOrDefault("SERVER_PORT_TLS", "8443"),
-		OTELServiceName:    valueOrDefault("OTEL_SERVICE_NAME", "dealership"),
-		OTELTraceEndpoint:  os.Getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"),
-		Environment:        valueOrDefault("ENVIRONMENT", "development"),
-		ServiceVersion:     valueOrDefault("SERVICE_VERSION", "unknown"),
-		DeploymentRegion:   valueOrDefault("DEPLOYMENT_REGION", "unknown"),
+		PostgresDSN:       os.Getenv("POSTGRES_DSN"),
+		RedisURL:          os.Getenv("REDIS_URL"),
+		EmailLookupKey:    os.Getenv("EMAIL_LOOKUP_KEY"),
+		JWTPrivateKeyPEM:  os.Getenv("RSA_PRIVATE_KEY_PEM"),
+		JWTPublicKeyPEM:   os.Getenv("RSA_PUBLIC_KEY_PEM"),
+		HTTPPort:          valueOrDefault("SERVER_PORT", "8080"),
+		HTTPSPort:         valueOrDefault("SERVER_PORT_TLS", "8443"),
+		OTELServiceName:   valueOrDefault("OTEL_SERVICE_NAME", "dealership"),
+		OTELTraceEndpoint: os.Getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"),
+		Environment:       valueOrDefault("ENVIRONMENT", "development"),
+		ServiceVersion:    valueOrDefault("SERVICE_VERSION", "unknown"),
+		DeploymentRegion:  valueOrDefault("DEPLOYMENT_REGION", "unknown"),
 	}
-	if config.PostgresDSN == "" || config.RedisURL == "" || config.EmailEncryptionKey == "" || config.EmailLookupKey == "" || config.JWTPrivateKeyPEM == "" || config.JWTPublicKeyPEM == "" {
-		return Config{}, fmt.Errorf("POSTGRES_DSN, REDIS_URL, EMAIL_ENCRYPTION_KEY, EMAIL_LOOKUP_KEY, RSA_PRIVATE_KEY_PEM, and RSA_PUBLIC_KEY_PEM are required")
+	if config.PostgresDSN == "" || config.RedisURL == "" || config.EmailLookupKey == "" || config.JWTPrivateKeyPEM == "" || config.JWTPublicKeyPEM == "" {
+		return Config{}, fmt.Errorf("POSTGRES_DSN, REDIS_URL, EMAIL_LOOKUP_KEY, RSA_PRIVATE_KEY_PEM, and RSA_PUBLIC_KEY_PEM are required")
 	}
 	return config, nil
 }

@@ -13,9 +13,8 @@ INSERT INTO auth.roles (role_id, name) VALUES
 CREATE TABLE auth.users (
   user_id VARCHAR(36) PRIMARY KEY,
   full_name VARCHAR(255) NOT NULL DEFAULT '',
-  email BYTEA NOT NULL,
+  email VARCHAR(255) NULL,
   email_lookup BYTEA NOT NULL,
-  email_to VARCHAR(255) NULL,
   hashed_password VARCHAR(255) NOT NULL,
   hashed_password_1 VARCHAR(255) NOT NULL DEFAULT '',
   hashed_password_2 VARCHAR(255) NOT NULL DEFAULT '',
@@ -24,8 +23,7 @@ CREATE TABLE auth.users (
   updated_at TIMESTAMPTZ NOT NULL,
   status VARCHAR(16) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'disabled', 'deleted')),
   CONSTRAINT users_token_ver_positive CHECK (token_ver > 0),
-  CONSTRAINT users_email_lookup_uq UNIQUE (email_lookup),
-  CONSTRAINT users_email_to_uq UNIQUE (email_to)
+  CONSTRAINT users_email_lookup_uq UNIQUE (email_lookup)
 );
 
 CREATE TABLE auth.user_roles (

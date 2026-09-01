@@ -4,10 +4,7 @@ package seed
 
 import (
 	"context"
-	"crypto/aes"
-	"crypto/cipher"
 	"crypto/hmac"
-	"crypto/rand"
 	"crypto/sha256"
 	"errors"
 	"fmt"
@@ -21,12 +18,11 @@ import (
 
 const defaultPassword = "Abc@6789"
 
-type fixtureCrypto struct {
-	block     cipher.AEAD
-	lookupKey []byte
+type fixtureEmailLookup struct {
+	key []byte
 }
 
-func Run(ctx context.Context, database *pgxpool.Pool, encryptionKey, lookupKey, password string) error {
+func Run(ctx context.Context, database *pgxpool.Pool, lookupKey, password string) error {
 	if database == nil {
 		return errors.New("PostgreSQL database is required")
 	}
@@ -40,7 +36,7 @@ func Run(ctx context.Context, database *pgxpool.Pool, encryptionKey, lookupKey, 
 	if err != nil {
 		return fmt.Errorf("hash seed password: %w", err)
 	}
-	crypto, err := newFixtureCrypto(encryptionKey, lookupKey)
+	lookup, err := newFixtureEmailLookup(lookupKey)
 	if err != nil {
 		return err
 	}
@@ -49,7 +45,7 @@ func Run(ctx context.Context, database *pgxpool.Pool, encryptionKey, lookupKey, 
 		return fmt.Errorf("begin seed transaction: %w", err)
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-	if err := seedAuth(ctx, tx, crypto, string(passwordHash)); err != nil {
+	if err := seedAuth(ctx, tx, lookup, string(passwordHash)); err != nil {
 		return err
 	}
 	if err := seedScheduler(ctx, tx); err != nil {
@@ -88,30 +84,14 @@ func requireMigrations(ctx context.Context, database *pgxpool.Pool) error {
 	return nil
 }
 
-func newFixtureCrypto(encryptionKey, lookupKey string) (fixtureCrypto, error) {
-	if encryptionKey == "" || lookupKey == "" {
-		return fixtureCrypto{}, errors.New("email encryption and lookup keys are required")
+func newFixtureEmailLookup(key string) (fixtureEmailLookup, error) {
+	if key == "" {
+		return fixtureEmailLookup{}, errors.New("email lookup key is required")
 	}
-	key := sha256.Sum256([]byte(encryptionKey))
-	block, err := aes.NewCipher(key[:])
-	if err != nil {
-		return fixtureCrypto{}, err
-	}
-	aead, err := cipher.NewGCM(block)
-	if err != nil {
-		return fixtureCrypto{}, err
-	}
-	return fixtureCrypto{block: aead, lookupKey: []byte(lookupKey)}, nil
+	return fixtureEmailLookup{key: []byte(key)}, nil
 }
-func (c fixtureCrypto) encrypt(email string) ([]byte, error) {
-	nonce := make([]byte, c.block.NonceSize())
-	if _, err := rand.Read(nonce); err != nil {
-		return nil, err
-	}
-	return c.block.Seal(nonce, nonce, []byte(email), nil), nil
-}
-func (c fixtureCrypto) lookup(email string) []byte {
-	mac := hmac.New(sha256.New, c.lookupKey)
+func (c fixtureEmailLookup) lookup(email string) []byte {
+	mac := hmac.New(sha256.New, c.key)
 	_, _ = mac.Write([]byte(email))
 	return mac.Sum(nil)
 }
@@ -123,7 +103,7 @@ func exec(ctx context.Context, tx pgx.Tx, sql string, args ...any) error {
 	return err
 }
 
-func seedAuth(ctx context.Context, tx pgx.Tx, crypto fixtureCrypto, hash string) error {
+func seedAuth(ctx context.Context, tx pgx.Tx, lookup fixtureEmailLookup, hash string) error {
 	roles := []string{"superadmin", "superadmin", "admin", "admin", "admin"}
 	for index := 0; index < 80; index++ {
 		role := "user"
@@ -132,11 +112,8 @@ func seedAuth(ctx context.Context, tx pgx.Tx, crypto fixtureCrypto, hash string)
 		}
 		id := fixtureID("auth-user", fmt.Sprint(index))
 		email := fmt.Sprintf("abc%d@email.com", index+1)
-		encrypted, err := crypto.encrypt(email)
-		if err != nil {
-			return fmt.Errorf("encrypt seed email: %w", err)
-		}
-		if err := exec(ctx, tx, `INSERT INTO auth.users (user_id, full_name, email, email_lookup, email_to, hashed_password, token_ver, created_at, updated_at, status) VALUES ($1,$2,$3,$4,$5,$6,1,$7,$7,'active') ON CONFLICT (user_id) DO UPDATE SET email = EXCLUDED.email, email_lookup = EXCLUDED.email_lookup, email_to = EXCLUDED.email_to, hashed_password = EXCLUDED.hashed_password, updated_at = EXCLUDED.updated_at WHERE auth.users.email_to IS DISTINCT FROM EXCLUDED.email_to`, id.String(), fmt.Sprintf("Seed %s %02d", role, index+1), encrypted, crypto.lookup(email), email, hash, seedTime); err != nil {
+		// Seed accounts are opted in so manual fixture workflows can send email.
+		if err := exec(ctx, tx, `INSERT INTO auth.users (user_id, full_name, email, email_lookup, hashed_password, token_ver, created_at, updated_at, status) VALUES ($1,$2,$3,$4,$5,1,$6,$6,'active') ON CONFLICT (user_id) DO UPDATE SET email = EXCLUDED.email, email_lookup = EXCLUDED.email_lookup, hashed_password = EXCLUDED.hashed_password, updated_at = EXCLUDED.updated_at WHERE auth.users.email IS DISTINCT FROM EXCLUDED.email`, id.String(), fmt.Sprintf("Seed %s %02d", role, index+1), email, lookup.lookup(email), hash, seedTime); err != nil {
 			return err
 		}
 		if err := exec(ctx, tx, `INSERT INTO auth.user_roles (user_id, role_id, created_at, updated_at) VALUES ($1, (SELECT role_id FROM auth.roles WHERE name=$2), $3, $3) ON CONFLICT (user_id) DO NOTHING`, id.String(), role, seedTime); err != nil {

@@ -44,7 +44,7 @@ func (r *setupRepository) FindRole(context.Context, uuid.UUID) (string, error) {
 }
 func (r *setupRepository) UpdateRole(context.Context, uuid.UUID, string, time.Time) error { return nil }
 func (r *setupRepository) Update(context.Context, domain.User) error                      { return nil }
-func (r *setupRepository) UpdatePassword(context.Context, domain.User, string, string) error {
+func (r *setupRepository) UpdatePassword(context.Context, domain.User) error {
 	return nil
 }
 func (r *setupRepository) StoreDeliveryEmail(context.Context, uuid.UUID, string) error {

@@ -12,12 +12,14 @@ import (
 )
 
 type roleRepository struct {
-	actorRole string
-	target    domain.User
-	emailUser domain.User
-	updatedID uuid.UUID
-	updatedTo string
-	calls     int
+	actorRole   string
+	target      domain.User
+	emailUser   domain.User
+	updatedID   uuid.UUID
+	updatedTo   string
+	calls       int
+	storedID    uuid.UUID
+	storedEmail string
 }
 
 func (r *roleRepository) Create(context.Context, domain.User, string) error           { return nil }
@@ -71,10 +73,56 @@ func (r *roleRepository) UpdateRole(_ context.Context, id uuid.UUID, role string
 	return nil
 }
 func (r *roleRepository) Update(context.Context, domain.User) error { return nil }
-func (r *roleRepository) UpdatePassword(context.Context, domain.User, string, string) error {
+func (r *roleRepository) UpdatePassword(context.Context, domain.User) error {
 	return nil
 }
-func (r *roleRepository) StoreDeliveryEmail(context.Context, uuid.UUID, string) error { return nil }
+func (r *roleRepository) StoreDeliveryEmail(_ context.Context, id uuid.UUID, email string) error {
+	r.storedID = id
+	r.storedEmail = email
+	return nil
+}
+
+type signInHasher struct{}
+
+func (signInHasher) Hash(string) (string, error) { return "", nil }
+func (signInHasher) Matches(hash, password string) bool {
+	return hash == "hash:"+password
+}
+
+func TestSignInStoresRawEmailOnlyWhenDeliveryIsRequested(t *testing.T) {
+	user, err := domain.NewUser(uuid.New(), "user@example.com", "User", "hash:CurrentPass1@", time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	repository := &roleRepository{actorRole: domain.RoleUser, emailUser: user}
+	_, err = NewService(repository, superadminTokens{}, signInHasher{}).SignIn(
+		context.Background(),
+		"User@Example.com",
+		"CurrentPass1@",
+		true,
+	)
+	if err != nil {
+		t.Fatalf("SignIn() error = %v", err)
+	}
+	if repository.storedID != user.ID() || repository.storedEmail != user.Email() {
+		t.Fatalf("stored delivery email = (%v, %q)", repository.storedID, repository.storedEmail)
+	}
+
+	withoutConsent := &roleRepository{actorRole: domain.RoleUser, emailUser: user}
+	_, err = NewService(withoutConsent, superadminTokens{}, signInHasher{}).SignIn(
+		context.Background(),
+		"User@Example.com",
+		"CurrentPass1@",
+		false,
+	)
+	if err != nil {
+		t.Fatalf("SignIn() without consent error = %v", err)
+	}
+	if withoutConsent.storedID != uuid.Nil || withoutConsent.storedEmail != "" {
+		t.Fatalf("stored delivery email without consent = (%v, %q)", withoutConsent.storedID, withoutConsent.storedEmail)
+	}
+}
 
 func TestUpdateRoleOnlyAllowsSuperadminToChangeAnotherAccount(t *testing.T) {
 	actor, target := uuid.New(), uuid.New()

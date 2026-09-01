@@ -73,12 +73,11 @@ func TestMain(m *testing.M) {
 	}
 
 	service, err := dealership.New(ctx, database, commonredis.NewIdempotencyStore(redisClient), config.Config{
-		PostgresDSN:        dsn,
-		RedisURL:           redisURL,
-		EmailEncryptionKey: "component-test-email-encryption-key",
-		EmailLookupKey:     "component-test-email-lookup-key",
-		JWTPrivateKeyPEM:   privateKeyPEM,
-		JWTPublicKeyPEM:    publicKeyPEM,
+		PostgresDSN:      dsn,
+		RedisURL:         redisURL,
+		EmailLookupKey:   "component-test-email-lookup-key",
+		JWTPrivateKeyPEM: privateKeyPEM,
+		JWTPublicKeyPEM:  publicKeyPEM,
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "start component-test service: %v\n", err)

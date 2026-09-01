@@ -136,7 +136,6 @@ services:
         Iqfpui7oXA1YXyHZDZ6xelX3za17TB55282uOxQQCzPsT3nRr/G4AU9hr6tqm3iO
         ywIDAQAB
         -----END PUBLIC KEY-----
-      EMAIL_ENCRYPTION_KEY: aabbcc112233
       EMAIL_LOOKUP_KEY: xxxyyyzzz66778899
       SERVER_PORT: 8080
       SERVER_PORT_TLS: 8443

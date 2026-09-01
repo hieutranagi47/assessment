@@ -54,7 +54,7 @@ func (r *authorizationRepository) UpdateRole(_ context.Context, _ uuid.UUID, rol
 	return nil
 }
 func (r *authorizationRepository) Update(context.Context, domain.User) error { return nil }
-func (r *authorizationRepository) UpdatePassword(context.Context, domain.User, string, string) error {
+func (r *authorizationRepository) UpdatePassword(context.Context, domain.User) error {
 	return nil
 }
 func (r *authorizationRepository) StoreDeliveryEmail(context.Context, uuid.UUID, string) error {

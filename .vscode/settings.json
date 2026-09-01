@@ -1,12 +1,14 @@
 {
     "cSpell.words": [
         "appconfig",
+        "authmodule",
         "commonlog",
         "jackc",
         "labstack",
         "otelhttp",
         "otelpgx",
         "pgxpool",
-        "readyz"
+        "readyz",
+        "redisclient"
     ]
 }

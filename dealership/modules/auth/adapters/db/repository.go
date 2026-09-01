@@ -19,16 +19,16 @@ import (
 type Repository struct {
 	database *pgxpool.Pool
 	queries  *dbmodels.Queries
-	emails   emailCrypto
+	emails   emailLookup
 }
 
-// NewRepository creates the PostgreSQL adapter. Email encryption and lookup
-// tokens are computed in this adapter, so database queries never receive keys.
-func NewRepository(database *pgxpool.Pool, emailEncryptionKey, emailLookupKey string) *Repository {
+// NewRepository creates the PostgreSQL adapter. Email lookup tokens are
+// computed in this adapter, so database queries never receive the lookup key.
+func NewRepository(database *pgxpool.Pool, emailLookupKey string) *Repository {
 	if database == nil {
 		panic("auth database pool is required")
 	}
-	emails, err := newEmailCrypto(emailEncryptionKey, emailLookupKey)
+	emails, err := newEmailLookup(emailLookupKey)
 	if err != nil {
 		panic(err)
 	}
@@ -48,17 +48,9 @@ func (r *Repository) CreateSuperadmin(ctx context.Context, user domain.User, pas
 	return r.createWithRole(ctx, user, password, "superadmin", true)
 }
 
-func (r *Repository) createWithRole(ctx context.Context, user domain.User, password, role string, onlyOne bool) error {
-	encryptedEmail, err := r.emails.encrypt(user.Email())
-	if err != nil {
-		return err
-	}
-	passwordEncryptedEmail, emailPasswordSalt, err := (passwordEmailCrypto{}).encrypt(user.Email(), password)
-	if err != nil {
-		return err
-	}
+func (r *Repository) createWithRole(ctx context.Context, user domain.User, _ string, role string, onlyOne bool) error {
 	previous := user.PreviousPasswordHashes()
-	err = common.UpdateInTx(ctx, r.database, func(ctx context.Context, tx pgx.Tx) error {
+	err := common.UpdateInTx(ctx, r.database, func(ctx context.Context, tx pgx.Tx) error {
 		queries := r.queries.WithTx(tx)
 		if err := queries.LockInitialAccountCreation(ctx); err != nil {
 			return err
@@ -73,19 +65,17 @@ func (r *Repository) createWithRole(ctx context.Context, user domain.User, passw
 			}
 		}
 		params := dbmodels.CreateUserParams{
-			UserID:            user.ID().String(),
-			Email:             encryptedEmail,
-			EmailPassword:     passwordEncryptedEmail,
-			EmailPasswordSalt: emailPasswordSalt,
-			EmailLookup:       r.emails.lookup(user.Email()),
-			FullName:          user.FullName(),
-			HashedPassword:    user.PasswordHash(),
-			HashedPassword1:   previous[0],
-			HashedPassword2:   previous[1],
-			TokenVer:          int32(user.TokenVersion()),
-			Status:            string(user.Status()),
-			CreatedAt:         user.CreatedAt(),
-			UpdatedAt:         user.UpdatedAt(),
+			UserID:          user.ID().String(),
+			Email:           nil,
+			EmailLookup:     r.emails.lookup(user.Email()),
+			FullName:        user.FullName(),
+			HashedPassword:  user.PasswordHash(),
+			HashedPassword1: previous[0],
+			HashedPassword2: previous[1],
+			TokenVer:        int32(user.TokenVersion()),
+			Status:          string(user.Status()),
+			CreatedAt:       user.CreatedAt(),
+			UpdatedAt:       user.UpdatedAt(),
 		}
 		if err := queries.CreateUser(ctx, params); err != nil {
 			return err
@@ -98,27 +88,20 @@ func (r *Repository) createWithRole(ctx context.Context, user domain.User, passw
 	return err
 }
 
-// FindByEmail loads and decrypts the email before restoring the domain user.
+// FindByEmail uses the caller-supplied, normalized address after its keyed
+// lookup token matched; an account without delivery consent stores no raw email.
 func (r *Repository) FindByEmail(ctx context.Context, email string) (domain.User, error) {
 	value, err := r.queries.GetUserByEmail(ctx, r.emails.lookup(email))
-	decryptedEmail, decryptErr := r.emails.decrypt(value.Email)
-	if err == nil && decryptErr != nil {
-		err = decryptErr
-	}
-	return toDomain(value.UserID, decryptedEmail, value.FullName, value.HashedPassword, value.HashedPassword1, value.HashedPassword2, value.TokenVer, value.Status, value.CreatedAt, value.UpdatedAt, err)
+	return toDomain(value.UserID, email, value.FullName, value.HashedPassword, value.HashedPassword1, value.HashedPassword2, value.TokenVer, value.Status, value.CreatedAt, value.UpdatedAt, err)
 }
 
 // FindSignInUserByEmail loads a user and its role in one query so the access
 // token is issued from one consistent authentication read.
 func (r *Repository) FindSignInUserByEmail(ctx context.Context, email string) (app.AuthenticatedUser, error) {
 	value, err := r.queries.GetSignInUserByEmail(ctx, r.emails.lookup(email))
-	decryptedEmail, decryptErr := r.emails.decrypt(value.Email)
-	if err == nil && decryptErr != nil {
-		err = decryptErr
-	}
 	user, err := toDomain(
 		value.UserID,
-		decryptedEmail,
+		email,
 		value.FullName,
 		value.HashedPassword,
 		value.HashedPassword1,
@@ -139,13 +122,9 @@ func (r *Repository) FindSignInUserByEmail(ctx context.Context, email string) (a
 // a refresh token is exchanged for a new access token.
 func (r *Repository) FindRefreshUserByID(ctx context.Context, id uuid.UUID) (app.AuthenticatedUser, error) {
 	value, err := r.queries.GetRefreshUserByID(ctx, id.String())
-	decryptedEmail, decryptErr := r.emails.decrypt(value.Email)
-	if err == nil && decryptErr != nil {
-		err = decryptErr
-	}
 	user, err := toDomain(
 		value.UserID,
-		decryptedEmail,
+		storedEmail(value.Email),
 		value.FullName,
 		value.HashedPassword,
 		value.HashedPassword1,
@@ -165,11 +144,7 @@ func (r *Repository) FindRefreshUserByID(ctx context.Context, id uuid.UUID) (app
 // FindByID loads a user by UUID and restores it through domain validation.
 func (r *Repository) FindByID(ctx context.Context, id uuid.UUID) (domain.User, error) {
 	value, err := r.queries.GetUserByID(ctx, id.String())
-	decryptedEmail, decryptErr := r.emails.decrypt(value.Email)
-	if err == nil && decryptErr != nil {
-		err = decryptErr
-	}
-	return toDomain(value.UserID, decryptedEmail, value.FullName, value.HashedPassword, value.HashedPassword1, value.HashedPassword2, value.TokenVer, value.Status, value.CreatedAt, value.UpdatedAt, err)
+	return toDomain(value.UserID, storedEmail(value.Email), value.FullName, value.HashedPassword, value.HashedPassword1, value.HashedPassword2, value.TokenVer, value.Status, value.CreatedAt, value.UpdatedAt, err)
 }
 
 // FindRole returns the role currently assigned to a user.
@@ -207,38 +182,18 @@ func (r *Repository) Update(ctx context.Context, user domain.User) error {
 	return nil
 }
 
-// UpdatePassword re-encrypts the password-protected email and updates the
-// password history in one transaction, so a successful password change cannot
-// leave the two encryption states out of sync.
-func (r *Repository) UpdatePassword(ctx context.Context, user domain.User, currentPassword, nextPassword string) error {
+// UpdatePassword persists a verified password change and its password history.
+func (r *Repository) UpdatePassword(ctx context.Context, user domain.User) error {
 	return common.UpdateInTx(ctx, r.database, func(ctx context.Context, tx pgx.Tx) error {
 		queries := r.queries.WithTx(tx)
-		storedEmail, err := queries.GetPasswordEncryptedEmail(ctx, user.ID().String())
-		if err != nil {
-			return err
-		}
-		plaintextEmail, err := (passwordEmailCrypto{}).decrypt(
-			storedEmail.EmailPassword,
-			storedEmail.EmailPasswordSalt,
-			currentPassword,
-		)
-		if err != nil {
-			return err
-		}
-		passwordEncryptedEmail, emailPasswordSalt, err := (passwordEmailCrypto{}).encrypt(plaintextEmail, nextPassword)
-		if err != nil {
-			return err
-		}
 		previous := user.PreviousPasswordHashes()
-		rows, err := queries.UpdateUserPasswordAndEmail(ctx, dbmodels.UpdateUserPasswordAndEmailParams{
-			EmailPassword:     passwordEncryptedEmail,
-			EmailPasswordSalt: emailPasswordSalt,
-			HashedPassword:    user.PasswordHash(),
-			HashedPassword1:   previous[0],
-			HashedPassword2:   previous[1],
-			TokenVer:          int32(user.TokenVersion()),
-			UpdatedAt:         user.UpdatedAt(),
-			UserID:            user.ID().String(),
+		rows, err := queries.UpdateUserPassword(ctx, dbmodels.UpdateUserPasswordParams{
+			HashedPassword:  user.PasswordHash(),
+			HashedPassword1: previous[0],
+			HashedPassword2: previous[1],
+			TokenVer:        int32(user.TokenVersion()),
+			UpdatedAt:       user.UpdatedAt(),
+			UserID:          user.ID().String(),
 		})
 		if err != nil {
 			return err
@@ -250,25 +205,12 @@ func (r *Repository) UpdatePassword(ctx context.Context, user domain.User, curre
 	})
 }
 
-// StoreDeliveryEmail decrypts the password-protected email only after the
-// caller has authenticated, then stores the plaintext delivery address because
-// the user explicitly opted in during sign-in.
-func (r *Repository) StoreDeliveryEmail(ctx context.Context, userID uuid.UUID, password string) error {
-	storedEmail, err := r.queries.GetPasswordEncryptedEmail(ctx, userID.String())
-	if err != nil {
-		return err
-	}
-	email, err := (passwordEmailCrypto{}).decrypt(
-		storedEmail.EmailPassword,
-		storedEmail.EmailPasswordSalt,
-		password,
-	)
-	if err != nil {
-		return err
-	}
+// StoreDeliveryEmail stores the plaintext address only after an authenticated
+// user has explicitly opted in during sign-in.
+func (r *Repository) StoreDeliveryEmail(ctx context.Context, userID uuid.UUID, email string) error {
 	rows, err := r.queries.StoreDeliveryEmail(ctx, dbmodels.StoreDeliveryEmailParams{
-		EmailTo: &email,
-		UserID:  userID.String(),
+		Email:  &email,
+		UserID: userID.String(),
 	})
 	if err != nil {
 		return err
@@ -277,6 +219,13 @@ func (r *Repository) StoreDeliveryEmail(ctx context.Context, userID uuid.UUID, p
 		return app.ErrNotFound
 	}
 	return nil
+}
+
+func storedEmail(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return *value
 }
 
 // toDomain converts generated SQL models into the domain model while mapping

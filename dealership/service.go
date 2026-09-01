@@ -59,7 +59,7 @@ func New(ctx context.Context, database *pgxpool.Pool, idempotencyStore commonHTT
 		return c.NoContent(http.StatusNoContent)
 	})
 	modules := []module.Module{
-		auth.NewModule(database, auth.Config{EmailEncryptionKey: config.EmailEncryptionKey, EmailLookupKey: config.EmailLookupKey, JWTPrivateKeyPEM: []byte(config.JWTPrivateKeyPEM), JWTPublicKeyPEM: []byte(config.JWTPublicKeyPEM)}),
+		auth.NewModule(database, auth.Config{EmailLookupKey: config.EmailLookupKey, JWTPrivateKeyPEM: []byte(config.JWTPrivateKeyPEM), JWTPublicKeyPEM: []byte(config.JWTPublicKeyPEM)}),
 		appointment_scheduler.NewModule(database),
 	}
 	moduleContracts := &contracts.Contracts{}
