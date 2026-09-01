@@ -32,6 +32,8 @@ This starts:
 - Grafana on [localhost:3000](http://localhost:3000) (`admin` / `admin`)
 - Jaeger on [localhost:16686](http://localhost:16686)
 
+Check that the service is running:
+
 ```sh
 curl -i http://localhost:9999/health
 curl -i http://localhost:9999/metrics
@@ -225,12 +227,3 @@ Copy the `access_token` to test other apis.
 Access the Jaeger at http://localhost:16686, select the `dealership` service to see it.
 
 ![Jaeger screenshot](tracing.png)
-
-
-
-
-DEALERSHIP_CODE=HCM \
-  CORRELATION_ID=tracing-id-6789 \
-  APPOINTMENT_DATE=2026-09-10 \
-  APPOINTMENT_LOCAL_TIME=10:00 \
-  ./dealership/scripts/create-appointment-manual-test.sh
