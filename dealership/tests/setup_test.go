@@ -19,16 +19,18 @@ import (
 
 	dealership "assessment"
 	"assessment/modules/common/config"
+	commonredis "assessment/modules/common/redis"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 const (
-	componentTestEnabledVariable = "COMPONENT_TEST"
-	componentTestDSNVariable     = "COMPONENT_TEST_POSTGRES_DSN"
-	superadminEmail              = "component-superadmin@example.test"
-	superadminPassword           = "ComponentPass1@"
+	componentTestEnabledVariable  = "COMPONENT_TEST"
+	componentTestDSNVariable      = "COMPONENT_TEST_POSTGRES_DSN"
+	componentTestRedisURLVariable = "COMPONENT_TEST_REDIS_URL"
+	superadminEmail               = "component-superadmin@example.test"
+	superadminPassword            = "ComponentPass1@"
 )
 
 var componentServer *httptest.Server
@@ -43,6 +45,11 @@ func TestMain(m *testing.M) {
 		fmt.Fprintf(os.Stderr, "%s is required when %s=1\n", componentTestDSNVariable, componentTestEnabledVariable)
 		os.Exit(2)
 	}
+	redisURL := os.Getenv(componentTestRedisURLVariable)
+	if redisURL == "" {
+		fmt.Fprintf(os.Stderr, "%s is required when %s=1\n", componentTestRedisURLVariable, componentTestEnabledVariable)
+		os.Exit(2)
+	}
 
 	ctx := context.Background()
 	database, err := pgxpool.New(ctx, dsn)
@@ -50,23 +57,31 @@ func TestMain(m *testing.M) {
 		fmt.Fprintf(os.Stderr, "connect component-test database: %v\n", err)
 		os.Exit(2)
 	}
-
-	privateKeyPEM, publicKeyPEM, err := testKeyPair()
+	redisClient, err := commonredis.NewClient(ctx, redisURL)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "generate component-test signing key: %v\n", err)
+		fmt.Fprintf(os.Stderr, "connect component-test Redis: %v\n", err)
 		database.Close()
 		os.Exit(2)
 	}
 
-	service, err := dealership.New(ctx, database, config.Config{
-		PostgresDSN:        dsn,
-		EmailEncryptionKey: "component-test-email-encryption-key",
-		EmailLookupKey:     "component-test-email-lookup-key",
-		JWTPrivateKeyPEM:   privateKeyPEM,
-		JWTPublicKeyPEM:    publicKeyPEM,
+	privateKeyPEM, publicKeyPEM, err := testKeyPair()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "generate component-test signing key: %v\n", err)
+		_ = redisClient.Close()
+		database.Close()
+		os.Exit(2)
+	}
+
+	service, err := dealership.New(ctx, database, commonredis.NewIdempotencyStore(redisClient), config.Config{
+		PostgresDSN:      dsn,
+		RedisURL:         redisURL,
+		EmailLookupKey:   "component-test-email-lookup-key",
+		JWTPrivateKeyPEM: privateKeyPEM,
+		JWTPublicKeyPEM:  publicKeyPEM,
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "start component-test service: %v\n", err)
+		_ = redisClient.Close()
 		database.Close()
 		os.Exit(2)
 	}
@@ -75,13 +90,14 @@ func TestMain(m *testing.M) {
 	exitCode := m.Run()
 	componentServer.Close()
 	_ = service.Close()
+	_ = redisClient.Close()
 	os.Exit(exitCode)
 }
 
 func requireComponentTest(t *testing.T) {
 	t.Helper()
 	if componentServer == nil {
-		t.Skipf("component tests are disabled; set %s=1 and %s to run them", componentTestEnabledVariable, componentTestDSNVariable)
+		t.Skipf("component tests are disabled; set %s=1, %s, and %s to run them", componentTestEnabledVariable, componentTestDSNVariable, componentTestRedisURLVariable)
 	}
 }
 
@@ -126,6 +142,9 @@ func requestJSON(t *testing.T, method, path, token string, body any) apiResponse
 		t.Fatalf("create %s %s request: %v", method, path, err)
 	}
 	request.Header.Set("Content-Type", "application/json")
+	if method == http.MethodPost || method == http.MethodPut || method == http.MethodPatch {
+		request.Header.Set("Idempotency-Id", uuid.NewString())
+	}
 	if token != "" {
 		request.Header.Set("Authorization", "Bearer "+token)
 	}

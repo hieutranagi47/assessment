@@ -65,9 +65,21 @@ func NewUser(id uuid.UUID, email, fullName, passwordHash string, now time.Time) 
 // RestoreUser rebuilds a user loaded from storage and validates persisted
 // state before allowing it back into the domain.
 func RestoreUser(id uuid.UUID, email, fullName, passwordHash string, previous [2]string, tokenVersion int, status Status, createdAt, updatedAt time.Time) (User, error) {
-	u, err := NewUser(id, email, fullName, passwordHash, createdAt)
-	if err != nil {
-		return User{}, err
+	var u User
+	if email == "" {
+		if id == uuid.Nil {
+			return User{}, errors.New("user ID is required")
+		}
+		if strings.TrimSpace(passwordHash) == "" {
+			return User{}, ErrInvalidPassword
+		}
+		u = User{id: id, fullName: strings.TrimSpace(fullName), passwordHash: passwordHash, tokenVersion: 1, status: StatusActive, createdAt: createdAt.UTC()}
+	} else {
+		var err error
+		u, err = NewUser(id, email, fullName, passwordHash, createdAt)
+		if err != nil {
+			return User{}, err
+		}
 	}
 	if tokenVersion < 1 {
 		return User{}, errors.New("token version must be positive")

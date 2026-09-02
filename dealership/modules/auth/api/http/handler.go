@@ -89,7 +89,16 @@ func (h *Handler) SignUp(ctx context.Context, request SignUpRequestObject) (Sign
 	if request.Body.FullName != nil {
 		fullName = *request.Body.FullName
 	}
-	id, err := h.service.SignUp(ctx, app.SignUpInput{Email: string(request.Body.Email), Password: request.Body.Password, FullName: fullName})
+
+	id, err := h.service.SignUp(
+		ctx,
+		app.SignUpInput{
+			Email:    string(request.Body.Email),
+			Password: request.Body.Password,
+			FullName: fullName,
+		},
+	)
+
 	if err != nil {
 		commonlog.FromContext(ctx).With("error", err).Error("Sign-up failed")
 		if errors.Is(err, app.ErrEmailTaken) {
@@ -107,7 +116,8 @@ func (h *Handler) SignIn(ctx context.Context, request SignInRequestObject) (Sign
 			BadRequestJSONResponse: badRequest("request_body_required", "request body is required"),
 		}, nil
 	}
-	tokens, err := h.service.SignIn(ctx, string(request.Body.Email), request.Body.Password)
+	storeDeliveryEmail := request.Body.StoreDeliveryEmail != nil && *request.Body.StoreDeliveryEmail
+	tokens, err := h.service.SignIn(ctx, string(request.Body.Email), request.Body.Password, storeDeliveryEmail)
 	if err != nil {
 		return SignIn401JSONResponse{UnauthorizedJSONResponse: unauthorized("invalid_credentials", "invalid credentials")}, nil
 	}

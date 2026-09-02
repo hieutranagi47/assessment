@@ -22,8 +22,8 @@ type setupRepository struct {
 	err   error
 }
 
-func (r *setupRepository) Create(context.Context, domain.User) error { return nil }
-func (r *setupRepository) CreateSuperadmin(_ context.Context, _ domain.User) error {
+func (r *setupRepository) Create(context.Context, domain.User, string) error { return nil }
+func (r *setupRepository) CreateSuperadmin(_ context.Context, _ domain.User, _ string) error {
 	r.calls++
 	return r.err
 }
@@ -44,6 +44,12 @@ func (r *setupRepository) FindRole(context.Context, uuid.UUID) (string, error) {
 }
 func (r *setupRepository) UpdateRole(context.Context, uuid.UUID, string, time.Time) error { return nil }
 func (r *setupRepository) Update(context.Context, domain.User) error                      { return nil }
+func (r *setupRepository) UpdatePassword(context.Context, domain.User) error {
+	return nil
+}
+func (r *setupRepository) StoreDeliveryEmail(context.Context, uuid.UUID, string) error {
+	return nil
+}
 
 type setupTokens struct{}
 

@@ -85,3 +85,17 @@ SET full_name = sqlc.arg('full_name'),
     status = sqlc.arg('status'),
     updated_at = sqlc.arg('updated_at')
 WHERE user_id = sqlc.arg('user_id');
+
+-- name: UpdateUserPassword :execrows
+UPDATE auth.users
+SET hashed_password = sqlc.arg('hashed_password'),
+    hashed_password_1 = sqlc.arg('hashed_password_1'),
+    hashed_password_2 = sqlc.arg('hashed_password_2'),
+    token_ver = sqlc.arg('token_ver'),
+    updated_at = sqlc.arg('updated_at')
+WHERE user_id = sqlc.arg('user_id');
+
+-- name: StoreDeliveryEmail :execrows
+UPDATE auth.users
+SET email = sqlc.arg('email')
+WHERE user_id = sqlc.arg('user_id');

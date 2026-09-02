@@ -199,6 +199,9 @@ components:
       properties:
         email: { type: string, format: email }
         password: { type: string, format: password }
+        store_delivery_email:
+          type: boolean
+          description: When true, store this address in plaintext for future email delivery.
     ChangePasswordRequest:
       type: object
       required: [password, new_password]

@@ -57,8 +57,20 @@ type ScheduleAppointmentRecord struct {
 }
 
 func (s *Service) ScheduleAppointment(ctx context.Context, actorID uuid.UUID, input ScheduleAppointmentInput) (record ScheduleAppointmentRecord, err error) {
-	ctx, complete := s.telemetry.StartScheduleAppointment(ctx)
-	defer func() { complete(appointmentOutcome(err)) }()
+	ctx, complete := s.telemetry.StartScheduleAppointment(ctx, ScheduleAppointmentTraceMetadata{
+		ActorID:       actorID,
+		CustomerID:    input.CustomerID,
+		VehicleID:     input.VehicleID,
+		ServiceTypeID: input.ServiceTypeID,
+		TechnicianID:  input.TechnicianID,
+		ServiceBayID:  input.ServiceBayID,
+	})
+	defer func() {
+		complete(ScheduleAppointmentTraceResult{
+			AppointmentID: record.AppointmentID,
+			DealershipID:  record.DealershipID,
+		}, err)
+	}()
 
 	repository, ok := s.repository.(AppointmentRepository)
 	if !ok {
@@ -103,8 +115,13 @@ func (s *Service) ScheduleAppointment(ctx context.Context, actorID uuid.UUID, in
 }
 
 func (s *Service) ChangeAppointmentStatus(ctx context.Context, actorID, appointmentID uuid.UUID, from, to domain.AppointmentStatus, actualEndsAt *time.Time, cancellationReason, note *string) (err error) {
-	ctx, complete := s.telemetry.StartAppointmentTransition(ctx, from, to)
-	defer func() { complete(appointmentOutcome(err)) }()
+	ctx, complete := s.telemetry.StartAppointmentTransition(ctx, AppointmentTransitionTraceMetadata{
+		ActorID:       actorID,
+		AppointmentID: appointmentID,
+		From:          from,
+		To:            to,
+	})
+	defer func() { complete(err) }()
 
 	if actorID == uuid.Nil || appointmentID == uuid.Nil {
 		return common.NewInvalidInputError("validation_error", "appointment and actor IDs are required")

@@ -10,10 +10,11 @@ import (
 	"syscall"
 	"time"
 
-	authservice "assessment"
+	dealershipService "assessment"
 	appconfig "assessment/modules/common/config"
 	commonlog "assessment/modules/common/log"
 	"assessment/modules/common/observability"
+	commonredis "assessment/modules/common/redis"
 
 	"github.com/exaring/otelpgx"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -61,8 +62,18 @@ func main() {
 	if err := otelpgx.RecordStats(database); err != nil {
 		log.Fatal(fmt.Errorf("register PostgreSQL pool metrics: %w", err))
 	}
+	redisClient, err := commonredis.NewClient(ctx, config.RedisURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func() {
+		if err := redisClient.Close(); err != nil {
+			log.Printf("close Redis: %v", err)
+		}
+	}()
 
-	service, err := authservice.New(ctx, database, config)
+	idempotencyStore := commonredis.NewIdempotencyStore(redisClient)
+	service, err := dealershipService.New(ctx, database, idempotencyStore, config)
 	if err != nil {
 		log.Fatal(err)
 	}

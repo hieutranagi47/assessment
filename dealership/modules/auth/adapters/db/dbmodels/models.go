@@ -16,9 +16,8 @@ type AuthRole struct {
 type AuthUser struct {
 	UserID          string
 	FullName        string
-	Email           []byte
+	Email           *string
 	EmailLookup     []byte
-	EmailTo         *string
 	HashedPassword  string
 	HashedPassword1 string
 	HashedPassword2 string

@@ -31,7 +31,7 @@ INSERT INTO auth.users (
 
 type CreateUserParams struct {
 	UserID          string
-	Email           []byte
+	Email           *string
 	EmailLookup     []byte
 	FullName        string
 	HashedPassword  string
@@ -104,7 +104,7 @@ WHERE users.user_id = $1
 
 type GetRefreshUserByIDRow struct {
 	UserID          string
-	Email           []byte
+	Email           *string
 	FullName        string
 	HashedPassword  string
 	HashedPassword1 string
@@ -147,7 +147,7 @@ WHERE users.email_lookup = $1
 
 type GetSignInUserByEmailRow struct {
 	UserID          string
-	Email           []byte
+	Email           *string
 	FullName        string
 	HashedPassword  string
 	HashedPassword1 string
@@ -187,7 +187,7 @@ WHERE email_lookup = $1
 
 type GetUserByEmailRow struct {
 	UserID          string
-	Email           []byte
+	Email           *string
 	FullName        string
 	HashedPassword  string
 	HashedPassword1 string
@@ -225,7 +225,7 @@ WHERE user_id = $1
 
 type GetUserByIDRow struct {
 	UserID          string
-	Email           []byte
+	Email           *string
 	FullName        string
 	HashedPassword  string
 	HashedPassword1 string
@@ -291,6 +291,25 @@ func (q *Queries) LockInitialAccountCreation(ctx context.Context) error {
 	return err
 }
 
+const storeDeliveryEmail = `-- name: StoreDeliveryEmail :execrows
+UPDATE auth.users
+SET email = $1
+WHERE user_id = $2
+`
+
+type StoreDeliveryEmailParams struct {
+	Email  *string
+	UserID string
+}
+
+func (q *Queries) StoreDeliveryEmail(ctx context.Context, arg StoreDeliveryEmailParams) (int64, error) {
+	result, err := q.db.Exec(ctx, storeDeliveryEmail, arg.Email, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const updateUser = `-- name: UpdateUser :execrows
 UPDATE auth.users
 SET full_name = $1,
@@ -322,6 +341,40 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (int64, 
 		arg.HashedPassword2,
 		arg.TokenVer,
 		arg.Status,
+		arg.UpdatedAt,
+		arg.UserID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const updateUserPassword = `-- name: UpdateUserPassword :execrows
+UPDATE auth.users
+SET hashed_password = $1,
+    hashed_password_1 = $2,
+    hashed_password_2 = $3,
+    token_ver = $4,
+    updated_at = $5
+WHERE user_id = $6
+`
+
+type UpdateUserPasswordParams struct {
+	HashedPassword  string
+	HashedPassword1 string
+	HashedPassword2 string
+	TokenVer        int32
+	UpdatedAt       time.Time
+	UserID          string
+}
+
+func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateUserPassword,
+		arg.HashedPassword,
+		arg.HashedPassword1,
+		arg.HashedPassword2,
+		arg.TokenVer,
 		arg.UpdatedAt,
 		arg.UserID,
 	)

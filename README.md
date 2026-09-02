@@ -56,6 +56,7 @@ DEALERSHIP_CODE=HCM \
   APPOINTMENT_DATE=2026-09-25 \
   APPOINTMENT_LOCAL_TIME=09:00 \
   CORRELATION_ID=demo-6666 \
+  IDEMPOTENCY_KEY=manual-appointment-001 \
   ./dealership/scripts/create-appointment-manual-test.sh
 ```
 
@@ -84,10 +85,10 @@ curl -k -i https://localhost:8444/health
 
 ## Run and test the Go service without the app container
 
-You can run only PostgreSQL in Docker and run Go locally:
+You can run PostgreSQL and Redis in Docker and run Go locally:
 
 ```sh
-docker compose up -d postgres
+docker compose up -d postgres redis
 cd dealership
 go test ./...
 go run ./cmd
@@ -100,11 +101,12 @@ is run locally, use `POSTGRES_DSN` with `localhost`, for example:
 
 ```sh
 export POSTGRES_DSN='postgres://postgres:very-secret@localhost:5432/ht47?sslmode=disable'
+export REDIS_URL='redis://localhost:6379/0'
 ```
 
 ## Configuration overrides
 
-Compose supplies development defaults for the database, RSA key pair, email
+Compose supplies development defaults for PostgreSQL, Redis, the RSA key pair, email
 encryption keys, and container listener ports. Override host ports or database
 settings with environment variables when needed:
 

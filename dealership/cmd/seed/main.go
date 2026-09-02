@@ -25,7 +25,7 @@ func main() {
 		log.Fatal("connect PostgreSQL: ", err)
 	}
 	defer database.Close()
-	if err := seed.Run(ctx, database, appConfig.EmailEncryptionKey, appConfig.EmailLookupKey, os.Getenv("SEED_PASSWORD")); err != nil {
+	if err := seed.Run(ctx, database, appConfig.EmailLookupKey, os.Getenv("SEED_PASSWORD")); err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println("deterministic development seed data is ready")

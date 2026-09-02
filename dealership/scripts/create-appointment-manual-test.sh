@@ -8,6 +8,7 @@
 # Optional overrides:
 #   DEALERSHIP_CODE=DAL APPOINTMENT_DATE=2026-09-01 \
 #   APPOINTMENT_LOCAL_TIME=09:00 CORRELATION_ID=manual-appointment-001 \
+#   IDEMPOTENCY_KEY=manual-appointment-001 \
 #   ./dealership/scripts/create-appointment-manual-test.sh
 
 set -euo pipefail
@@ -17,6 +18,7 @@ DEALERSHIP_CODE="${DEALERSHIP_CODE:-}"
 APPOINTMENT_DATE="${APPOINTMENT_DATE:-2026-09-01}"
 APPOINTMENT_LOCAL_TIME="${APPOINTMENT_LOCAL_TIME:-09:00}"
 CORRELATION_ID="${CORRELATION_ID:-manual-appointment-${APPOINTMENT_DATE}-${APPOINTMENT_LOCAL_TIME//:/}}"
+IDEMPOTENCY_KEY="${IDEMPOTENCY_KEY:-manual-appointment-${APPOINTMENT_DATE}-${APPOINTMENT_LOCAL_TIME//:/}}"
 SEED_PASSWORD="${SEED_PASSWORD:-Abc@6789}"
 POSTGRES_USER="${POSTGRES_USER:-postgres}"
 POSTGRES_DB="${POSTGRES_DB:-ht47}"
@@ -51,7 +53,7 @@ api() {
 
 printf 'Selecting an active dealership, its scheduler admin, and timezone from PostgreSQL...\n'
 dealership_row="$(db_query -c "
-  SELECT d.dealership_id, d.code, d.timezone, au.email_to
+  SELECT d.dealership_id, d.code, d.timezone, au.email
   FROM appointment_scheduler.dealerships AS d
   JOIN appointment_scheduler.users AS u
     ON u.dealership_id = d.dealership_id
@@ -82,6 +84,7 @@ IFS=$'\t' read -r DEALERSHIP_ID SELECTED_DEALERSHIP_CODE DEALERSHIP_TIMEZONE ADM
 printf 'Using dealership %s (%s), timezone %s, admin %s.\n' \
   "$SELECTED_DEALERSHIP_CODE" "$DEALERSHIP_ID" "$DEALERSHIP_TIMEZONE" "$ADMIN_EMAIL"
 printf 'Using Correlation-ID: %s\n' "$CORRELATION_ID"
+printf 'Using Idempotency-Id: %s\n' "$IDEMPOTENCY_KEY"
 
 printf 'Signing in...\n'
 sign_in_body="$(jq -nc --arg email "$ADMIN_EMAIL" --arg password "$SEED_PASSWORD" \
@@ -89,6 +92,7 @@ sign_in_body="$(jq -nc --arg email "$ADMIN_EMAIL" --arg password "$SEED_PASSWORD
 sign_in_response="$(curl --fail-with-body --silent --show-error \
   -H 'Content-Type: application/json' \
   -H "Correlation-ID: ${CORRELATION_ID}" \
+  -H "Idempotency-Id: ${IDEMPOTENCY_KEY}" \
   -X POST "$BASE_URL/auth/v1/sign-in" \
   --data "$sign_in_body")"
 ACCESS_TOKEN="$(jq -er '.access_token' <<<"$sign_in_response")"
@@ -227,6 +231,7 @@ appointment_body="$(jq -nc \
   --argjson planned_duration_minutes "$PLANNED_DURATION_MINUTES" \
   '{customer_id: $customer_id, vehicle_id: $vehicle_id, service_type_id: $service_type_id, starts_at: $starts_at, technician_id: $technician_id, service_bay_id: $service_bay_id, planned_duration_minutes: $planned_duration_minutes, notes: "Manual API test"}')"
 appointment_response="$(api -H 'Content-Type: application/json' \
+  -H "Idempotency-Id: ${IDEMPOTENCY_KEY}" \
   -X POST "$BASE_URL/appointment-scheduler/v1/appointments" \
   --data "$appointment_body")"
 printf '%s\n' "$appointment_response" | jq .

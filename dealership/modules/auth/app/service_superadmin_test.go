@@ -20,8 +20,8 @@ type superadminRepository struct {
 	createError error
 }
 
-func (r *superadminRepository) Create(context.Context, domain.User) error { return nil }
-func (r *superadminRepository) CreateSuperadmin(_ context.Context, user domain.User) error {
+func (r *superadminRepository) Create(context.Context, domain.User, string) error { return nil }
+func (r *superadminRepository) CreateSuperadmin(_ context.Context, user domain.User, _ string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.createError != nil {
@@ -52,6 +52,12 @@ func (r *superadminRepository) UpdateRole(context.Context, uuid.UUID, string, ti
 	return nil
 }
 func (r *superadminRepository) Update(context.Context, domain.User) error { return nil }
+func (r *superadminRepository) UpdatePassword(context.Context, domain.User) error {
+	return nil
+}
+func (r *superadminRepository) StoreDeliveryEmail(context.Context, uuid.UUID, string) error {
+	return nil
+}
 
 type superadminTokens struct{}
 

@@ -7,11 +7,11 @@ import (
 
 func TestLoadRequiresSecurityAndInfrastructureSettings(t *testing.T) {
 	required := map[string]string{
-		"POSTGRES_DSN":         "postgres://example",
-		"EMAIL_ENCRYPTION_KEY": "encryption-key",
-		"EMAIL_LOOKUP_KEY":     "lookup-key",
-		"RSA_PRIVATE_KEY_PEM":  "private-key",
-		"RSA_PUBLIC_KEY_PEM":   "public-key",
+		"POSTGRES_DSN":        "postgres://example",
+		"REDIS_URL":           "redis://example:6379/0",
+		"EMAIL_LOOKUP_KEY":    "lookup-key",
+		"RSA_PRIVATE_KEY_PEM": "private-key",
+		"RSA_PUBLIC_KEY_PEM":  "public-key",
 	}
 	for name, value := range required {
 		t.Setenv(name, value)
@@ -34,13 +34,13 @@ func TestLoadRequiresSecurityAndInfrastructureSettings(t *testing.T) {
 
 func TestLoadUsesListenerPortDefaults(t *testing.T) {
 	for name, value := range map[string]string{
-		"POSTGRES_DSN":         "postgres://example",
-		"EMAIL_ENCRYPTION_KEY": "encryption-key",
-		"EMAIL_LOOKUP_KEY":     "lookup-key",
-		"RSA_PRIVATE_KEY_PEM":  "private-key",
-		"RSA_PUBLIC_KEY_PEM":   "public-key",
-		"SERVER_PORT":          "",
-		"SERVER_PORT_TLS":      "",
+		"POSTGRES_DSN":        "postgres://example",
+		"REDIS_URL":           "redis://example:6379/0",
+		"EMAIL_LOOKUP_KEY":    "lookup-key",
+		"RSA_PRIVATE_KEY_PEM": "private-key",
+		"RSA_PUBLIC_KEY_PEM":  "public-key",
+		"SERVER_PORT":         "",
+		"SERVER_PORT_TLS":     "",
 	} {
 		t.Setenv(name, value)
 	}
